@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NearBy — Complete Setup & Launch Guide</title>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+  --border: #30363d; --text: #e6edf3; --text2: #8b949e; --text3: #6e7681;
+  --green: #3fb950; --blue: #58a6ff; --amber: #ffa657;
+  --purple: #bc8cff; --red: #f78166; --teal: #39d353;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; min-height: 100vh; }
+
+/* Sidebar */
+#sidebar {
+  width: 220px; min-width: 220px; background: var(--bg2);
+  border-right: 1px solid var(--border); height: 100vh;
+  position: sticky; top: 0; overflow-y: auto; padding: 16px 0;
+}
+.sb-logo { padding: 0 16px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.sb-logo-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.sb-logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.sb-section { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .08em;
+  text-transform: uppercase; padding: 8px 16px 4px; }
+.sb-link { display: block; padding: 5px 16px; font-size: 12px; color: var(--text2);
+  cursor: pointer; transition: all .1s; border-left: 2px solid transparent; }
+.sb-link:hover { background: var(--bg3); color: var(--text); }
+.sb-link.active { color: var(--blue); border-left-color: var(--blue); background: #1f6feb11; }
+
+/* Main */
+#main { flex: 1; overflow-y: auto; padding: 32px 40px; max-width: 820px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* Typography */
+.page-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
+h2 { font-size: 15px; font-weight: 600; color: var(--text); margin: 28px 0 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+h3 { font-size: 13px; font-weight: 600; color: var(--text2); margin: 16px 0 8px; }
+p { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 10px; }
+
+/* Steps */
+.step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden; margin-bottom: 12px; }
+.step-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border); }
+.step-n { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.n-blue { background: #1f6feb33; color: var(--blue); }
+.n-green { background: #3fb95033; color: var(--green); }
+.n-amber { background: #ffa65733; color: var(--amber); }
+.n-purple { background: #bc8cff33; color: var(--purple); }
+.n-red { background: #f7816633; color: var(--red); }
+.step-title { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+.platform { font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+.step-body { padding: 14px 16px; }
+.step-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 12px; }
+
+/* Code blocks */
+.cmd-wrap { margin-bottom: 10px; }
+.cmd-label { font-size: 10px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: 6px; font-family: var(--mono); }
+.cmd-box { background: #010409; border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; position: relative; }
+.cmd-box pre { font-family: var(--mono); font-size: 12px; color: #e6edf3; line-height: 1.8;
+  white-space: pre-wrap; word-break: break-word; }
+.c { color: #8b949e; }   /* comment */
+.g { color: #3fb950; }   /* green - command */
+.b { color: #79c0ff; }   /* blue - keyword */
+.a { color: #ffa657; }   /* amber - value */
+.p { color: #bc8cff; }   /* purple */
+.r { color: #f78166; }   /* red - warning */
+.copy-btn { position: absolute; top: 8px; right: 8px; background: var(--bg3);
+  border: 1px solid var(--border); color: var(--text3); font-size: 10px; padding: 3px 8px;
+  border-radius: 4px; cursor: pointer; font-family: var(--font); transition: all .15s; }
+.copy-btn:hover { background: var(--border); color: var(--text); }
+
+/* Callouts */
+.callout { border-radius: 8px; padding: 10px 14px; font-size: 12px; line-height: 1.6;
+  margin-bottom: 10px; display: flex; gap: 8px; }
+.callout-icon { flex-shrink: 0; margin-top: 1px; }
+.callout.warn { background: #ffa65711; border: 1px solid #ffa65733; color: #ffa657; }
+.callout.info { background: #58a6ff11; border: 1px solid #58a6ff33; color: #79c0ff; }
+.callout.success { background: #3fb95011; border: 1px solid #3fb95033; color: #3fb950; }
+.callout.danger { background: #f7816611; border: 1px solid #f7816633; color: #f78166; }
+.callout strong { display: block; font-weight: 600; margin-bottom: 3px; }
+
+/* Prompt boxes */
+.prompt-box { border: 1.5px solid var(--green); border-radius: 10px; overflow: hidden;
+  margin-bottom: 14px; }
+.prompt-box.blue-border { border-color: var(--blue); }
+.prompt-box.amber-border { border-color: var(--amber); }
+.prompt-box.purple-border { border-color: var(--purple); }
+.prompt-head { padding: 8px 14px; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+  text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.prompt-head.green { background: #3fb95022; color: var(--green); }
+.prompt-head.blue { background: #79c0ff22; color: var(--blue); }
+.prompt-head.amber { background: #ffa65722; color: var(--amber); }
+.prompt-head.purple { background: #bc8cff22; color: var(--purple); }
+.prompt-body { background: #010409; padding: 14px 16px; font-family: var(--mono);
+  font-size: 12px; color: #e6edf3; line-height: 1.8; white-space: pre-wrap;
+  word-break: break-word; position: relative; }
+
+/* Tags */
+.tag-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.tag { font-size: 10px; padding: 2px 8px; border-radius: 8px;
+  background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+.tag.g { background: #3fb95015; color: var(--green); border-color: #3fb95033; }
+.tag.b { background: #58a6ff15; color: var(--blue); border-color: #58a6ff33; }
+.tag.r { background: #f7816615; color: var(--red); border-color: #f7816633; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+th { background: var(--bg3); color: var(--text2); font-weight: 600; text-align: left;
+  padding: 8px 12px; border: 1px solid var(--border); font-size: 11px; }
+td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+td code { font-family: var(--mono); font-size: 11px; background: var(--bg3);
+  padding: 1px 5px; border-radius: 3px; color: var(--blue); }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-name">NearBy Setup</div>
+    <div class="sb-logo-sub">Complete install guide</div>
+  </div>
+  <div class="sb-section">Before you start</div>
+  <div class="sb-link active" onclick="show('overview')">What you'll install</div>
+  <div class="sb-link" onclick="show('accounts')">Accounts needed</div>
+
+  <div class="sb-section">Installation</div>
+  <div class="sb-link" onclick="show('nodejs')">1 · Node.js</div>
+  <div class="sb-link" onclick="show('claudecode')">2 · Claude Code CLI</div>
+  <div class="sb-link" onclick="show('git')">3 · Git & GitHub</div>
+  <div class="sb-link" onclick="show('docker')">4 · Docker</div>
+  <div class="sb-link" onclick="show('expo')">5 · Expo CLI</div>
+
+  <div class="sb-section">Claude Code Setup</div>
+  <div class="sb-link" onclick="show('plugins')">6 · Plugins</div>
+  <div class="sb-link" onclick="show('commands')">7 · Slash commands</div>
+
+  <div class="sb-section">Launch prompts</div>
+  <div class="sb-link" onclick="show('prompt-kickoff')">🚀 Kickoff prompt</div>
+  <div class="sb-link" onclick="show('prompt-s1')">Sprint 1 — Auth</div>
+  <div class="sb-link" onclick="show('prompt-s2')">Sprint 2 — Shops</div>
+  <div class="sb-link" onclick="show('prompt-s3')">Sprint 3 — Orders</div>
+  <div class="sb-link" onclick="show('prompt-daily')">Daily workflow</div>
+</div>
+
+<div id="main">
+
+<!-- OVERVIEW -->
+<div id="sec-overview" class="section active">
+  <div class="page-title">What you'll install</div>
+  <div class="page-sub">Everything needed to build NearBy from scratch. Follow in order — each step depends on the previous one.</div>
+  <table>
+    <tr><th>Tool</th><th>Purpose</th><th>Required?</th><th>Cost</th></tr>
+    <tr><td><strong>Node.js 20+</strong></td><td>Runtime for backend + tooling</td><td><span style="color:var(--green)">✅ Yes</span></td><td>Free</td></tr>
+    <tr><td><strong>Claude Code CLI</strong></td><td>AI coding agent in your terminal</td><td><span style="color:var(--green)">✅ Yes</span></td><td>Included in Claude Pro ($20/mo)</td></tr>
+    <tr><td><strong>Git</strong></td><td>Version control</td><td><span style="color:var(--green)">✅ Yes</span></td><td>Free</td></tr>
+    <tr><td><strong>Docker Desktop</strong></td><td>Run Redis + Typesense locally</td><td><span style="color:var(--green)">✅ Yes</span></td><td>Free</td></tr>
+    <tr><td><strong>Expo CLI</strong></td><td>Build React Native apps</td><td><span style="color:var(--green)">✅ Yes</span></td><td>Free</td></tr>
+    <tr><td><strong>claude-mem plugin</strong></td><td>Persistent memory across Claude sessions</td><td><span style="color:var(--green)">✅ Yes</span></td><td>Free</td></tr>
+    <tr><td><strong>Anthropic official plugins</strong></td><td>PR review, security, commit messages</td><td>Recommended</td><td>Free</td></tr>
+    <tr><td><strong>VS Code or Cursor</strong></td><td>Code editor</td><td>Recommended</td><td>Free</td></tr>
+  </table>
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <div><strong>Estimated setup time: 25–35 minutes</strong>If you already have Node.js and Git installed, it's closer to 10 minutes.</div>
+  </div>
+</div>
+
+<!-- ACCOUNTS -->
+<div id="sec-accounts" class="section">
+  <div class="page-title">Accounts you need</div>
+  <div class="page-sub">Create all of these before starting. Some take a few days to activate (MSG91 DLT).</div>
+  <table>
+    <tr><th>Service</th><th>Why</th><th>Free tier?</th><th>Action</th></tr>
+    <tr><td><strong>Anthropic</strong></td><td>Claude Code + API</td><td>Pro = $20/mo</td><td>claude.ai/signup</td></tr>
+    <tr><td><strong>GitHub</strong></td><td>Code repository</td><td>✅ Yes</td><td>github.com/signup</td></tr>
+    <tr><td><strong>Supabase</strong></td><td>Database (PostgreSQL)</td><td>✅ 500MB free</td><td>supabase.com</td></tr>
+    <tr><td><strong>Cloudflare</strong></td><td>R2 storage + CDN + DNS</td><td>✅ 10GB R2 free</td><td>cloudflare.com</td></tr>
+    <tr><td><strong>DigitalOcean</strong></td><td>App hosting ($24/mo)</td><td>$200 credit new</td><td>digitalocean.com</td></tr>
+    <tr><td><strong>Cashfree</strong></td><td>Payments + settlements</td><td>1.75% per txn</td><td>cashfree.com</td></tr>
+    <tr><td><strong>MSG91</strong></td><td>OTP SMS delivery</td><td>₹0.18/SMS</td><td>msg91.com — <span style="color:var(--red)">start DLT now, takes 2–3 days</span></td></tr>
+    <tr><td><strong>Firebase</strong></td><td>Push notifications (FCM)</td><td>✅ Free</td><td>firebase.google.com</td></tr>
+    <tr><td><strong>Ola Maps</strong></td><td>Maps + routing</td><td>✅ 1M calls/mo</td><td>maps.olacabs.com/devportal</td></tr>
+  </table>
+  <div class="callout danger">
+    <div class="callout-icon">🚨</div>
+    <div><strong>Start MSG91 DLT registration TODAY</strong>DLT (Distributed Ledger Technology) is mandatory for all commercial SMS in India. Approval takes 2–3 business days. Without it, your OTP SMS won't be delivered. Do this before anything else.</div>
+  </div>
+</div>
+
+<!-- NODE.JS -->
+<div id="sec-nodejs" class="section">
+  <div class="page-title">Step 1 — Install Node.js 20+</div>
+  <div class="page-sub">Required for the backend API and tooling. Use nvm to avoid permission errors.</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-blue">→</div>
+      <div class="step-title">Mac / Linux — install via nvm (recommended)</div>
+      <span class="platform">macOS · Linux</span>
+    </div>
+    <div class="step-body">
+      <div class="step-desc">nvm lets you switch Node versions and avoids all permission issues. Never use sudo with npm.</div>
+      <div class="cmd-wrap">
+        <div class="cmd-label">Terminal</div>
+        <div class="cmd-box">
+          <button class="copy-btn" onclick="cp(this)">Copy</button>
+          <pre><span class="c"># Install nvm (Node Version Manager)</span>
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+<span class="c"># Reload your shell config</span>
+source ~/.zshrc    <span class="c"># Mac with zsh (default)</span>
+<span class="c"># OR</span>
+source ~/.bashrc   <span class="c"># Linux / older Mac</span>
+
+<span class="c"># Install Node.js 20 LTS</span>
+nvm install 20
+nvm use 20
+
+<span class="c"># Verify — should show v20.x.x</span>
+node --version
+npm --version</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-blue">→</div>
+      <div class="step-title">Windows — install via installer</div>
+      <span class="platform">Windows</span>
+    </div>
+    <div class="step-body">
+      <div class="cmd-wrap">
+        <div class="cmd-label">PowerShell (run as Administrator)</div>
+        <div class="cmd-box">
+          <button class="copy-btn" onclick="cp(this)">Copy</button>
+          <pre><span class="c"># Option A: Use winget</span>
+winget install OpenJS.NodeJS.LTS
+
+<span class="c"># Option B: Download from nodejs.org → LTS version</span>
+<span class="c"># Run the .msi installer, check "Add to PATH"</span>
+
+<span class="c"># Open NEW PowerShell window after install</span>
+node --version   <span class="c"># should show v20.x.x</span></pre>
+        </div>
+      </div>
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div>Windows users: also install <strong>Git for Windows</strong> from git-scm.com — Claude Code requires it internally.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLAUDE CODE -->
+<div id="sec-claudecode" class="section">
+  <div class="page-title">Step 2 — Install Claude Code CLI</div>
+  <div class="page-sub">The native installer is recommended — no Node.js dependency, auto-updates in background. You need a paid Claude account (Pro $20/mo minimum).</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-green">→</div>
+      <div class="step-title">Mac / Linux — native installer</div>
+      <span class="platform">macOS · Linux · WSL</span>
+    </div>
+    <div class="step-body">
+      <div class="cmd-wrap">
+        <div class="cmd-label">Terminal</div>
+        <div class="cmd-box">
+          <button class="copy-btn" onclick="cp(this)">Copy</button>
+          <pre><span class="c"># Install Claude Code (official Anthropic native installer)</span>
+curl -fsSL https://claude.ai/install.sh | bash
+
+<span class="c"># Reload shell</span>
+source ~/.zshrc    <span class="c"># Mac</span>
+source ~/.bashrc   <span class="c"># Linux</span>
+
+<span class="c"># Verify</span>
+claude --version
+claude doctor      <span class="c"># checks environment for issues</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-green">→</div>
+      <div class="step-title">Windows — native installer</div>
+      <span class="platform">Windows 10/11</span>
+    </div>
+    <div class="step-body">
+      <div class="cmd-wrap">
+        <div class="cmd-label">PowerShell (NOT cmd.exe)</div>
+        <div class="cmd-box">
+          <button class="copy-btn" onclick="cp(this)">Copy</button>
+          <pre><span class="c"># Run in PowerShell — not CMD</span>
+irm https://claude.ai/install.ps1 | iex
+
+<span class="c"># Open new PowerShell window, then verify</span>
+claude --version</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-green">→</div>
+      <div class="step-title">Authenticate — first time login</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-wrap">
+        <div class="cmd-label">Any terminal</div>
+        <div class="cmd-box">
+          <button class="copy-btn" onclick="cp(this)">Copy</button>
+          <pre><span class="c"># Navigate to any folder and run claude</span>
+cd ~
+claude
+
+<span class="c"># First run opens your browser to claude.ai</span>
+<span class="c"># Sign in → Authorize → return to terminal</span>
+<span class="c"># You'll see: ✅ Authenticated successfully</span></pre>
+        </div>
+      </div>
+      <div class="callout success">
+        <div class="callout-icon">✅</div>
+        <div><strong>You're in!</strong> Claude Code is running. Type /help to see all commands. Press Ctrl+C or type /exit to quit.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GIT -->
+<div id="sec-git" class="section">
+  <div class="page-title">Step 3 — Git & GitHub Setup</div>
+  <div class="page-sub">Version control for the NearBy monorepo. All 4 apps live in one repo.</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-blue">→</div>
+      <div class="step-title">Verify Git is installed</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre>git --version   <span class="c"># should show git version 2.x.x</span>
+
+<span class="c"># If not installed:</span>
+<span class="c"># Mac: brew install git  OR  xcode-select --install</span>
+<span class="c"># Linux: sudo apt install git</span>
+<span class="c"># Windows: download from git-scm.com</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-blue">→</div>
+      <div class="step-title">Configure Git identity</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Replace with your real name and email</span>
+git config --global user.name "Your Name"
+git config --global user.email "you@email.com"
+git config --global init.defaultBranch main</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-blue">→</div>
+      <div class="step-title">Create GitHub repo and scaffold NearBy</div>
+    </div>
+    <div class="step-body">
+      <div class="step-desc">Go to github.com → New repository → name it "nearby" → Private → Create. Then run:</div>
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Create and enter project folder</span>
+mkdir nearby && cd nearby
+git init
+
+<span class="c"># Scaffold complete folder structure</span>
+mkdir -p apps/{customer,shop,delivery,admin}/src
+mkdir -p apps/_shared/{components,hooks,constants,types}
+mkdir -p backend/src/{routes,middleware,services,jobs,socket,utils}
+mkdir -p supabase/migrations
+mkdir -p docs/ADR
+mkdir -p .claude/commands
+mkdir -p .github/workflows
+
+<span class="c"># Create placeholder files</span>
+touch CLAUDE.md README.md .env.example .gitignore docker-compose.yml
+touch .github/PULL_REQUEST_TEMPLATE.md .github/workflows/ci.yml
+
+<span class="c"># Now paste the CLAUDE.md content into nearby/CLAUDE.md</span>
+<span class="c"># Then:</span>
+cp CLAUDE.md .cursorrules   <span class="c"># auto-read by Cursor</span>
+
+<span class="c"># Push to GitHub — replace YOUR_USERNAME</span>
+git add .
+git commit -m "chore(init): scaffold NearBy monorepo"
+git remote add origin https://github.com/YOUR_USERNAME/nearby.git
+git branch -M main
+git push -u origin main
+
+<span class="c"># Create working branches</span>
+git checkout -b develop && git push origin develop
+git checkout -b staging && git push origin staging
+git checkout develop   <span class="c"># all daily work from here</span></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DOCKER -->
+<div id="sec-docker" class="section">
+  <div class="page-title">Step 4 — Docker Desktop</div>
+  <div class="page-sub">Runs Redis and Typesense locally with one command. The docker-compose.yml is already defined in the NearBy repo.</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-amber">→</div>
+      <div class="step-title">Install Docker Desktop</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Mac (with Homebrew)</span>
+brew install --cask docker
+
+<span class="c"># OR download from docker.com/products/docker-desktop</span>
+<span class="c"># Available for Mac (Intel + Apple Silicon), Windows, Linux</span>
+
+<span class="c"># Start Docker Desktop app, then verify:</span>
+docker --version
+docker compose version</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-amber">→</div>
+      <div class="step-title">Start local dev services</div>
+    </div>
+    <div class="step-body">
+      <div class="step-desc">Once docker-compose.yml is created (Claude Code will do this in the kickoff prompt), start your local services:</div>
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># From the nearby/ root folder</span>
+docker compose up -d redis typesense
+
+<span class="c"># Check they're running</span>
+docker compose ps
+
+<span class="c"># Test Redis</span>
+docker exec -it nearby-redis-1 redis-cli PING
+<span class="c"># Expected: PONG</span>
+
+<span class="c"># Test Typesense</span>
+curl http://localhost:8108/health
+<span class="c"># Expected: {"ok":true}</span></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPO -->
+<div id="sec-expo" class="section">
+  <div class="page-title">Step 5 — Expo CLI (React Native)</div>
+  <div class="page-sub">For building the 3 mobile apps — customer, shop owner, delivery partner.</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-purple">→</div>
+      <div class="step-title">Install Expo CLI + Supabase CLI</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Install Expo CLI globally</span>
+npm install -g expo-cli
+
+<span class="c"># Install Supabase CLI (for running migrations)</span>
+npm install -g supabase
+
+<span class="c"># Verify</span>
+expo --version
+supabase --version</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-purple">→</div>
+      <div class="step-title">Install Expo Go on your phone</div>
+    </div>
+    <div class="step-body">
+      <div class="step-desc">Expo Go lets you preview your React Native app on a real device instantly by scanning a QR code — no build step needed during development.</div>
+      <div class="tag-row">
+        <span class="tag b">Android: Play Store → search "Expo Go"</span>
+        <span class="tag b">iOS: App Store → search "Expo Go"</span>
+        <span class="tag">Same WiFi as your dev machine required</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLUGINS -->
+<div id="sec-plugins" class="section">
+  <div class="page-title">Step 6 — Claude Code Plugins</div>
+  <div class="page-sub">Install these INSIDE a Claude Code terminal session (type <code style="color:var(--blue)">claude</code> first, then run these commands).</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-green">1</div>
+      <div class="step-title">claude-mem — persistent memory (most important)</div>
+    </div>
+    <div class="step-body">
+      <div class="step-desc">Automatically remembers everything done in every session. You never lose context between days. Essential for a 16-week project.</div>
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Run INSIDE claude (type claude in terminal first)</span>
+<span class="g">/plugin marketplace add thedotmack/claude-mem</span>
+<span class="g">/plugin install claude-mem</span>
+
+<span class="c"># Exit and restart Claude Code completely</span>
+<span class="g">/exit</span>
+
+<span class="c"># Reopen — memory is now active</span>
+claude
+
+<span class="c"># Verify it installed</span>
+<span class="g">/plugin</span>   <span class="c"># → Installed tab should show claude-mem</span></pre>
+      </div>
+      <div class="callout danger">
+        <div class="callout-icon">🚨</div>
+        <div><strong>Don't use npm install -g claude-mem</strong> — that installs the SDK only, not the plugin hooks. Always use the /plugin commands above.</div>
+      </div>
+      <div class="callout success">
+        <div class="callout-icon">✅</div>
+        <div>After this, every new session starts with: <em>"Resuming NearBy development. Last session: [what was built]..."</em></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-green">2</div>
+      <div class="step-title">Official Anthropic plugins</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Add official Anthropic marketplace</span>
+<span class="g">/plugin marketplace add anthropics/claude-plugins-official</span>
+
+<span class="c"># Install security guidance hook</span>
+<span class="c"># (warns about XSS, SQL injection, insecure patterns as you code)</span>
+<span class="g">/plugin install security-guidance@claude-plugins-official</span>
+
+<span class="c"># Install PR review toolkit</span>
+<span class="c"># (reviews PRs with multiple specialist agents)</span>
+<span class="g">/plugin install pr-review-toolkit@claude-plugins-official</span>
+
+<span class="c"># Install commit-commands</span>
+<span class="c"># (auto-generates conventional commit messages from your diff)</span>
+<span class="g">/plugin install commit-commands@anthropics-claude-code</span>
+
+<span class="c"># Reload all plugins</span>
+<span class="g">/reload-plugins</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-green">3</div>
+      <div class="step-title">awesome-claude-code community marketplace</div>
+    </div>
+    <div class="step-body">
+      <div class="step-desc">Adds access to 100+ community-built plugins. Browse the Discover tab and install what fits your sprint work.</div>
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Add community marketplace</span>
+<span class="g">/plugin marketplace add hesreallyhim/awesome-claude-code</span>
+
+<span class="c"># Browse all available plugins</span>
+<span class="g">/plugin</span>   <span class="c"># → Discover tab</span>
+
+<span class="c"># Useful ones to look for:</span>
+<span class="c"># - parry: prompt injection scanner for hooks</span>
+<span class="c"># - dippy: auto-approve safe bash, ask for destructive ops</span></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLASH COMMANDS -->
+<div id="sec-commands" class="section">
+  <div class="page-title">Step 7 — Create NearBy Custom Slash Commands</div>
+  <div class="page-sub">These turn your docs into one-tap Claude Code instructions. Run this in terminal (not inside claude).</div>
+
+  <div class="step">
+    <div class="step-head">
+      <div class="step-n n-amber">→</div>
+      <div class="step-title">Create all 5 commands at once</div>
+    </div>
+    <div class="step-body">
+      <div class="cmd-box">
+        <button class="copy-btn" onclick="cp(this)">Copy</button>
+        <pre><span class="c"># Run from the nearby/ root directory (normal terminal, not inside claude)</span>
+
+cat > .claude/commands/start-task.md << 'EOF'
+Read SPRINT_PLAN.md. Find the first task marked ⬜ in the current sprint.
+Tell me: task number, description, which architecture section covers it,
+which edge cases apply from EDGE_CASES.md, and the exact file to create/edit.
+Change its status to 🔵 in SPRINT_PLAN.md.
+EOF
+
+cat > .claude/commands/review-code.md << 'EOF'
+Review the current file against:
+1. CODING_CONVENTIONS.md (naming, patterns, error codes)
+2. Security checklist: no secrets, server-side pricing, HMAC on webhooks,
+   JWT+roleGuard on all routes, Joi validation, rate limiting applied
+3. EDGE_CASES.md — are all failure modes handled?
+4. API.md — does response format match the contract?
+List every issue found. Then fix them all.
+EOF
+
+cat > .claude/commands/finish-task.md << 'EOF'
+1. Mark the task I just completed as ✅ in SPRINT_PLAN.md
+2. Update CLAUDE.md build status table for the completed module
+3. Log any new/changed endpoints in API_CHANGELOG.md
+4. If new edge cases were discovered, add them to EDGE_CASES.md
+5. Show a summary of what was completed this session
+EOF
+
+cat > .claude/commands/check-edges.md << 'EOF'
+Read EDGE_CASES.md. Find every edge case for the feature I am working on.
+For each: show the scenario, how current code handles it, whether it matches
+the spec, and the fix if it doesn't match.
+EOF
+
+cat > .claude/commands/sprint-status.md << 'EOF'
+Read SPRINT_PLAN.md and show:
+- Current sprint number and its goal
+- Tasks: ✅ done / 🔵 in-progress / ⬜ not started / 🔴 blocked
+- Percentage complete
+- What is blocking progress
+- Recommended next task
+Also check CLAUDE.md build status and flag any inconsistencies.
+EOF
+
+git add .claude/
+git commit -m "chore(claude): add NearBy custom slash commands"</pre>
+      </div>
+      <div class="tag-row" style="margin-top:10px">
+        <span class="tag g">/start-task</span>
+        <span class="tag g">/review-code</span>
+        <span class="tag g">/finish-task</span>
+        <span class="tag g">/check-edges</span>
+        <span class="tag g">/sprint-status</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KICKOFF PROMPT -->
+<div id="sec-prompt-kickoff" class="section">
+  <div class="page-title">🚀 The Kickoff Prompt</div>
+  <div class="page-sub">Run this ONCE on Day 1 to scaffold the entire backend, create docker-compose.yml, and set up the project foundation. Open your terminal, navigate to nearby/, type <code style="color:var(--blue)">claude</code>, then paste.</div>
+
+  <div class="prompt-box">
+    <div class="prompt-head green">🟢 Day 1 Kickoff — paste this as your first ever message</div>
+    <div class="prompt-body" id="kickoff-text">I am starting the NearBy hyperlocal commerce platform from scratch.
+
+First, read CLAUDE.md completely. Confirm you understood it before doing anything.
+
+Then do the following in order:
+
+1. BACKEND SCAFFOLD — create backend/package.json with all dependencies:
+   express, socket.io, @supabase/supabase-js, ioredis, bullmq, typesense,
+   @aws-sdk/client-s3, jsonwebtoken, joi, winston, dotenv, sharp, multer,
+   uuid, express-rate-limit, helmet, cors, bcrypt
+   devDependencies: nodemon, jest, supertest, eslint
+   scripts: dev, test, lint, seed
+
+2. FOLDER STRUCTURE — create these files with correct boilerplate:
+   backend/src/index.js         → Express + Socket.IO bootstrap
+   backend/src/utils/response.js → successResponse() and errorResponse()
+   backend/src/utils/errors.js   → AppError class + ALL error codes from CODING_CONVENTIONS.md
+   backend/src/utils/logger.js   → Winston logger (file + console, JSON format)
+   backend/src/middleware/errorHandler.js → global error handler
+
+3. DOCKER COMPOSE — create docker-compose.yml with:
+   - redis:7-alpine on port 6379, with persistence enabled
+   - typesense:0.25.2 on port 8108, with data volume
+   - api service (Node.js, ports 3000+3001, hot reload with nodemon)
+
+4. ENV TEMPLATE — create .env.example with ALL variables from CLAUDE.md
+   environment section (use placeholder values, never real keys)
+
+5. GITIGNORE — create .gitignore covering: .env, node_modules, .expo,
+   dist, build, *.log, coverage, .DS_Store, android/, ios/
+
+Rules to follow strictly:
+- Follow CODING_CONVENTIONS.md for ALL naming and patterns
+- successResponse and errorResponse must be used in every route
+- Never use console.log — use logger.js (Winston)
+- error codes in errors.js must exactly match CODING_CONVENTIONS.md list
+
+After creating each file, confirm the filename and what it contains.
+When done, mark Sprint 1 tasks 1.9 and 1.10 as 🔵 in SPRINT_PLAN.md.</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('kickoff-text')">Copy prompt</button>
+  </div>
+</div>
+
+<!-- SPRINT 1 -->
+<div id="sec-prompt-s1" class="section">
+  <div class="page-title">Sprint 1 — Auth Prompt</div>
+  <div class="page-sub">After the kickoff scaffold is complete, use this to build the OTP authentication system. This is Sprint 1, Tasks 1.13–1.17.</div>
+
+  <div class="prompt-box blue-border">
+    <div class="prompt-head blue">🔵 Sprint 1 · Auth · Tasks 1.13–1.17</div>
+    <div class="prompt-body" id="s1-text">Build the complete authentication system for NearBy. Sprint 1, Tasks 1.13–1.17.
+
+Before writing any code, read:
+- CLAUDE.md → Auth & Authorization section
+- EDGE_CASES.md → OTP brute force and rate limiting scenarios
+- API.md → /auth/send-otp, /auth/verify-otp, /auth/refresh, /auth/me endpoints
+
+Build these files in order:
+1. backend/src/services/msg91.js
+   - sendOtp(phone, otp) function using MSG91 API
+   - In NODE_ENV=development: log OTP to console, don't send real SMS
+   - Use MSG91_AUTH_KEY and MSG91_TEMPLATE_OTP from .env
+
+2. backend/src/middleware/rateLimit.js
+   - Redis-backed rate limiting factory
+   - OTP: max 5 requests per phone per hour
+   - Orders: max 10 per customer per hour
+   - Global: 100 requests per IP per minute
+
+3. backend/src/middleware/roleGuard.js
+   - Factory function: roleGuard(['customer', 'admin'])
+   - Reads role from req.user (set by auth middleware)
+   - Returns 403 FORBIDDEN if role not in allowed list
+
+4. backend/src/middleware/auth.js
+   - Verify JWT from Authorization: Bearer header
+   - Attach req.user = { userId, phone, role, shopId }
+   - Return 401 UNAUTHORIZED if no token or invalid
+
+5. backend/src/routes/auth.js
+   - POST /auth/send-otp: validate phone, generate 6-digit OTP,
+     store in Redis with 5-min TTL, call msg91.sendOtp()
+   - POST /auth/verify-otp: check OTP in Redis, lockout after 3 wrong
+     attempts (10-min lockout), return JWT on success
+   - POST /auth/refresh: validate refresh token, issue new access token
+   - GET /auth/me: return req.user profile from Supabase
+
+6. backend/src/utils/validators.js
+   - sendOtpSchema: phone required, Indian mobile (10 digits)
+   - verifyOtpSchema: phone + otp (6 digits) required
+   - Use Joi for all validation
+
+Critical rules:
+- OTP: exactly 6 digits, 5-minute TTL in Redis
+- Wrong OTP → increment attempt counter in Redis
+- 3rd wrong attempt → lock phone for 10 minutes, return OTP_LOCKED
+- SMS rate limit → 5 OTP requests per phone per hour → OTP_RATE_LIMITED
+- Dev mode (NODE_ENV=development): OTP is always 123456
+
+After building, write tests in backend/src/routes/auth.test.js:
+- Happy path: send OTP → verify → get JWT with correct role
+- 3 wrong attempts → account locked for 10 minutes
+- 4th attempt during lockout → OTP_LOCKED error
+- OTP expiry after 5 minutes → OTP_EXPIRED error
+- Rate limit after 5 requests → OTP_RATE_LIMITED error
+
+Mark tasks 1.13, 1.14, 1.15, 1.16, 1.17 as ✅ in SPRINT_PLAN.md when done.</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('s1-text')">Copy prompt</button>
+  </div>
+</div>
+
+<!-- SPRINT 2 -->
+<div id="sec-prompt-s2" class="section">
+  <div class="page-title">Sprint 2 — Shop & Products Prompt</div>
+  <div class="page-sub">Build shop registration, KYC upload, product catalogue, and Typesense search. Sprint 2, Tasks 2.1–2.13.</div>
+
+  <div class="prompt-box blue-border">
+    <div class="prompt-head blue">🔵 Sprint 2 · Shops & Products · Tasks 2.1–2.13</div>
+    <div class="prompt-body" id="s2-text">Build the Shop and Product system. Sprint 2, Tasks 2.1–2.13.
+
+Read ALL of these before writing a single line:
+- CLAUDE.md → Key Domain Rules → Search section (Typesense sync rules)
+- supabase/migrations/002_shops.sql → exact column names for shops table
+- supabase/migrations/003_products.sql → exact column names for products table
+- API.md → all /shops and /products endpoints
+- EDGE_CASES.md → "Item out of stock discovered when packing" scenario
+
+Build in this exact order:
+
+1. backend/src/services/supabase.js
+   - Export single Supabase client using SUPABASE_SERVICE_ROLE_KEY
+   - Never expose anon key on server side
+
+2. backend/src/services/typesense.js
+   - Typesense client connecting to TYPESENSE_HOST:TYPESENSE_PORT
+   - indexShop(shop): upsert shop document (id, name, category, geo, trust_score, is_open)
+   - indexProduct(product): upsert product (id, shop_id, name, category, price, is_available)
+   - removeProduct(productId): delete from index
+   - Shop geo field: [longitude, latitude] array format for Typesense
+
+3. backend/src/services/r2.js
+   - uploadFile(key, buffer, mimeType, isPrivate): upload to R2
+   - getSignedUrl(key): generate 5-minute signed URL for private bucket
+   - deleteFile(key, isPrivate): delete file
+   - Public bucket: R2_BUCKET_PUBLIC, Private bucket: R2_BUCKET_PRIVATE
+
+4. backend/src/routes/shops.js
+   - POST /shops: create shop (status: pending_kyc)
+   - GET /shops/:id: get shop profile
+   - PATCH /shops/:id: update shop profile (owner only)
+   - POST /shops/:id/kyc: multipart upload → r2.uploadFile to private bucket
+   - PATCH /shops/:id/toggle: flip is_open, sync to Typesense immediately
+   - GET /shops/:id/analytics: query shop_analytics_daily from Supabase
+   - GET /shops/:id/earnings: settlements grouped by week
+
+5. backend/src/routes/products.js
+   - POST /shops/:id/products: single product, resize image with Sharp.js
+     (600×600 full, 150×150 thumbnail), upload to R2 public bucket, index in Typesense
+   - POST /shops/:id/products/bulk: parse CSV (max 500 rows), validate each row,
+     return errors per-row, batch index all valid products in Typesense
+   - PATCH /products/:id: update price/stock/availability, sync Typesense
+   - DELETE /products/:id: soft delete (set deleted_at), remove from Typesense
+   - GET /products/template: return CSV template as download
+
+6. backend/src/routes/search.js
+   - GET /search/shops: Typesense geo search, params: lat, lng, radius_km, category, open_only
+   - GET /search/products: Typesense text search, params: q, category, shop_id
+
+Critical rules:
+- PATCH /shops/:id/toggle: Typesense update must happen within 15 seconds
+- Out-of-stock toggle: hide from search immediately (is_available: false)
+- KYC docs: ALWAYS private bucket, NEVER public bucket
+- Product images: ALWAYS public bucket (served via CDN)
+- CSV bulk: validate EVERY row, return error details per-row before importing any
+
+Mark tasks 2.1–2.13 as ✅ in SPRINT_PLAN.md when complete.</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('s2-text')">Copy prompt</button>
+  </div>
+</div>
+
+<!-- SPRINT 3 -->
+<div id="sec-prompt-s3" class="section">
+  <div class="page-title">Sprint 3 — Order Engine Prompt</div>
+  <div class="page-sub">The most critical module. Read all edge cases before starting. Sprint 3, Tasks 3.1–3.14.</div>
+
+  <div class="prompt-box">
+    <div class="prompt-head green">🟢 Sprint 3 · Orders · Tasks 3.1–3.14 (CRITICAL MODULE)</div>
+    <div class="prompt-body" id="s3-text">Build the Order flow. Sprint 3, Tasks 3.1–3.14.
+This is the most critical module — read everything before writing code.
+
+Read ALL of these before starting:
+- CLAUDE.md → Key Domain Rules → Orders section (every single rule)
+- ARCHITECTURE.md → Order lifecycle flow diagram
+- EDGE_CASES.md → ALL 5 order-related edge cases — every single one
+- API.md → all /orders endpoints
+- supabase/migrations/004_orders.sql → exact column names
+- supabase/migrations/005_order_items.sql → order_items structure
+
+Build in this exact order:
+
+1. backend/src/utils/idempotency.js
+   - checkIdempotencyKey(key): returns existing result if key seen before
+   - setIdempotencyKey(key, result, ttlSeconds): stores key + result in Redis
+   - TTL: 600 seconds (10 minutes)
+
+2. backend/src/services/fcm.js
+   - sendPush(token, title, body, data): send single FCM notification
+   - sendBatchPush(tokens, title, body, data): send to multiple devices
+   - Use Firebase Admin SDK with FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY
+
+3. backend/src/jobs/notifyShop.js
+   - BullMQ queue: 'notify-shop'
+   - Worker: send FCM high-priority push to shop owner + MSG91 SMS as fallback
+   - Payload: { orderId, shopId, customerName, itemCount, total }
+
+4. backend/src/jobs/autoCancel.js
+   - BullMQ queue: 'auto-cancel'
+   - Delayed job: fires ORDER_ACCEPT_WINDOW_SECONDS after order creation
+   - Worker MUST check order.status === 'pending' before cancelling
+     (shop may have already accepted — do NOT cancel accepted orders)
+   - On cancel: update status to 'auto_cancelled', trigger Cashfree refund
+     for non-COD orders, send FCM to customer, degrade shop response_score
+
+5. backend/src/socket/orderRoom.js
+   - joinOrderRoom(socket, orderId): add socket to room order:{orderId}
+   - emitStatusUpdate(orderId, status, data): broadcast to all room members
+   - All status changes must emit to Socket.IO room in addition to DB write
+
+6. backend/src/routes/orders.js
+   - POST /orders: MOST IMPORTANT — server-side price calculation ONLY
+     * Fetch product prices from Supabase by product IDs (NEVER trust client prices)
+     * Lock stock: decrement immediately on order creation
+     * Check idempotency key before creating
+     * Queue notifyShop job immediately after creation
+     * Queue autoCancel job with delay = ORDER_ACCEPT_WINDOW_SECONDS
+   - GET /orders: list (customer sees own, shop owner sees shop's orders)
+   - GET /orders/:id: full detail with items
+   - PATCH /orders/:id/accept: update status, cancel autoCancel job, queue assignDelivery
+   - PATCH /orders/:id/reject: update status, restore stock, trigger refund
+   - PATCH /orders/:id/ready: notify delivery partner to pickup
+   - PATCH /orders/:id/cancel: only allowed in status pending/accepted,
+     restore stock, trigger Cashfree refund for non-COD
+
+Non-negotiable rules:
+- NEVER use client-sent price — ALWAYS recalculate from DB
+- ALWAYS check idempotency key BEFORE creating order or payment
+- autoCancel job: check status before cancelling — race condition exists
+- Order cancellable ONLY in: pending, accepted — blocked after picked_up
+- Stock lock happens at order creation, not at payment
+
+Write tests in backend/src/routes/orders.test.js:
+- POST /orders ignores client-sent price, calculates from DB
+- Duplicate idempotency key returns existing order, not a new one
+- autoCancel does NOT fire if order was accepted before 3 minutes
+- PATCH /cancel returns ORDER_NOT_CANCELLABLE if status is picked_up
+
+Mark tasks 3.1–3.14 as ✅ in SPRINT_PLAN.md when done.</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('s3-text')">Copy prompt</button>
+  </div>
+</div>
+
+<!-- DAILY WORKFLOW -->
+<div id="sec-prompt-daily" class="section">
+  <div class="page-title">Daily Workflow Prompts</div>
+  <div class="page-sub">Copy-paste these every day. They keep Claude fully briefed and your docs always up to date.</div>
+
+  <h2>Every morning</h2>
+  <div class="prompt-box blue-border">
+    <div class="prompt-head blue">☀️ Morning — start of every session</div>
+    <div class="prompt-body" id="morning-text">Good morning. I'm resuming NearBy development.
+
+Read CLAUDE.md first — it has the full project context.
+Then run /sprint-status to show me where we are.
+
+Tell me:
+1. What sprint and task am I on?
+2. What did we complete in the last session? (check claude-mem)
+3. What is the next task I should work on today?
+4. Any blockers or things I should know before starting?</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('morning-text')">Copy prompt</button>
+  </div>
+
+  <h2>Starting any task</h2>
+  <div class="prompt-box blue-border">
+    <div class="prompt-head blue">🔨 Task start — fill in the blanks</div>
+    <div class="prompt-body" id="task-text">I'm working on [DESCRIBE THE TASK].
+Sprint [N], Task [X.Y] from SPRINT_PLAN.md.
+
+Before writing any code:
+1. Read CLAUDE.md → relevant domain rules section
+2. Read ARCHITECTURE.md → relevant flow
+3. Read EDGE_CASES.md → failure modes for this feature
+4. Read API.md → endpoints involved and their exact contracts
+5. Check supabase/migrations/ → exact column names for tables involved
+
+Then build [FILE PATH] following CODING_CONVENTIONS.md.
+After building, run /review-code and then /finish-task.</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('task-text')">Copy prompt</button>
+  </div>
+
+  <h2>When something breaks</h2>
+  <div class="prompt-box amber-border">
+    <div class="prompt-head amber">🐛 Debug — fill in the blanks</div>
+    <div class="prompt-body" id="debug-text">There's a bug in [FILE OR MODULE].
+
+Error: [PASTE THE FULL ERROR MESSAGE HERE]
+
+Before suggesting a fix:
+1. Check EDGE_CASES.md — is this a known failure mode we already solved?
+2. Check ADR/ — am I using the third-party tool correctly?
+3. Check CODING_CONVENTIONS.md security checklist — did I miss something?
+
+Here is the relevant code:
+[PASTE THE BROKEN CODE]
+
+Find the root cause. Explain why it's happening.
+Fix it. If this is a new edge case not in EDGE_CASES.md, add it there too.</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('debug-text')">Copy prompt</button>
+  </div>
+
+  <h2>Every Friday</h2>
+  <div class="prompt-box purple-border">
+    <div class="prompt-head purple">📅 Friday — end of week update</div>
+    <div class="prompt-body" id="friday-text">End of week. Please do the following:
+
+1. Read SPRINT_PLAN.md — update ALL task statuses accurately
+   (✅ done, 🔵 in-progress, 🔴 blocked with reason, ⬜ not started)
+
+2. Update CLAUDE.md build status table for everything completed this week
+
+3. Check API_CHANGELOG.md — log every new or changed endpoint from this week
+
+4. Calculate sprint velocity: tasks completed ÷ tasks planned × 100%
+
+5. Are we on track for the sprint goal? If behind, what should we cut?
+
+6. Show me a clean 5-line summary I can share with the team
+
+Then run these git commands:
+git add CLAUDE.md docs/SPRINT_PLAN.md docs/API_CHANGELOG.md
+git commit -m "chore(sprint): week N progress update"
+git push origin develop</div>
+    <button class="copy-btn" style="position:static;margin:8px 16px 12px;display:block;width:fit-content" onclick="cpText('friday-text')">Copy prompt</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.getElementById('main').scrollTop = 0;
+}
+function cp(btn) {
+  const pre = btn.parentElement.querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+function cpText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy prompt', 1500);
+  });
+}
+</script>
+</body>
+</html>

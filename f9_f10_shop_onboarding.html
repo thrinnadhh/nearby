@@ -1,0 +1,54 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.stepper{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap}
+.step-dot{min-width:26px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary);transition:all .15s;padding:0 7px}
+.step-dot.active{background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning)}
+.step-dot.done{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.panel{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;background:var(--color-background-primary)}
+.panel-title{font-size:14px;font-weight:500;margin-bottom:3px}
+.screen-label{font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px}
+.what{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px}
+.tech-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.tech{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);font-family:var(--font-mono)}
+.nav{display:flex;justify-content:space-between;margin-top:10px;align-items:center}
+button{font-size:12px;padding:5px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning)}
+</style>
+<div class="w">
+<div class="stepper" id="dots"></div>
+<div class="panel" id="panel"></div>
+</div>
+<script>
+const steps=[
+  {title:'Download shop owner app & login',screen:'Login',what:'Raju downloads the "NearBy for Shops" app. He enters his mobile number. MSG91 sends OTP. He verifies it. A screen asks: "Are you registering a new shop?" → Yes. Role set to shop_owner.',tech:['MSG91 OTP','POST /auth/verify-otp','role: shop_owner']},
+  {title:'Basic shop profile form',screen:'Shop profile setup',what:'Raju fills: Shop name "Raju Vegetables", Category (dropdown: Vegetables & Fruits), Address (auto-detected via Ola Maps, can adjust pin on map), Shop description "Fresh daily from Bowenpally market", and working hours (Mon-Sat 7AM-9PM, Sunday 7AM-1PM).',tech:['Ola Maps place picker','POST /api/v1/shops','Supabase shops table']},
+  {title:'Shop photo upload',screen:'Photo upload',what:'Raju takes a photo of his shop storefront using the camera. The app resizes it with Sharp.js and uploads to Cloudflare R2 public bucket. A preview is shown. He can retake if not happy.',tech:['Expo Camera','POST /api/v1/products/image','Cloudflare R2 public bucket']},
+  {title:'Aadhaar upload (required)',screen:'KYC — Aadhaar',what:'A clear prompt: "We need your Aadhaar card photo to verify your identity. This is kept private and never shared." Raju takes a photo of his Aadhaar. Uploaded to R2 private bucket with a server-generated signed URL. Only admins can access it.',tech:['POST /api/v1/shops/:id/kyc','Cloudflare R2 private bucket','Signed URL access']},
+  {title:'GST/trade license (optional)',screen:'KYC — GST',what:'Screen shows: "GST certificate or trade license (optional — street vendors can skip this)". Small vegetable vendors tap "Skip". Registered shops upload their GST certificate. This determines if a GST badge appears on their profile.',tech:['Optional upload','R2 private bucket','gst_verified boolean in Supabase']},
+  {title:'KYC submitted — waiting screen',screen:'Under review',what:'Raju sees: "Your shop is under review. We\'ll notify you within 24 hours." A status tracker shows: Submitted → Under Review → Approved. He can\'t take orders yet but can continue setting up products in the meantime.',tech:['Supabase kyc_status: under_review','BullMQ: admin notification job','FCM to admin']},
+  {title:'Admin approves — shop goes live',screen:'Approved notification',what:'Next morning, Raju gets a FCM push + SMS: "🎉 Raju Vegetables is now live on NearBy! Customers near you can now see your shop." Shop status flips to active, Typesense indexed, verified badge appears.',tech:['PATCH /api/v1/admin/kyc/:id','Supabase is_verified: true','Typesense shop indexed','FCM + MSG91 to owner']},
+  {title:'Add first product — tomatoes',screen:'Add product',what:'Raju taps "Add Product". Takes a photo of tomatoes. Fills: Name "Tomatoes 500g", Price ₹28, Stock quantity 50, Unit "grams", Category "Vegetables". Taps "Save". Product appears in his shop and is searchable by customers within 30 seconds.',tech:['POST /api/v1/shops/:id/products','R2 image upload','BullMQ Typesense index job']},
+  {title:'Bulk upload remaining products',screen:'Bulk upload',what:'Raju has 30 more products. He downloads the CSV template from the app (category pre-filled: Vegetables). Fills it in on his phone in WhatsApp/Sheets. Uploads the CSV. A preview shows all 30 rows, highlights any errors. He confirms — all products go live.',tech:['GET /api/v1/products/template','POST /api/v1/shops/:id/products/bulk','BullMQ batch index to Typesense']},
+  {title:'Shop ready — toggle open',screen:'Shop dashboard',what:'Raju\'s shop dashboard shows: 0 orders today, all products live, trust score "New" (will build over time). He taps the big green "OPEN" toggle at the top. His shop is now visible to customers. He\'s officially on NearBy.',tech:['PATCH /api/v1/shops/:id/toggle','Supabase is_open: true','Typesense open_now filter']},
+];
+let cur=0;
+function render(){
+  document.getElementById('dots').innerHTML=steps.map((s,i)=>`<div class="step-dot ${i===cur?'active':i<cur?'done':''}" onclick="go(${i})">${i+1}</div>`).join('');
+  const s=steps[cur];
+  document.getElementById('panel').innerHTML=`
+    <div class="panel-title">${s.title}</div>
+    <div class="screen-label">Screen: ${s.screen}</div>
+    <div class="what">${s.what}</div>
+    <div class="tech-row">${s.tech.map(t=>`<span class="tech">${t}</span>`).join('')}</div>
+    <div class="nav">
+      <button onclick="go(${cur-1})" ${cur===0?'disabled':''}>← Back</button>
+      <span style="font-size:11px;color:var(--color-text-tertiary)">${cur+1} / ${steps.length}</span>
+      <button class="primary" onclick="go(${cur+1})" ${cur===steps.length-1?'disabled':''}>Next →</button>
+    </div>`;
+}
+function go(i){if(i>=0&&i<steps.length){cur=i;render();}}
+render();
+</script>

@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NearBy — Complete Folder Structure</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --border2: #444c56;
+    --text: #e6edf3; --text2: #8b949e; --text3: #6e7681;
+    --green: #3fb950; --blue: #58a6ff; --amber: #d29922;
+    --purple: #bc8cff; --coral: #f78166; --teal: #39d353;
+    --pink: #f778ba; --gray: #8b949e;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  .header { padding: 24px 32px 0; border-bottom: 1px solid var(--border); }
+  .header-top { display: flex; align-items: baseline; gap: 16px; margin-bottom: 12px; }
+  h1 { font-size: 20px; font-weight: 600; color: var(--text); }
+  .version-tag { font-size: 11px; background: #1f6feb33; color: var(--blue); border: 1px solid #1f6feb66; padding: 2px 8px; border-radius: 20px; }
+
+  .tabs { display: flex; gap: 0; margin-top: 12px; }
+  .tab { padding: 8px 16px; font-size: 13px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--coral); }
+
+  .content { display: flex; height: calc(100vh - 120px); }
+
+  /* Sidebar tree */
+  .sidebar { width: 340px; min-width: 340px; background: var(--bg2); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px 0; }
+
+  /* Detail panel */
+  .detail { flex: 1; overflow-y: auto; padding: 24px 32px; }
+
+  /* Tree */
+  .tree { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; }
+  .tree-item { display: flex; align-items: center; gap: 6px; padding: 2px 12px; cursor: pointer; border-radius: 4px; margin: 1px 8px; transition: background .1s; white-space: nowrap; }
+  .tree-item:hover { background: var(--bg3); }
+  .tree-item.active { background: #1f6feb22; }
+  .tree-item.folder { color: var(--blue); }
+  .tree-item .indent { display: inline-block; }
+  .tree-item .icon { font-size: 13px; flex-shrink: 0; }
+  .tree-item .name { color: var(--text); }
+  .tree-item .name.dim { color: var(--text2); }
+  .tree-item .tag { font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-left: 6px; flex-shrink: 0; }
+  .tag-critical { background: #da36361a; color: #f78166; border: 1px solid #da363644; }
+  .tag-ai { background: #3fb9501a; color: #3fb950; border: 1px solid #3fb95044; }
+  .tag-doc { background: #58a6ff1a; color: #58a6ff; border: 1px solid #58a6ff44; }
+  .tag-config { background: #d299221a; color: #d29922; border: 1px solid #d2992244; }
+  .tag-code { background: #bc8cff1a; color: #bc8cff; border: 1px solid #bc8cff44; }
+  .tree-divider { height: 1px; background: var(--border); margin: 8px 12px; }
+  .tree-section-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; padding: 6px 20px 2px; }
+
+  /* Detail panel */
+  .detail-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .detail-path { font-family: var(--font-mono); font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .detail-path span { color: var(--coral); }
+  .detail-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .detail-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  .detail-section { margin-bottom: 20px; }
+  .detail-section h3 { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+
+  .purpose-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .purpose-card .pc-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .purpose-card .pc-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  .file-list { list-style: none; }
+  .file-list li { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .file-list li:last-child { border-bottom: none; }
+  .file-list .fl-name { font-family: var(--font-mono); color: var(--teal); min-width: 200px; flex-shrink: 0; }
+  .file-list .fl-desc { color: var(--text2); }
+
+  .rule-list { list-style: none; }
+  .rule-list li { padding: 4px 0; font-size: 12px; color: var(--text2); line-height: 1.5; padding-left: 14px; position: relative; }
+  .rule-list li::before { content: '›'; position: absolute; left: 0; color: var(--coral); }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .badge.green { background: #3fb9501a; color: #3fb950; border: 1px solid #3fb95044; }
+  .badge.blue { background: #58a6ff1a; color: #58a6ff; border: 1px solid #58a6ff44; }
+  .badge.amber { background: #d299221a; color: #d29922; border: 1px solid #d2992244; }
+  .badge.red { background: #da36361a; color: #f78166; border: 1px solid #da363644; }
+  .badge.purple { background: #bc8cff1a; color: #bc8cff; border: 1px solid #bc8cff44; }
+
+  pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 11px; overflow-x: auto; line-height: 1.7; color: var(--text2); }
+  pre .hi { color: var(--green); }
+  pre .hi2 { color: var(--blue); }
+  pre .hi3 { color: var(--amber); }
+  pre .hi4 { color: var(--coral); }
+  pre .comment { color: var(--text3); }
+
+  .placeholder { display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; gap: 12px; color: var(--text3); }
+  .placeholder .p-icon { font-size: 40px; opacity: .3; }
+  .placeholder p { font-size: 13px; }
+
+  /* Stats row */
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+  .stat-num { font-size: 20px; font-weight: 600; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: flex; height: calc(100vh - 120px); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>NearBy — Repository Structure</h1>
+    <span class="version-tag">v1.0 · Pre-development</span>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('structure')">Folder Structure</div>
+    <div class="tab" onclick="switchTab('naming')">Naming Conventions</div>
+    <div class="tab" onclick="switchTab('aicontext')">AI Context Guide</div>
+    <div class="tab" onclick="switchTab('setup')">First Commands</div>
+  </div>
+</div>
+
+<!-- TAB 1: Structure -->
+<div id="tab-structure" class="tab-content active">
+  <div class="sidebar">
+    <div class="tree">
+
+      <div class="tree-section-label">Root</div>
+      <div class="tree-item" onclick="show('claude-md')">
+        <span class="icon">📄</span>
+        <span class="name">CLAUDE.md</span>
+        <span class="tag tag-critical">AI Context</span>
+      </div>
+      <div class="tree-item" onclick="show('readme')">
+        <span class="icon">📄</span>
+        <span class="name">README.md</span>
+        <span class="tag tag-doc">Entry point</span>
+      </div>
+      <div class="tree-item" onclick="show('docker')">
+        <span class="icon">🐳</span>
+        <span class="name">docker-compose.yml</span>
+        <span class="tag tag-config">DevOps</span>
+      </div>
+      <div class="tree-item" onclick="show('env')">
+        <span class="icon">🔑</span>
+        <span class="name">.env.example</span>
+        <span class="tag tag-config">Config</span>
+      </div>
+      <div class="tree-item" onclick="show('gitignore')">
+        <span class="icon">🚫</span>
+        <span class="name dim">.gitignore</span>
+      </div>
+      <div class="tree-item" onclick="show('eslint')">
+        <span class="icon">📏</span>
+        <span class="name dim">.eslintrc.js</span>
+      </div>
+
+      <div class="tree-divider"></div>
+      <div class="tree-section-label">📁 docs/</div>
+
+      <div class="tree-item" onclick="show('docs-prd')">
+        <span class="indent">  </span>
+        <span class="icon">📋</span>
+        <span class="name">PRD.html</span>
+        <span class="tag tag-doc">Product</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-arch')">
+        <span class="indent">  </span>
+        <span class="icon">🏗️</span>
+        <span class="name">ARCHITECTURE.md</span>
+        <span class="tag tag-doc">Tech</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-api')">
+        <span class="indent">  </span>
+        <span class="icon">🔌</span>
+        <span class="name">API.md</span>
+        <span class="tag tag-doc">API</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-flows')">
+        <span class="indent">  </span>
+        <span class="icon">🗺️</span>
+        <span class="name">FLOWS.md</span>
+        <span class="tag tag-doc">UX</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-edge')">
+        <span class="indent">  </span>
+        <span class="icon">⚠️</span>
+        <span class="name">EDGE_CASES.md</span>
+        <span class="tag tag-doc">QA</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-sprint')">
+        <span class="indent">  </span>
+        <span class="icon">📅</span>
+        <span class="name">SPRINT_PLAN.md</span>
+        <span class="tag tag-doc">PM</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-setup')">
+        <span class="indent">  </span>
+        <span class="icon">🔧</span>
+        <span class="name">SETUP.md</span>
+        <span class="tag tag-doc">DevEx</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-coding')">
+        <span class="indent">  </span>
+        <span class="icon">📝</span>
+        <span class="name">CODING_CONVENTIONS.md</span>
+        <span class="tag tag-doc">Standards</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-changelog')">
+        <span class="indent">  </span>
+        <span class="icon">📜</span>
+        <span class="name">API_CHANGELOG.md</span>
+        <span class="tag tag-doc">API</span>
+      </div>
+      <div class="tree-item" onclick="show('docs-support')">
+        <span class="indent">  </span>
+        <span class="icon">🆘</span>
+        <span class="name">SUPPORT_RUNBOOK.md</span>
+        <span class="tag tag-doc">Ops</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('adr-folder')">
+        <span class="indent">  </span>
+        <span class="icon">📁</span>
+        <span class="name">ADR/</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-001-cashfree.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-002-typesense.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-003-digitalocean.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-004-r2-storage.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-005-supabase.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-006-socketio.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-007-msg91.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-008-ola-maps.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-009-bullmq.md</span>
+      </div>
+      <div class="tree-item" onclick="show('adr-001')">
+        <span class="indent">    </span>
+        <span class="icon">📄</span>
+        <span class="name dim">ADR-010-monorepo.md</span>
+      </div>
+
+      <div class="tree-divider"></div>
+      <div class="tree-section-label">📁 apps/</div>
+
+      <div class="tree-item folder" onclick="show('app-customer')">
+        <span class="indent">  </span>
+        <span class="icon">📁</span>
+        <span class="name">customer/</span>
+        <span class="tag tag-code">React Native</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/screens/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/components/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/hooks/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/services/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/store/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/navigation/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/constants/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/utils/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">app.json</span>
+      </div>
+      <div class="tree-item" onclick="show('app-customer-screens')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">package.json</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('app-shop')">
+        <span class="indent">  </span>
+        <span class="icon">📁</span>
+        <span class="name">shop/</span>
+        <span class="tag tag-code">React Native</span>
+      </div>
+      <div class="tree-item" onclick="show('app-shop')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/screens/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-shop')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/components/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-shop')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/hooks/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-shop')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/services/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-shop')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/store/</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('app-delivery')">
+        <span class="indent">  </span>
+        <span class="icon">📁</span>
+        <span class="name">delivery/</span>
+        <span class="tag tag-code">React Native</span>
+      </div>
+      <div class="tree-item folder" onclick="show('app-admin')">
+        <span class="indent">  </span>
+        <span class="icon">📁</span>
+        <span class="name">admin/</span>
+        <span class="tag tag-code">React + Vite</span>
+      </div>
+      <div class="tree-item" onclick="show('app-admin')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/pages/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-admin')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/components/</span>
+      </div>
+      <div class="tree-item" onclick="show('app-admin')">
+        <span class="indent">    </span><span class="icon">📁</span><span class="name dim">src/api/</span>
+      </div>
+      <div class="tree-item folder" onclick="show('app-shared')">
+        <span class="indent">  </span>
+        <span class="icon">📁</span>
+        <span class="name">_shared/</span>
+        <span class="tag tag-code">Shared UI</span>
+      </div>
+
+      <div class="tree-divider"></div>
+      <div class="tree-section-label">📁 backend/</div>
+
+      <div class="tree-item folder" onclick="show('be-routes')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">src/routes/</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">auth.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">shops.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">products.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">orders.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">delivery.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">payments.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">reviews.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">search.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-routes')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">admin.js</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('be-middleware')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">src/middleware/</span>
+      </div>
+      <div class="tree-item" onclick="show('be-middleware')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">auth.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-middleware')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">roleGuard.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-middleware')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">rateLimit.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-middleware')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">validate.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-middleware')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">errorHandler.js</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('be-services')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">src/services/</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">supabase.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">redis.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">typesense.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">r2.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">cashfree.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">msg91.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">fcm.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-services')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">olaMaps.js</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('be-jobs')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">src/jobs/</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">notifyShop.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">assignDelivery.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">autoCancel.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">notifyCustomer.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">trustScore.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">analyticsAggregate.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">earningsSummary.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-jobs')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">worker.js</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('be-socket')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">src/socket/</span>
+      </div>
+      <div class="tree-item" onclick="show('be-socket')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">orderRoom.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-socket')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">gpsTracker.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-socket')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">chat.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-socket')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">index.js</span>
+      </div>
+
+      <div class="tree-item folder" onclick="show('be-utils')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">src/utils/</span>
+      </div>
+      <div class="tree-item" onclick="show('be-utils')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">errors.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-utils')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">response.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-utils')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">idempotency.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-utils')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">logger.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-utils')">
+        <span class="indent">    </span><span class="icon">📄</span><span class="name dim">validators.js</span>
+      </div>
+      <div class="tree-item" onclick="show('be-entry')">
+        <span class="indent">  </span><span class="icon">📄</span><span class="name">src/index.js</span>
+        <span class="tag tag-critical">Entry</span>
+      </div>
+
+      <div class="tree-divider"></div>
+      <div class="tree-section-label">📁 supabase/</div>
+      <div class="tree-item folder" onclick="show('db-migrations')">
+        <span class="indent">  </span><span class="icon">📁</span><span class="name">migrations/</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">001_profiles.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">002_shops.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">003_products.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">004_orders.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">005_order_items.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">006_reviews.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">007_disputes.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">008_analytics.sql</span>
+      </div>
+      <div class="tree-item" onclick="show('db-migrations')">
+        <span class="indent">    </span><span class="icon">🗄️</span><span class="name dim">009_rls_policies.sql</span>
+      </div>
+
+      <div class="tree-divider"></div>
+      <div class="tree-section-label">📁 .github/</div>
+      <div class="tree-item" onclick="show('github-ci')">
+        <span class="indent">  </span><span class="icon">⚙️</span><span class="name dim">workflows/ci.yml</span>
+      </div>
+      <div class="tree-item" onclick="show('github-ci')">
+        <span class="indent">  </span><span class="icon">📄</span><span class="name dim">PULL_REQUEST_TEMPLATE.md</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="detail" id="detail-panel">
+    <div class="placeholder">
+      <div class="p-icon">📂</div>
+      <p>Click any file or folder to see details</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Naming -->
+<div id="tab-naming" class="tab-content">
+  <div class="detail" style="max-width:860px">
+    <div class="stats">
+      <div class="stat"><div class="stat-num">4</div><div class="stat-label">Apps</div></div>
+      <div class="stat"><div class="stat-num">9</div><div class="stat-label">Route files</div></div>
+      <div class="stat"><div class="stat-num">8</div><div class="stat-label">Service files</div></div>
+      <div class="stat"><div class="stat-num">8</div><div class="stat-label">Job files</div></div>
+      <div class="stat"><div class="stat-num">10</div><div class="stat-label">ADR files</div></div>
+      <div class="stat"><div class="stat-num">9</div><div class="stat-label">SQL migrations</div></div>
+    </div>
+
+    <h2 style="font-size:16px;margin-bottom:16px;color:var(--text)">Naming Convention Rules</h2>
+
+    <div class="detail-section">
+      <h3>Backend Files (Node.js)</h3>
+      <ul class="file-list">
+        <li><span class="fl-name">routes/orders.js</span><span class="fl-desc">Singular noun, lowercase, .js — one file per domain</span></li>
+        <li><span class="fl-name">services/cashfree.js</span><span class="fl-desc">Named after the service/tool it wraps, lowercase</span></li>
+        <li><span class="fl-name">jobs/autoCancel.js</span><span class="fl-desc">camelCase verb phrase — describes what the job does</span></li>
+        <li><span class="fl-name">jobs/notifyShop.js</span><span class="fl-desc">camelCase verb+noun — action + target</span></li>
+        <li><span class="fl-name">middleware/roleGuard.js</span><span class="fl-desc">camelCase — describes what it guards/does</span></li>
+        <li><span class="fl-name">socket/gpsTracker.js</span><span class="fl-desc">camelCase — socket event handler group</span></li>
+        <li><span class="fl-name">utils/idempotency.js</span><span class="fl-desc">camelCase — utility concept name</span></li>
+        <li><span class="fl-name">src/index.js</span><span class="fl-desc">Always index.js for entry points</span></li>
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>React Native Files (TypeScript)</h3>
+      <ul class="file-list">
+        <li><span class="fl-name">HomeScreen.tsx</span><span class="fl-desc">PascalCase + Screen suffix for all screens</span></li>
+        <li><span class="fl-name">ShopProfileScreen.tsx</span><span class="fl-desc">Descriptive PascalCase + Screen</span></li>
+        <li><span class="fl-name">OrderTrackingScreen.tsx</span><span class="fl-desc">Never "Page", always "Screen" in RN</span></li>
+        <li><span class="fl-name">ShopCard.tsx</span><span class="fl-desc">PascalCase for reusable components, no suffix</span></li>
+        <li><span class="fl-name">TrustBadge.tsx</span><span class="fl-desc">PascalCase, describes what it renders</span></li>
+        <li><span class="fl-name">useOrder.ts</span><span class="fl-desc">camelCase with "use" prefix for hooks</span></li>
+        <li><span class="fl-name">useSocket.ts</span><span class="fl-desc">use + noun for all custom hooks</span></li>
+        <li><span class="fl-name">cartStore.ts</span><span class="fl-desc">camelCase + Store for Zustand stores</span></li>
+        <li><span class="fl-name">api.ts</span><span class="fl-desc">Single api.ts service in each app</span></li>
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Documentation Files</h3>
+      <ul class="file-list">
+        <li><span class="fl-name">CLAUDE.md</span><span class="fl-desc">SCREAMING_SNAKE → read by AI. Always in root.</span></li>
+        <li><span class="fl-name">README.md</span><span class="fl-desc">SCREAMING_SNAKE → standard convention</span></li>
+        <li><span class="fl-name">SPRINT_PLAN.md</span><span class="fl-desc">SCREAMING_SNAKE → important human docs</span></li>
+        <li><span class="fl-name">CODING_CONVENTIONS.md</span><span class="fl-desc">SCREAMING_SNAKE → team standards docs</span></li>
+        <li><span class="fl-name">API_CHANGELOG.md</span><span class="fl-desc">SCREAMING_SNAKE → changelog docs</span></li>
+        <li><span class="fl-name">ADR-001-cashfree.md</span><span class="fl-desc">ADR-NNN-kebab-case — sequential, topic in name</span></li>
+        <li><span class="fl-name">ADR-010-monorepo.md</span><span class="fl-desc">Pad to 3 digits for sort order</span></li>
+        <li><span class="fl-name">PRD.html</span><span class="fl-desc">UPPER for major deliverables (PRD, FLOWS, API)</span></li>
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Database Migration Files</h3>
+      <ul class="file-list">
+        <li><span class="fl-name">001_profiles.sql</span><span class="fl-desc">NNN_snake_case — 3-digit prefix for order, table name</span></li>
+        <li><span class="fl-name">004_orders.sql</span><span class="fl-desc">Order matters — FK deps must run in correct sequence</span></li>
+        <li><span class="fl-name">009_rls_policies.sql</span><span class="fl-desc">RLS always last — tables must exist first</span></li>
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Git Branch Names</h3>
+      <ul class="file-list">
+        <li><span class="fl-name">feature/BE-order-auto-cancel</span><span class="fl-desc">feature/SCOPE-kebab-description</span></li>
+        <li><span class="fl-name">feature/CA-07-cart-management</span><span class="fl-desc">CA=Customer App, SA=Shop, DA=Delivery, BE=Backend</span></li>
+        <li><span class="fl-name">fix/otp-lockout-redis</span><span class="fl-desc">fix/kebab-description of the bug</span></li>
+        <li><span class="fl-name">hotfix/cashfree-webhook</span><span class="fl-desc">hotfix/ prefix for production emergencies only</span></li>
+        <li><span class="fl-name">chore/update-dependencies</span><span class="fl-desc">chore/ for non-feature non-fix work</span></li>
+        <li><span class="fl-name">docs/add-adr-011</span><span class="fl-desc">docs/ for documentation-only PRs</span></li>
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Environment Variables</h3>
+      <ul class="file-list">
+        <li><span class="fl-name">SUPABASE_URL</span><span class="fl-desc">SCREAMING_SNAKE — all env vars always</span></li>
+        <li><span class="fl-name">CASHFREE_APP_ID</span><span class="fl-desc">PREFIX_VARIABLE — service name prefix</span></li>
+        <li><span class="fl-name">JWT_SECRET</span><span class="fl-desc">CATEGORY_NAME pattern</span></li>
+        <li><span class="fl-name">EXPO_PUBLIC_API_URL</span><span class="fl-desc">EXPO_PUBLIC_ prefix for RN client-safe vars</span></li>
+        <li><span class="fl-name">ORDER_ACCEPT_WINDOW_SECONDS</span><span class="fl-desc">Domain + setting + unit</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: AI Context -->
+<div id="tab-aicontext" class="tab-content">
+  <div class="detail" style="max-width:860px">
+    <h2 style="font-size:16px;margin-bottom:6px;color:var(--text)">How to Use This Repo with Claude / Cursor / Copilot</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6">Follow this guide every time you start a new AI coding session to prevent context loss.</p>
+
+    <div class="detail-section">
+      <h3>Step 1 — Always paste CLAUDE.md first</h3>
+      <pre><code><span class="comment"># At the start of every Claude conversation, say:</span>
+
+<span class="hi">"Here is my project context file. Read it before helping me."</span>
+
+<span class="comment"># Then paste the entire contents of CLAUDE.md</span>
+<span class="comment"># Claude will now know: full stack, all domain rules,</span>
+<span class="comment"># what never to do, current build status.</span></code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>Step 2 — Then paste the relevant file</h3>
+      <pre><code><span class="comment"># If working on order flow:</span>
+<span class="hi">"I'm working on backend/src/routes/orders.js"</span>
+<span class="comment"># Paste the current file contents</span>
+
+<span class="comment"># If working on a new file:</span>
+<span class="hi">"I need to create backend/src/jobs/autoCancel.js"</span>
+<span class="comment"># Claude knows the pattern from CLAUDE.md</span></code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>Step 3 — Reference specific docs by name</h3>
+      <pre><code><span class="comment"># Claude knows the doc structure. You can say:</span>
+<span class="hi">"Check EDGE_CASES.md — how should I handle the</span>
+<span class="hi"> 'shop doesn't respond in 3 minutes' case?"</span>
+
+<span class="hi">"What does ADR-001 say about our payment gateway choice?"</span>
+
+<span class="hi">"I'm on Sprint 3, Task 3.5 — implement the auto-cancel job."</span>
+
+<span class="comment"># Claude can reference these because CLAUDE.md</span>
+<span class="comment"># explains what each document contains.</span></code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>Cursor / VS Code setup</h3>
+      <pre><code><span class="comment"># In Cursor, add CLAUDE.md as a "rules" file:</span>
+<span class="comment"># Settings → Rules for AI → paste CLAUDE.md content</span>
+
+<span class="comment"># Or create .cursorrules in repo root:</span>
+<span class="hi2">cp CLAUDE.md .cursorrules</span>
+
+<span class="comment"># Cursor will read this automatically for every chat</span>
+<span class="comment"># in this workspace — no manual pasting needed.</span></code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>What CLAUDE.md gives Claude instantly</h3>
+      <div class="badge-row">
+        <span class="badge green">Full tech stack</span>
+        <span class="badge green">Why each tool chosen</span>
+        <span class="badge green">All domain rules</span>
+        <span class="badge green">API conventions</span>
+        <span class="badge green">Socket.IO rooms</span>
+        <span class="badge green">BullMQ queue names</span>
+        <span class="badge green">DB table names</span>
+        <span class="badge green">Error code list</span>
+        <span class="badge red">12 "never do" rules</span>
+        <span class="badge amber">Current build status</span>
+        <span class="badge blue">Folder structure</span>
+        <span class="badge purple">How to ask for help</span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Update CLAUDE.md after every sprint</h3>
+      <pre><code><span class="comment"># Every Friday, update this table in CLAUDE.md:</span>
+
+<span class="hi">| Module         | Status | Notes              |</span>
+<span class="hi">|----------------|--------|--------------------|</span>
+<span class="hi3">| Auth (OTP+JWT) | ✅ Done | Tested, deployed   |</span>
+<span class="hi3">| Shop CRUD      | ✅ Done | KYC upload working |</span>
+<span class="hi2">| Order flow     | 🔵 WIP  | Sprint 3, 60% done |</span>
+<span class="hi">| Payment        | ⬜ Next | Sprint 4           |</span>
+
+<span class="comment"># This means every new AI session knows exactly</span>
+<span class="comment"># what's built and what's next — zero context rebuild.</span></code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: First Commands -->
+<div id="tab-setup" class="tab-content">
+  <div class="detail" style="max-width:860px">
+    <h2 style="font-size:16px;margin-bottom:6px;color:var(--text)">First Commands — Run In This Exact Order</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Day 1 setup. Run these once to create the entire project skeleton.</p>
+
+    <div class="detail-section">
+      <h3>1. Create GitHub repo & scaffold folders</h3>
+      <pre><code><span class="comment"># Create org + repo on GitHub first, then:</span>
+git clone https://github.com/nearby-app/nearby.git
+cd nearby
+
+<span class="comment"># Run the scaffold script (from GITHUB_STRUCTURE.md)</span>
+mkdir -p apps/{customer,shop,delivery,admin}/src
+mkdir -p apps/_shared/{components,hooks,constants}
+mkdir -p backend/src/{routes,middleware,services,jobs,socket,utils}
+mkdir -p supabase/migrations
+mkdir -p docs/ADR
+mkdir -p .github/workflows
+
+<span class="comment"># Create all placeholder files</span>
+touch CLAUDE.md README.md docker-compose.yml .env.example .gitignore
+touch docs/{PRD.html,ARCHITECTURE.md,API.md,FLOWS.md,EDGE_CASES.md}
+touch docs/{SPRINT_PLAN.md,SETUP.md,CODING_CONVENTIONS.md,API_CHANGELOG.md,SUPPORT_RUNBOOK.md}
+touch .github/PULL_REQUEST_TEMPLATE.md
+touch .github/workflows/ci.yml</code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>2. Populate the critical files first</h3>
+      <pre><code><span class="comment"># Order matters. Do these before any code.</span>
+
+<span class="hi">1.</span> Copy CLAUDE.md content → nearby/CLAUDE.md
+<span class="hi">2.</span> Copy README.md content → nearby/README.md
+<span class="hi">3.</span> Copy .env.example content → nearby/.env.example
+<span class="hi">4.</span> Copy docker-compose.yml → nearby/docker-compose.yml
+<span class="hi">5.</span> Copy all docs/*.md files → nearby/docs/
+<span class="hi">6.</span> Copy ADR.md content → nearby/docs/ADR/ (split per ADR)
+<span class="hi">7.</span> Copy PRD.html → nearby/docs/PRD.html
+
+<span class="comment"># Only THEN start writing code</span></code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>3. Git init + first commit</h3>
+      <pre><code>git add .
+git commit -m <span class="hi">"chore(init): scaffold monorepo structure and all docs"</span>
+git push origin main
+
+<span class="comment"># Create branches immediately</span>
+git checkout -b develop
+git push origin develop
+
+git checkout -b staging
+git push origin staging
+
+<span class="comment"># All future work starts from develop</span>
+git checkout develop
+git checkout -b feature/BE-sprint1-infrastructure</code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>4. Set up Cursor rules (one time)</h3>
+      <pre><code><span class="comment"># Makes Claude/Cursor read CLAUDE.md automatically</span>
+cp CLAUDE.md .cursorrules
+
+<span class="comment"># Add to .gitignore if you don't want it committed:</span>
+echo ".cursorrules" >> .gitignore
+
+<span class="comment"># OR commit it (recommended) so all team members benefit</span>
+git add .cursorrules
+git commit -m <span class="hi">"chore(ai): add cursorrules for AI context"</span></code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>5. Start Sprint 1 (backend)</h3>
+      <pre><code><span class="comment"># Initialize backend Node.js project</span>
+cd backend
+npm init -y
+npm install express socket.io @supabase/supabase-js ioredis bullmq \
+  typesense @aws-sdk/client-s3 jsonwebtoken bcrypt \
+  joi winston dotenv sharp multer uuid express-rate-limit \
+  helmet cors
+
+npm install -D nodemon jest supertest eslint
+
+<span class="comment"># Create package.json scripts</span>
+<span class="hi3"># "dev": "nodemon src/index.js"</span>
+<span class="hi3"># "test": "jest --coverage"</span>
+<span class="hi3"># "lint": "eslint src/"</span>
+<span class="hi3"># "seed": "node scripts/seed.js"</span>
+
+<span class="comment"># Start dev server</span>
+cd .. && docker-compose up -d redis typesense
+cd backend && npm run dev</code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>6. Initialize React Native apps</h3>
+      <pre><code><span class="comment"># Customer app</span>
+cd apps/customer
+npx create-expo-app . --template expo-template-blank-typescript
+npm install @tanstack/react-query zustand axios socket.io-client \
+  expo-location expo-camera expo-image-picker expo-secure-store \
+  expo-notifications @react-navigation/native @react-navigation/stack
+
+<span class="comment"># Repeat for shop and delivery apps</span>
+<span class="comment"># Admin dashboard</span>
+cd apps/admin
+npm create vite@latest . -- --template react-ts
+npm install @tanstack/react-query axios tailwindcss</code></pre>
+    </div>
+
+    <div class="detail-section">
+      <h3>7. Daily workflow from here</h3>
+      <pre><code><span class="comment"># Start of every day</span>
+git checkout develop && git pull origin develop
+git checkout -b feature/BE-[task-from-sprint-plan]
+
+<span class="comment"># Write code → test → commit often</span>
+git commit -m <span class="hi">"feat(orders): implement auto-cancel job"</span>
+
+<span class="comment"># End of day / feature complete</span>
+git push origin feature/BE-[task]
+<span class="comment"># Open PR on GitHub → assign reviewer</span>
+
+<span class="comment"># Friday ritual</span>
+<span class="comment"># 1. Update SPRINT_PLAN.md status column</span>
+<span class="comment"># 2. Update CLAUDE.md build status table</span>
+git add CLAUDE.md docs/SPRINT_PLAN.md
+git commit -m <span class="hi">"chore(sprint): week N progress update"</span></code></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const details = {
+  'claude-md': {
+    path: 'nearby / <span>CLAUDE.md</span>',
+    title: 'CLAUDE.md — AI Master Context File',
+    desc: 'The single most important file in the entire repo. Read by Claude, Cursor, and Copilot at the start of every session. Contains the complete project context so AI assistants never lose track.',
+    sections: [
+      { title: 'What it contains', items: ['Full tech stack with reasoning for every choice','All domain rules (server-side pricing, GPS in Redis, HMAC verification)','API conventions and error code list','Socket.IO room naming convention','BullMQ queue names','12 explicit "never do" rules for AI assistants','Current build status table (update every Friday)','How to ask AI for help effectively'] },
+      { title: 'Rules', items: ['Always in the root directory — never inside docs/','Update the build status table at the end of every sprint','Copy to .cursorrules for automatic Cursor integration','First thing you paste when starting a new Claude conversation'] }
+    ],
+    badges: ['ai','critical']
+  },
+  'readme': {
+    path: 'nearby / <span>README.md</span>',
+    title: 'README.md — Project Entry Point',
+    desc: 'The first file any human reads. Quick links to all docs, one-paragraph project description, tech stack summary, branch strategy, and getting started steps.',
+    sections: [
+      { title: 'Contains', items: ['Project description (2 sentences)','Quick links table to all docs','4-app summary table','Tech stack overview','Getting started steps (5 lines)','Branch strategy','Monthly cost table'] },
+      { title: 'Rules', items: ['Keep it short — all detail lives in docs/','No code in README except 5-line quickstart','Update monthly cost table when pricing changes'] }
+    ],
+    badges: ['doc']
+  },
+  'docker': {
+    path: 'nearby / <span>docker-compose.yml</span>',
+    title: 'docker-compose.yml — Local Dev Environment',
+    desc: 'Spins up the full backend dev stack with one command: Redis, Typesense, and the Node.js API server. Developers never need to install Redis or Typesense locally.',
+    sections: [
+      { title: 'Services', items: ['redis:7-alpine — port 6379, with persistence','typesense:0.25.2 — port 8108, with data volume','api — Node.js server, port 3000+3001, hot reload'] },
+      { title: 'Usage', items: ['docker-compose up -d (start background)','docker-compose logs -f api (watch logs)','docker-compose down (stop all)'] }
+    ],
+    badges: ['config']
+  },
+  'env': {
+    path: 'nearby / <span>.env.example</span>',
+    title: '.env.example — Required Environment Variables',
+    desc: 'Template for all required environment variables. Real .env is gitignored. Every developer copies this and fills in their own keys.',
+    sections: [
+      { title: 'Variable groups', items: ['SERVER — PORT, NODE_ENV, SOCKET_PORT','SUPABASE — URL, anon key, service role key','REDIS — connection URL','TYPESENSE — host, port, API key','CLOUDFLARE R2 — account, keys, bucket names','CASHFREE — app ID, secret, webhook secret','MSG91 — auth key, template ID, sender ID','FIREBASE — project ID, private key, client email','OLA MAPS — API key','JWT — secret, refresh secret, expiry','APP CONFIG — OTP TTL, rate limits, commission rate'] },
+      { title: 'Rules', items: ['.env is in .gitignore — never commit it','Use placeholder values in .env.example (not real keys)','Add new vars to .env.example the same day you add them to code','Coolify manages production env vars securely'] }
+    ],
+    badges: ['config','critical']
+  },
+  'docs-prd': {
+    path: 'nearby / docs / <span>PRD.html</span>',
+    title: 'PRD.html — Product Requirements Document',
+    desc: 'The complete product bible. 12-section interactive HTML document covering vision, personas, features, user stories, edge cases, tech spec, security, launch checklist, KPIs, risks, and support runbook.',
+    sections: [
+      { title: '12 sections', items: ['PRD — vision, scope, success criteria','Vision & Strategy — roadmap, competitive positioning','User Personas — Priya, Raju, Suresh, Arjun','Feature Specification — 48 features, Must/Should/Nice','User Stories + Acceptance Criteria','Edge Cases — 15 failure scenarios','Technical Specification — stack, DB schema, env vars','API Reference Summary','Security Requirements','Launch Checklist — 35 pre-launch gates','Metrics & KPIs — north star + 6 metric categories','Risk Register — 13 risks with mitigations','Support Runbook — escalation matrix + daily ops'] }
+    ],
+    badges: ['doc']
+  },
+  'docs-sprint': {
+    path: 'nearby / docs / <span>SPRINT_PLAN.md</span>',
+    title: 'SPRINT_PLAN.md — 16-Week Build Plan',
+    desc: '177 specific development tasks across 16 sprints. Tagged by team member, with status columns. The source of truth for what gets built and when.',
+    sections: [
+      { title: '6 blocks', items: ['Block 1 (S1–2): Foundation — infrastructure + auth + shop/product CRUD','Block 2 (S3–4): Order engine — order flow + Cashfree payments','Block 3 (S5–6): Delivery + real-time — GPS + Socket.IO + trust score','Block 4 (S7–10): Customer app — all 4 sprint phases','Block 5 (S11–14): Shop + delivery + admin apps','Block 6 (S15–16): Testing + polish + launch'] },
+      { title: 'Status convention', items: ['⬜ Not started','🔵 In progress','✅ Done','🔴 Blocked'] }
+    ],
+    badges: ['doc']
+  },
+  'docs-coding': {
+    path: 'nearby / docs / <span>CODING_CONVENTIONS.md</span>',
+    title: 'CODING_CONVENTIONS.md — Standards & Patterns',
+    desc: 'Every naming rule, code pattern, and structure convention for the entire codebase. Ensures any developer or AI assistant writes code that looks consistent.',
+    sections: [
+      { title: 'Covers', items: ['File naming rules (routes vs services vs jobs)','Variable and function naming (camelCase, SCREAMING_SNAKE)','Route handler structure pattern','Service layer pattern (where business logic lives)','Standard response helpers (successResponse, errorResponse)','Complete error code list (60+ codes)','BullMQ job pattern','React Native screen structure','Custom hook pattern','Zustand store pattern','API service pattern','Git commit format + examples','Pull request requirements','Testing requirements (70% coverage target)','Security checklist for every PR'] }
+    ],
+    badges: ['doc']
+  },
+  'adr-folder': {
+    path: 'nearby / docs / <span>ADR/</span>',
+    title: 'ADR/ — Architecture Decision Records',
+    desc: 'Every significant technical decision recorded with context, options considered, final decision, and consequences. Prevents revisiting the same debates.',
+    sections: [
+      { title: '10 decisions recorded', items: ['ADR-001: Cashfree over Razorpay (saves ₹1.8L/year)','ADR-002: Typesense over Elasticsearch (single container, 500MB)','ADR-003: DigitalOcean Bangalore over AWS (10ms latency, $24/mo)','ADR-004: Cloudflare R2 over AWS S3 (zero egress fees)','ADR-005: Supabase over self-hosted PG (managed backups + RLS)','ADR-006: Socket.IO over native WebSocket (rooms + fallback)','ADR-007: MSG91 over Twilio (₹0.18 vs ₹2.50/SMS)','ADR-008: Ola Maps over Google Maps (1M free calls/month)','ADR-009: BullMQ over direct async (jobs survive restart)','ADR-010: Monorepo over multiple repos (simple, AI-friendly)'] }
+    ],
+    badges: ['doc']
+  },
+  'adr-001': {
+    path: 'nearby / docs / ADR / <span>ADR-NNN-name.md</span>',
+    title: 'ADR-NNN-name.md — Individual Decision Record',
+    desc: 'Each ADR file has: Status (Accepted/Deprecated), Date, Context (why we needed to decide), Options Considered (comparison table), Decision (what we chose and why), and Consequences (positive, negative, risks, upgrade path).',
+    sections: [
+      { title: 'Format rules', items: ['Status: Accepted | Deprecated | Superseded by ADR-XXX','Never delete or modify an accepted ADR — create a superseding one','Number pads to 3 digits (001, 010) for alphabetical sort order','Filename kebab-case topic name matches the decision topic'] }
+    ],
+    badges: ['doc']
+  },
+  'app-customer': {
+    path: 'nearby / apps / <span>customer/</span>',
+    title: 'customer/ — Customer React Native App',
+    desc: 'The app end customers use to browse shops, order, track deliveries, and leave reviews. React Native + Expo. TypeScript throughout.',
+    sections: [
+      { title: 'Folder breakdown', items: ['src/screens/ — All screen components (HomeScreen, ShopProfileScreen, etc.)','src/components/ — Reusable UI components (ShopCard, TrustBadge, etc.)','src/hooks/ — Custom hooks (useOrder, useSocket, useCart)','src/services/ — API client (api.ts), Socket.IO client','src/store/ — Zustand stores (cartStore, authStore, orderStore)','src/navigation/ — React Navigation stack and tab config','src/constants/ — Colors, API URLs, config values','src/utils/ — Format helpers, validators, geo utils'] },
+      { title: 'Key screens', items: ['HomeScreen — shop discovery, category grid','SearchScreen — full-text + geo search','ShopProfileScreen — shop detail, products, reviews, chat','CartScreen — items, total, address, payment method','OrderTrackingScreen — real-time map, status timeline','OrderHistoryScreen — all past orders, reorder'] }
+    ],
+    badges: ['code']
+  },
+  'app-customer-screens': {
+    path: 'nearby / apps / customer / <span>src/</span>',
+    title: 'Customer App — Source Structure',
+    desc: 'Detailed breakdown of every folder inside the customer app and the naming conventions for each file type.',
+    sections: [
+      { title: 'screens/ — naming', items: ['HomeScreen.tsx','ShopProfileScreen.tsx','OrderTrackingScreen.tsx','OrderHistoryScreen.tsx','CartScreen.tsx','PaymentScreen.tsx','ReviewScreen.tsx','ProfileScreen.tsx','LoginScreen.tsx','OtpScreen.tsx','LocationScreen.tsx'] },
+      { title: 'components/ — naming', items: ['ShopCard.tsx — shop listing card','TrustBadge.tsx — verified/good/new badge','ProductItem.tsx — product in catalogue','OrderStatusBadge.tsx','StarRating.tsx','LoadingScreen.tsx','EmptyScreen.tsx','ErrorScreen.tsx'] }
+    ],
+    badges: ['code']
+  },
+  'app-shop': {
+    path: 'nearby / apps / <span>shop/</span>',
+    title: 'shop/ — Shop Owner React Native App',
+    desc: 'The app shop owners use to manage their shop, receive orders, update inventory, and view earnings. Must work on low-end ₹6,000 Android phones.',
+    sections: [
+      { title: 'Key screens', items: ['DashboardScreen — open/close toggle, earnings today, alerts','OrderInboxScreen — new orders with loud alerts + countdown','OrderDetailScreen — items, accept/reject buttons','ProductCatalogueScreen — all products, stock management','AddProductScreen — camera + form + R2 upload','BulkUploadScreen — CSV picker, preview, confirm','EarningsScreen — daily/weekly chart, settlement history','ChatInboxScreen — all customer pre-order messages','ShopSettingsScreen — hours, radius, bank details','KycScreen — upload flow (5 steps)'] }
+    ],
+    badges: ['code']
+  },
+  'app-delivery': {
+    path: 'nearby / apps / <span>delivery/</span>',
+    title: 'delivery/ — Delivery Partner React Native App',
+    desc: 'The app local delivery partners use to go online, accept assignments, navigate, and confirm deliveries via OTP.',
+    sections: [
+      { title: 'Key screens', items: ['DashboardScreen — go online toggle, earnings today','AssignmentAlertScreen — full-screen order alert with 30s timer','PickupNavigationScreen — Ola Maps link to shop','DeliveryNavigationScreen — Ola Maps link to customer','OtpConfirmScreen — 4-digit input for delivery confirmation','EarningsScreen — per-delivery, daily, withdrawal history','ProfileScreen — rating, vehicle, bank details'] }
+    ],
+    badges: ['code']
+  },
+  'app-admin': {
+    path: 'nearby / apps / <span>admin/</span>',
+    title: 'admin/ — Admin React + Vite Dashboard',
+    desc: 'Internal web dashboard for the NearBy ops team. React + Vite + TypeScript. Used for KYC review, dispute resolution, and platform monitoring.',
+    sections: [
+      { title: 'Pages', items: ['KycQueuePage — pending applications table, doc viewer','ShopManagementPage — all shops, suspend/reinstate','OrderMonitorPage — live orders in-flight, stuck alerts','DisputePage — full timeline, GPS trail, refund button','AnalyticsPage — GMV, orders, city breakdown, charts','DeliveryPartnersPage — approve, suspend, earnings','BroadcastPage — push/SMS to all users','FinancePage — commissions, settlements, refunds'] }
+    ],
+    badges: ['code']
+  },
+  'app-shared': {
+    path: 'nearby / apps / <span>_shared/</span>',
+    title: '_shared/ — Shared Component Library',
+    desc: 'UI components, hooks, and constants shared across the customer, shop, and delivery React Native apps. Avoids duplication of common elements.',
+    sections: [
+      { title: 'What lives here', items: ['components/ — Button, Input, Avatar, Badge, Modal','hooks/ — useAuth (shared login logic), useNotifications','constants/ — colors.ts, fonts.ts, api-routes.ts','types/ — shared TypeScript interfaces (Order, Shop, Product)'] },
+      { title: 'Rule', items: ['Only add here if used by 2+ apps','App-specific components stay in the app folder','Import as: import { Button } from "../../_shared/components"'] }
+    ],
+    badges: ['code']
+  },
+  'be-routes': {
+    path: 'nearby / backend / src / <span>routes/</span>',
+    title: 'routes/ — API Route Handlers',
+    desc: 'One file per domain. Route handlers are thin — they validate input, call a service method, and return a response. All business logic lives in services/, not here.',
+    sections: [
+      { title: 'Files', items: ['auth.js — /auth/send-otp, /auth/verify-otp, /auth/refresh, /auth/me','shops.js — CRUD for shops, KYC upload, toggle, analytics, earnings','products.js — CRUD for products, bulk CSV, image upload, template','orders.js — create, list, detail, accept, reject, ready, cancel','delivery.js — availability, assignments, pickup, deliver, location','payments.js — initiate, webhook (Cashfree), status, refund','reviews.js — submit, list by shop','search.js — shops (geo), products (cross-shop)','admin.js — KYC queue, shop management, disputes, analytics, broadcast'] },
+      { title: 'Pattern rule', items: ['Every route: authenticate → roleGuard → validate → service.method() → respond','Never write DB queries in route handlers — that goes in services/','Every handler wrapped in try/catch → next(err)'] }
+    ],
+    badges: ['code']
+  },
+  'be-middleware': {
+    path: 'nearby / backend / src / <span>middleware/</span>',
+    title: 'middleware/ — Express Middleware',
+    desc: 'Applied to routes in order. Auth verifies JWT. roleGuard checks the role claim. rateLimit uses Redis counters. validate runs Joi schemas. errorHandler is the last middleware in the chain.',
+    sections: [
+      { title: 'Files', items: ['auth.js — verifies JWT, attaches req.user = { userId, phone, role, shopId }','roleGuard.js — factory: roleGuard(["customer","admin"]) → checks req.user.role','rateLimit.js — Redis-backed counters, per-phone and per-IP limits','validate.js — Joi schema validation, returns 400 with field errors','errorHandler.js — catches all errors, maps to standard error response'] }
+    ],
+    badges: ['code']
+  },
+  'be-services': {
+    path: 'nearby / backend / src / <span>services/</span>',
+    title: 'services/ — Third-Party Integrations',
+    desc: 'Each file wraps one external service. All business logic using these services lives in route handlers or domain service classes — not in these wrappers.',
+    sections: [
+      { title: 'Files', items: ['supabase.js — Supabase client (service role key), exports supabase','redis.js — ioredis client, exports redis. Used by BullMQ + rate limiting','typesense.js — Typesense client + index helpers (indexShop, indexProduct, removeProduct)','r2.js — Cloudflare R2 via AWS SDK: uploadFile, getSignedUrl, deleteFile','cashfree.js — createPaymentOrder, verifyWebhookSignature, initiateRefund, settlementStatus','msg91.js — sendOtp, sendSms (with DLT template ID mapping)','fcm.js — sendPush, sendBatchPush (via Firebase Admin SDK)','olaMaps.js — geocode, getEta, reverseGeocode'] }
+    ],
+    badges: ['code']
+  },
+  'be-jobs': {
+    path: 'nearby / backend / src / <span>jobs/</span>',
+    title: 'jobs/ — BullMQ Async Job Definitions',
+    desc: 'Each file exports a Queue (for adding jobs) and defines a Worker (for processing them). worker.js imports and starts all workers on app startup.',
+    sections: [
+      { title: 'Files + triggers', items: ['notifyShop.js — Fired when order placed: FCM high-priority + MSG91 SMS to shop','assignDelivery.js — Fired when shop accepts: Redis GEORADIUS nearest partner','autoCancel.js — Delayed 3 min after order placed: cancel if still pending','notifyCustomer.js — Fired on every order status change: FCM to customer','trustScore.js — Scheduled nightly 2AM IST: recompute all shop scores','analyticsAggregate.js — Scheduled nightly 3AM IST: SQL aggregation to analytics table','earningsSummary.js — Scheduled Monday 9AM IST: weekly earnings FCM to shops','worker.js — Imports and starts all workers. Called once in index.js.'] }
+    ],
+    badges: ['code']
+  },
+  'be-socket': {
+    path: 'nearby / backend / src / <span>socket/</span>',
+    title: 'socket/ — Socket.IO Event Handlers',
+    desc: 'Socket.IO server logic split by domain. index.js bootstraps the server and registers all event handlers. Each handler file defines the events for its domain.',
+    sections: [
+      { title: 'Files', items: ['index.js — Creates io server, registers middleware, imports all handlers','orderRoom.js — Manages order:{orderId} rooms. Emits order:status_update events.','gpsTracker.js — Handles delivery:location events. Stores in Redis → computes ETA via Ola Maps → emits delivery:location_update to order room.','chat.js — Manages chat:{shopId} rooms. Persists messages to Supabase. Emits chat:new_message.'] },
+      { title: 'Room naming', items: ['order:{orderId} — customer + shop + delivery for one order','shop:{shopId} — new order notifications for a shop','shop:{shopId}:chat — pre-order chat','delivery:{partnerId} — assignment notifications','admin — platform monitoring'] }
+    ],
+    badges: ['code']
+  },
+  'be-utils': {
+    path: 'nearby / backend / src / <span>utils/</span>',
+    title: 'utils/ — Utility Functions',
+    desc: 'Pure utility functions with no side effects. No DB calls, no external API calls. These are imported across routes, services, and jobs.',
+    sections: [
+      { title: 'Files', items: ['errors.js — AppError class + all ERROR_CODE constants','response.js — successResponse() and errorResponse() helpers','idempotency.js — checkIdempotencyKey() and setIdempotencyKey() using Redis','logger.js — Winston logger config (file + console, structured JSON)','validators.js — Joi schemas for every request body (createOrderSchema, etc.)'] }
+    ],
+    badges: ['code']
+  },
+  'be-entry': {
+    path: 'nearby / backend / src / <span>index.js</span>',
+    title: 'src/index.js — Backend Entry Point',
+    desc: 'Bootstrap file. Creates Express app, attaches all middleware, mounts all routes, creates Socket.IO server, starts BullMQ workers, and starts HTTP server.',
+    sections: [
+      { title: 'Order of operations', items: ['1. Load .env config','2. Connect to Supabase, Redis, Typesense','3. Create Express app','4. Apply global middleware (helmet, cors, rateLimit, json parser)','5. Mount routes (/api/v1/auth, /api/v1/shops, etc.)','6. Apply errorHandler last','7. Create HTTP server from Express app','8. Attach Socket.IO to HTTP server','9. Start BullMQ workers (import worker.js)','10. Listen on PORT + SOCKET_PORT'] }
+    ],
+    badges: ['code','critical']
+  },
+  'db-migrations': {
+    path: 'nearby / supabase / <span>migrations/</span>',
+    title: 'migrations/ — Supabase SQL Migration Files',
+    desc: 'Run sequentially. Each file creates one or more related tables. RLS policies always run last (009) because they reference tables created in earlier migrations.',
+    sections: [
+      { title: 'File order (critical)', items: ['001_profiles.sql — extends Supabase auth.users','002_shops.sql — depends on profiles (FK)','003_products.sql — depends on shops (FK)','004_orders.sql — depends on profiles + shops (FK)','005_order_items.sql — depends on orders + products (FK)','006_reviews.sql — depends on orders + profiles + shops (FK)','007_disputes.sql — depends on orders + profiles (FK)','008_analytics.sql — shop_events and shop_analytics_daily tables','009_rls_policies.sql — RLS on all tables, run last'] }
+    ],
+    badges: ['config']
+  },
+  'github-ci': {
+    path: 'nearby / .github / <span>workflows/ci.yml</span>',
+    title: '.github/ — GitHub Actions & PR Template',
+    desc: 'CI pipeline runs on every PR: backend tests, TypeScript checks for RN apps, admin build check. Auto-deploys to staging via Coolify webhook when staging branch is updated.',
+    sections: [
+      { title: 'CI jobs', items: ['backend-test — npm test with Redis service container','customer-app-check — TypeScript typecheck','admin-check — Full Vite production build check','deploy-staging — Triggered on staging branch, calls Coolify webhook'] },
+      { title: 'PR Template', items: ['What does this PR do?','Type of change (feature/fix/security/docs/refactor)','Sprint + task reference','How was this tested?','Security checklist (8 items)','Screenshots for UI changes','Database changes section','Breaking changes section'] }
+    ],
+    badges: ['config']
+  }
+};
+
+function show(key) {
+  const d = details[key];
+  if (!d) return;
+  document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  const badgeHtml = (d.badges||[]).map(b => {
+    const map = { ai: ['tag-ai','AI Context'], critical: ['tag-critical','Critical'], doc: ['tag-doc','Document'], config: ['tag-config','Config'], code: ['tag-code','Code'] };
+    return `<span class="badge ${map[b][0].replace('tag-','')}">${map[b][1]}</span>`;
+  }).join('');
+
+  let sectionsHtml = (d.sections||[]).map(s => `
+    <div class="detail-section">
+      <h3>${s.title}</h3>
+      <ul class="file-list">
+        ${s.items.map(i => `<li><span class="fl-desc">${i}</span></li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  document.getElementById('detail-panel').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-path">${d.path}</div>
+      <div class="detail-title">${d.title}</div>
+      <div class="detail-desc">${d.desc}</div>
+      <div class="badge-row">${badgeHtml}</div>
+    </div>
+    ${sectionsHtml}`;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
+</body>
+</html>

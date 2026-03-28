@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NearBy — Complete Product Documentation</title>
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f8f7f4; --bg3: #f0ede8;
+    --text: #1a1a18; --text2: #5a5956; --text3: #9a9793;
+    --border: #e4e1db; --border2: #d0cdc7;
+    --accent: #2563eb; --accent-light: #eff6ff;
+    --green: #16a34a; --green-light: #f0fdf4;
+    --amber: #d97706; --amber-light: #fffbeb;
+    --red: #dc2626; --red-light: #fef2f2;
+    --purple: #7c3aed; --purple-light: #f5f3ff;
+    --teal: #0d9488; --teal-light: #f0fdfa;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'SF Mono', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg2); color: var(--text); display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  #sidebar {
+    width: 260px; min-width: 260px; background: var(--bg); border-right: 1px solid var(--border);
+    height: 100vh; overflow-y: auto; position: sticky; top: 0;
+  }
+  .sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo { font-size: 16px; font-weight: 700; color: var(--text); }
+  .sidebar-version { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sidebar-section { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .sidebar-section-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; padding: 4px 16px 2px; }
+  .sidebar-link { display: block; padding: 5px 16px; font-size: 13px; color: var(--text2); cursor: pointer; border-radius: 0; transition: all .1s; text-decoration: none; }
+  .sidebar-link:hover { background: var(--bg2); color: var(--text); }
+  .sidebar-link.active { background: var(--accent-light); color: var(--accent); font-weight: 500; border-right: 2px solid var(--accent); }
+
+  /* Content */
+  #content { flex: 1; padding: 40px 48px; max-width: 960px; overflow-y: auto; }
+  .doc-section { display: none; }
+  .doc-section.active { display: block; }
+
+  /* Typography */
+  h1 { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  h2 { font-size: 20px; font-weight: 600; color: var(--text); margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 15px; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+  h4 { font-size: 13px; font-weight: 600; color: var(--text2); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .05em; }
+  p { font-size: 14px; line-height: 1.7; color: var(--text2); margin-bottom: 12px; }
+  .doc-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .meta-item { font-size: 12px; color: var(--text3); }
+  .meta-item strong { color: var(--text2); }
+
+  /* Callout boxes */
+  .callout { padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; }
+  .callout.info { background: var(--accent-light); border-left: 3px solid var(--accent); color: #1e40af; }
+  .callout.warn { background: var(--amber-light); border-left: 3px solid var(--amber); color: #92400e; }
+  .callout.danger { background: var(--red-light); border-left: 3px solid var(--red); color: #991b1b; }
+  .callout.success { background: var(--green-light); border-left: 3px solid var(--green); color: #14532d; }
+  .callout strong { display: block; font-weight: 600; margin-bottom: 4px; }
+
+  /* Tables */
+  .tbl-wrap { overflow-x: auto; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid var(--border); color: var(--text); font-size: 12px; }
+  td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--bg2); }
+
+  /* Badges */
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+  .badge.high { background: #fee2e2; color: #991b1b; }
+  .badge.med { background: #fef3c7; color: #92400e; }
+  .badge.low { background: #d1fae5; color: #065f46; }
+  .badge.p0 { background: #fee2e2; color: #991b1b; }
+  .badge.p1 { background: #fed7aa; color: #9a3412; }
+  .badge.p2 { background: #fef3c7; color: #92400e; }
+  .badge.p3 { background: #d1fae5; color: #065f46; }
+  .badge.must { background: #eff6ff; color: #1d4ed8; }
+  .badge.should { background: #f5f3ff; color: #5b21b6; }
+  .badge.nice { background: #f0fdfa; color: #065f46; }
+
+  /* Feature cards */
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .feature-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .feature-card .fc-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .feature-card .fc-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .feature-card .fc-badge { margin-top: 8px; }
+
+  /* User story */
+  .story { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .story .as { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; }
+  .story .want { font-size: 13px; color: var(--text); margin: 4px 0; }
+  .story .so { font-size: 12px; color: var(--text2); font-style: italic; }
+  .story .ac { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .story .ac-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
+  .story ul { list-style: none; padding: 0; }
+  .story li { font-size: 12px; color: var(--text2); padding: 2px 0; padding-left: 14px; position: relative; }
+  .story li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-size: 10px; top: 3px; }
+
+  /* Edge case table */
+  .edge-case { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+  .edge-case .ec-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); cursor: pointer; }
+  .edge-case .ec-title { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .ec-body { padding: 10px 14px; font-size: 12px; color: var(--text2); line-height: 1.6; border-top: 1px solid var(--border); }
+  .ec-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+  .ec-col-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; margin-bottom: 4px; }
+
+  /* Code */
+  code { font-family: var(--mono); font-size: 12px; background: var(--bg3); padding: 2px 6px; border-radius: 4px; color: var(--text); }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; margin-bottom: 14px; }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  /* Numbered list */
+  .num-list { counter-reset: item; list-style: none; padding: 0; }
+  .num-list li { counter-increment: item; display: flex; gap: 10px; margin-bottom: 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .num-list li::before { content: counter(item); min-width: 22px; height: 22px; background: var(--accent); color: white; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+  /* Section tag */
+  .section-tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-light); padding: 3px 10px; border-radius: 20px; margin-bottom: 8px; }
+
+  /* Print */
+  @media print { #sidebar { display: none; } #content { padding: 20px; max-width: 100%; } }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">NearBy</div>
+    <div class="sidebar-version">Product Documentation v1.0 · March 2026</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Product</div>
+    <a class="sidebar-link active" onclick="show('prd')">Product Requirements (PRD)</a>
+    <a class="sidebar-link" onclick="show('vision')">Vision & Strategy</a>
+    <a class="sidebar-link" onclick="show('personas')">User Personas</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Features</div>
+    <a class="sidebar-link" onclick="show('features')">Feature Specification</a>
+    <a class="sidebar-link" onclick="show('userstories')">User Stories</a>
+    <a class="sidebar-link" onclick="show('edgecases')">Edge Cases</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Technical</div>
+    <a class="sidebar-link" onclick="show('techspec')">Technical Specification</a>
+    <a class="sidebar-link" onclick="show('api')">API Reference Summary</a>
+    <a class="sidebar-link" onclick="show('datamodel')">Data Model</a>
+    <a class="sidebar-link" onclick="show('security')">Security Requirements</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Operations</div>
+    <a class="sidebar-link" onclick="show('launch')">Launch Checklist</a>
+    <a class="sidebar-link" onclick="show('metrics')">Success Metrics & KPIs</a>
+    <a class="sidebar-link" onclick="show('risks')">Risk Register</a>
+    <a class="sidebar-link" onclick="show('support')">Support Runbook</a>
+  </div>
+</div>
+
+<div id="content">
+
+<!-- ============================================================ PRD ============================================================ -->
+<div id="sec-prd" class="doc-section active">
+  <div class="section-tag">Product Requirements Document</div>
+  <h1>NearBy — Hyperlocal Trust Commerce Platform</h1>
+  <div class="doc-meta">
+    <span class="meta-item"><strong>Version:</strong> 1.0</span>
+    <span class="meta-item"><strong>Status:</strong> Ready for Development</span>
+    <span class="meta-item"><strong>Date:</strong> March 2026</span>
+    <span class="meta-item"><strong>Owner:</strong> Product Team</span>
+    <span class="meta-item"><strong>Stack:</strong> React Native · Node.js · Supabase · DigitalOcean</span>
+  </div>
+
+  <h2>1. Executive Summary</h2>
+  <p>NearBy is a hyperlocal super app that connects customers with verified local shops — kirana stores, vegetable vendors, pharmacies, restaurants, pet stores, mobile shops, and furniture stores — for on-demand delivery powered by local delivery partners.</p>
+  <p>Unlike dark-store models (Blinkit, Zepto) that eliminate local shops, NearBy digitises and empowers them. Every order placed is income for a real shopkeeper in the customer's neighbourhood. The platform is built on trust: verified shop identities, real customer reviews tied to actual orders, and live chat with the shopkeeper before buying.</p>
+
+  <div class="callout info">
+    <strong>Core Thesis</strong>
+    Dark stores win on speed. NearBy wins on trust, authenticity, and community. Our customers aren't just buying groceries — they're choosing to support Raju's vegetable shop over a faceless warehouse.
+  </div>
+
+  <h2>2. Problem Statement</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-title">For customers</div>
+      <div class="fc-desc">No way to discover and order from their trusted neighbourhood shops digitally. They have to physically visit or call, can't track delivery, and have no quality guarantee.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-title">For shop owners</div>
+      <div class="fc-desc">Losing 20–40% of business to online aggregators and dark stores. No digital presence, no way to reach customers who've moved to apps. Existing platforms charge 18–30% commission.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-title">For local delivery partners</div>
+      <div class="fc-desc">No flexible earning opportunity tied to their own neighbourhood. Existing gig platforms require long commitments or cover large areas.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-title">For the community</div>
+      <div class="fc-desc">Local economies weakening as money flows out to centralised warehouses instead of staying in the neighbourhood ecosystem.</div>
+    </div>
+  </div>
+
+  <h2>3. Solution</h2>
+  <p>A three-sided marketplace with four apps (customer, shop owner, delivery partner, admin web dashboard) built around a trust engine that makes local shops trustworthy and discoverable at scale.</p>
+
+  <h3>3.1 Key Differentiators</h3>
+  <ul class="num-list">
+    <li><strong>Verified shop identities</strong> — Aadhaar-based KYC for every shop. A verified badge tells customers this is a real, known business.</li>
+    <li><strong>Trust score</strong> — Computed from verified reviews, order completion rate, response time, and KYC level. Not gameable. Powers search ranking.</li>
+    <li><strong>Pre-order chat</strong> — Customers can chat with the shopkeeper before ordering. "Anna, is the chicken fresh today?" builds human trust no algorithm can replicate.</li>
+    <li><strong>Shop-friendly commission</strong> — 5–8% vs 18–30% on Swiggy/Zomato. Shops keep 92–95% of every order.</li>
+    <li><strong>OTP delivery confirmation</strong> — Prevents fake delivery marking. Customer controls the OTP.</li>
+    <li><strong>Live inventory</strong> — Out-of-stock items disappear from search within 15 seconds of the shopkeeper toggling them off.</li>
+  </ul>
+
+  <h2>4. Scope — V1 (Launch)</h2>
+  <div class="callout success">
+    <strong>In Scope — V1</strong>
+    Customer app · Shop owner app · Delivery partner app · Admin web dashboard · Kirana, Vegetables, Pharmacy, Food/Tiffin, Pet stores, Mobile shops, Furniture shops · Hyderabad launch city · OTP login · KYC verification · Product catalogue · Order management · Live tracking · Cashfree UPI + COD payments · Trust score · Reviews · Real-time chat · Shop analytics
+  </div>
+  <div class="callout warn">
+    <strong>Out of Scope — V1 (planned V2+)</strong>
+    Subscription plans for shops · In-app advertising · Group buying · Loyalty points / rewards program · Multi-language support · Voice ordering · AR product preview · Scheduled deliveries · Multiple delivery addresses saved · Referral program
+  </div>
+
+  <h2>5. Target Market</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Segment</th><th>Profile</th><th>Size (Hyderabad)</th><th>Priority</th></tr>
+    <tr><td>Urban families</td><td>25–45 yrs, working couples, order groceries and food regularly</td><td>~800k households</td><td><span class="badge p0">Primary</span></td></tr>
+    <tr><td>Young professionals</td><td>22–32 yrs, tech-savvy, high app usage, trust online reviews</td><td>~400k individuals</td><td><span class="badge p0">Primary</span></td></tr>
+    <tr><td>Kirana & vegetable shops</td><td>Small shops with 10–200 SKUs, no digital presence</td><td>~15,000 shops</td><td><span class="badge p1">Supply-side</span></td></tr>
+    <tr><td>Pharmacies</td><td>Local medical stores, high repeat purchase</td><td>~3,000 stores</td><td><span class="badge p1">Supply-side</span></td></tr>
+    <tr><td>Food / tiffin</td><td>Home cooks, tiffin services, small restaurants</td><td>~5,000 businesses</td><td><span class="badge p1">Supply-side</span></td></tr>
+    <tr><td>Local delivery gig workers</td><td>College students, part-time workers, own bike</td><td>~50,000 potential</td><td><span class="badge p2">Enablers</span></td></tr>
+  </table></div>
+
+  <h2>6. Success Criteria — V1 Launch (6 months)</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Metric</th><th>Target</th><th>Measurement</th></tr>
+    <tr><td>Verified shops onboarded</td><td>200 shops in 6 months</td><td>Supabase is_verified count</td></tr>
+    <tr><td>Daily active orders</td><td>500 orders/day by month 6</td><td>Supabase orders count</td></tr>
+    <tr><td>Shop order acceptance rate</td><td>&gt; 85%</td><td>accepted / placed orders</td></tr>
+    <tr><td>Average delivery time</td><td>&lt; 45 minutes</td><td>placed_at to delivered_at delta</td></tr>
+    <tr><td>Customer repeat order rate</td><td>&gt; 40% within 30 days</td><td>cohort analysis Supabase</td></tr>
+    <tr><td>Shop satisfaction score</td><td>&gt; 4.0 / 5.0</td><td>Monthly shop NPS survey</td></tr>
+    <tr><td>App crash rate</td><td>&lt; 0.5%</td><td>Expo crash reporting</td></tr>
+    <tr><td>Platform uptime</td><td>&gt; 99.5%</td><td>Cloudflare + DO monitoring</td></tr>
+  </table></div>
+
+  <h2>7. Constraints & Assumptions</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Type</th><th>Item</th></tr>
+    <tr><td><strong>Budget</strong></td><td>Infrastructure budget: &lt;₹3,000/month for V1 (DO + Supabase free tier)</td></tr>
+    <tr><td><strong>Timeline</strong></td><td>MVP ready in 12–16 weeks from development start</td></tr>
+    <tr><td><strong>Team</strong></td><td>2 React Native devs · 1 Node.js backend dev · 1 designer · 1 PM</td></tr>
+    <tr><td><strong>Assumption</strong></td><td>Shop owners have Android smartphones (minimum Android 8)</td></tr>
+    <tr><td><strong>Assumption</strong></td><td>Delivery partners have their own vehicle and smartphone</td></tr>
+    <tr><td><strong>Assumption</strong></td><td>Cashfree KYC compliance handled by Cashfree (not us)</td></tr>
+    <tr><td><strong>Regulatory</strong></td><td>No FSSAI licence required for V1 (marketplace model, not food producer)</td></tr>
+    <tr><td><strong>Regulatory</strong></td><td>GST optional for shops below ₹20L annual turnover threshold</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ VISION ============================================================ -->
+<div id="sec-vision" class="doc-section">
+  <div class="section-tag">Vision & Strategy</div>
+  <h1>Vision, Mission & Strategic Roadmap</h1>
+
+  <h2>Vision</h2>
+  <p style="font-size:18px;color:var(--text);font-weight:500;line-height:1.5;">"Every neighbourhood shop in India, discoverable and trustworthy online — while keeping money in local communities."</p>
+
+  <h2>Mission</h2>
+  <p>To build the trust infrastructure for India's 12 million local shops, starting with Hyderabad's kirana stores, vegetable vendors, and pharmacies — giving them the digital reach of Blinkit without surrendering their identity, their margins, or their customer relationships.</p>
+
+  <h2>Strategic Pillars</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="fc-title">Trust over speed</div>
+      <div class="fc-desc">We don't promise 10 minutes. We promise that what you ordered is what you get, from someone you can trust. Verified shops, real reviews, human chat.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-title">Shop-first economics</div>
+      <div class="fc-desc">5–8% commission. No listing fees. No dark patterns to drive ad revenue. If the shop doesn't win, the platform doesn't win.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-title">Neighbourhood network effects</div>
+      <div class="fc-desc">Each new shop makes the platform more useful for that neighbourhood. Each new customer improves shop ratings. Self-reinforcing local loops.</div>
+    </div>
+    <div class="feature-card">
+      <div class="fc-title">Inclusive onboarding</div>
+      <div class="fc-desc">A 60-year-old vegetable vendor without GST can join with just Aadhaar. Bulk CSV upload for pharmacies with 500 medicines. No shop left behind.</div>
+    </div>
+  </div>
+
+  <h2>Competitive Positioning</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Dimension</th><th>Blinkit/Zepto</th><th>Swiggy/Zomato</th><th>NearBy</th></tr>
+    <tr><td>Supply model</td><td>Dark stores (no local shops)</td><td>Restaurants only</td><td>All local shops</td></tr>
+    <tr><td>Commission</td><td>N/A (inventory model)</td><td>18–30%</td><td>5–8%</td></tr>
+    <tr><td>Trust signal</td><td>Brand + speed</td><td>Star ratings (gameable)</td><td>Aadhaar-verified + OTP delivery</td></tr>
+    <tr><td>Delivery time</td><td>8–15 minutes</td><td>30–45 minutes</td><td>30–60 minutes (honest)</td></tr>
+    <tr><td>Shop diversity</td><td>None</td><td>Food only</td><td>7+ shop categories</td></tr>
+    <tr><td>Human connection</td><td>None</td><td>None</td><td>Pre-order chat with owner</td></tr>
+    <tr><td>Community impact</td><td>Negative (replaces local)</td><td>Mixed</td><td>Positive (empowers local)</td></tr>
+  </table></div>
+
+  <h2>Product Roadmap</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Phase</th><th>Timeline</th><th>Key Deliverables</th><th>Milestone</th></tr>
+    <tr><td><strong>V1 — Foundation</strong></td><td>Months 1–6</td><td>All 4 apps · Core order flow · KYC · Hyderabad launch</td><td>200 shops · 500 orders/day</td></tr>
+    <tr><td><strong>V2 — Traction</strong></td><td>Months 7–12</td><td>Referral program · Loyalty points · Scheduled delivery · 2nd city</td><td>1,000 shops · 3,000 orders/day</td></tr>
+    <tr><td><strong>V3 — Scale</strong></td><td>Months 13–24</td><td>5 cities · B2B orders (offices) · Multi-language · API for shops</td><td>10,000 shops · Series A fundraise</td></tr>
+    <tr><td><strong>V4 — Platform</strong></td><td>Year 3+</td><td>Embedded finance for shops · Inventory management SaaS · White-label for cities</td><td>National presence</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ PERSONAS ============================================================ -->
+<div id="sec-personas" class="doc-section">
+  <div class="section-tag">User Personas</div>
+  <h1>User Personas</h1>
+
+  <h2>Persona 1 — Priya (Customer)</h2>
+  <div class="feature-card" style="margin-bottom:16px;">
+    <div class="fc-title" style="font-size:15px;">Priya Sharma, 31, IT professional, Kondapur</div>
+    <div class="fc-desc" style="margin-top:6px;">Works from home 3 days/week. Orders groceries and food regularly. Trusts neighbourhood shops but finds calling inconvenient. Used to Swiggy but frustrated by wrong items and dark-store produce quality.</div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Goals</th><th>Frustrations</th><th>Behaviours</th></tr>
+    <tr><td>Get fresh vegetables from her trusted vendor without physically going<br><br>Know what she's getting before ordering<br><br>Support local shops consciously</td><td>Dark store vegetables are not fresh<br><br>Can't verify if the shop is actually good<br><br>Fake reviews on existing apps<br><br>Delivery boys lie about delivery</td><td>Checks reviews before trying a new shop<br><br>Prefers COD for new shops, UPI for trusted ones<br><br>Reorders from the same shops weekly<br><br>Values quick responses from sellers</td></tr>
+  </table></div>
+
+  <h2>Persona 2 — Raju (Shop Owner)</h2>
+  <div class="feature-card" style="margin-bottom:16px;">
+    <div class="fc-title" style="font-size:15px;">Raju Yadav, 48, vegetable vendor, Ameerpet</div>
+    <div class="fc-desc" style="margin-top:6px;">Has run his vegetable stall for 22 years. Gets fresh stock from Bowenpally market every morning. Lost 30% of business to Blinkit in the last 2 years. Has a basic Android phone. Not very tech-savvy but willing to learn if it helps his income.</div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Goals</th><th>Frustrations</th><th>Behaviours</th></tr>
+    <tr><td>Earn more by reaching customers who've moved online<br><br>Not pay huge commission<br><br>Keep his existing customers loyal<br><br>Simple app — can't waste time learning complex software</td><td>Swiggy/Zomato commission is too high<br><br>Tech setup is complicated<br><br>Delivery boys don't handle vegetables carefully<br><br>Fake reviews from competitors</td><td>Opens shop 7 AM, closes 9 PM<br><br>Updates stock mentally, not digitally<br><br>Knows his regulars by name<br><br>Prefers cash but accepts PhonePe</td></tr>
+  </table></div>
+  <div class="callout warn">
+    <strong>Design Implication</strong>
+    The shop owner app must work for Raju. Every action must be completable in under 3 taps. Font size must be large. Critical buttons (Accept/Reject order) must be unmissable. The app must work on a ₹6,000 Android phone with a slow connection.
+  </div>
+
+  <h2>Persona 3 — Suresh (Delivery Partner)</h2>
+  <div class="feature-card" style="margin-bottom:16px;">
+    <div class="fc-title" style="font-size:15px;">Suresh Kumar, 22, engineering student, Kukatpally</div>
+    <div class="fc-desc" style="margin-top:6px;">Final-year BTech student. Has a Hero Splendor bike. Wants to earn ₹300–500/day during evenings and weekends without long-term commitment. Grew up in this neighbourhood and knows every lane.</div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Goals</th><th>Frustrations</th><th>Behaviours</th></tr>
+    <tr><td>Flexible earning — go online only when free<br><br>Stay within 3km radius<br><br>Get paid quickly<br><br>Build a rating and get more deliveries</td><td>Swiggy/Zomato force minimum hours<br><br>Long distances in unfamiliar areas<br><br>Delayed payments<br><br>Customers not home, wasting time</td><td>Online evenings 5–9 PM and weekends<br><br>Checks earnings after every delivery<br><br>Maintains bike well — his tool for income<br><br>Relies on Google Maps / Ola for navigation</td></tr>
+  </table></div>
+
+  <h2>Persona 4 — Arjun (Admin)</h2>
+  <div class="feature-card" style="margin-bottom:16px;">
+    <div class="fc-title" style="font-size:15px;">Arjun (NearBy Operations), 27, ops team member</div>
+    <div class="fc-desc" style="margin-top:6px;">Manages shop onboarding and dispute resolution. Reviews 10–20 KYC applications per day. Handles customer complaints. Monitors platform health. Works on laptop, Chrome browser.</div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Goals</th><th>Frustrations (potential)</th><th>Needs from Dashboard</th></tr>
+    <tr><td>Process KYC quickly and accurately<br><br>Resolve disputes fairly and fast<br><br>Spot platform problems before users complain<br><br>Onboard shops without back-and-forth</td><td>Slow document loading<br><br>No audit trail for decisions<br><br>Can't see full order timeline for dispute investigation</td><td>One-click KYC approve/reject with reason<br><br>Full order GPS timeline for disputes<br><br>Live order monitor with alerts<br><br>Bulk broadcast tool</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ FEATURES ============================================================ -->
+<div id="sec-features" class="doc-section">
+  <div class="section-tag">Feature Specification</div>
+  <h1>Feature Specification</h1>
+  <p>Features are prioritised as: <span class="badge must">Must Have</span> (V1 launch blocker) · <span class="badge should">Should Have</span> (V1 if time allows) · <span class="badge nice">Nice to Have</span> (V2+)</p>
+
+  <h2>Customer App Features</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>Feature</th><th>Description</th><th>Priority</th></tr>
+    <tr><td>CA-01</td><td>Phone OTP login</td><td>MSG91 OTP, 6 digits, 5 min TTL, 3 attempt lock, auto-read on Android</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-02</td><td>Location setup</td><td>GPS auto-detect or manual address entry via Ola Maps search</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-03</td><td>Nearby shop discovery</td><td>Typesense geo search, filter by category, open now, trust score sort</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-04</td><td>Product search</td><td>Cross-shop product search, typo-tolerant, 100ms response</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-05</td><td>Shop profile view</td><td>Owner photo, trust badge, reviews, hours, products, chat button</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-06</td><td>Pre-order chat</td><td>Real-time Socket.IO chat with shop owner before ordering</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-07</td><td>Cart management</td><td>Add/remove items, same-shop enforcement, qty control</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-08</td><td>UPI payment</td><td>Cashfree SDK, GPay/PhonePe/Paytm, HMAC webhook verification</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-09</td><td>Cash on delivery</td><td>COD option bypasses payment gateway</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-10</td><td>Live order tracking</td><td>Real-time status, Leaflet.js map, GPS every 5s, Ola Maps ETA</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-11</td><td>OTP delivery confirm</td><td>Customer holds OTP, delivery partner enters it to confirm</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-12</td><td>Order cancellation</td><td>Cancel before pickup, reason selection, auto Cashfree refund</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-13</td><td>Review & rating</td><td>Post-delivery, 1–5 stars, comment, verified badge, one per order</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-14</td><td>Order history</td><td>All past orders with status, items, total, reorder button</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-15</td><td>One-tap reorder</td><td>Reorder with availability check, skip out-of-stock items</td><td><span class="badge should">Should</span></td></tr>
+    <tr><td>CA-16</td><td>Saved addresses</td><td>Save home, work, other addresses</td><td><span class="badge should">Should</span></td></tr>
+    <tr><td>CA-17</td><td>Push notifications</td><td>FCM — order status at every stage, promotional messages</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>CA-18</td><td>Profile management</td><td>Name, photo, saved addresses, payment history</td><td><span class="badge must">Must</span></td></tr>
+  </table></div>
+
+  <h2>Shop Owner App Features</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>Feature</th><th>Description</th><th>Priority</th></tr>
+    <tr><td>SA-01</td><td>Registration & KYC</td><td>Phone OTP, shop profile, Aadhaar upload, GST optional, shop photo</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-02</td><td>Product catalogue</td><td>Add single, bulk CSV, photo upload, category, price, stock</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-03</td><td>Order inbox</td><td>Loud alert, 3-min accept window, accept/reject with reason, pack checklist</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-04</td><td>Inventory management</td><td>Stock toggle, price update, low-stock alert, out-of-stock auto-hide</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-05</td><td>Shop open/close toggle</td><td>One-tap open/close, custom hours per day, holiday mode with date range</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-06</td><td>Customer chat</td><td>Receive and respond to pre-order queries, with FCM push</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-07</td><td>Earnings dashboard</td><td>Daily/weekly/monthly revenue, commission, net payout, settlement history</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-08</td><td>Shop analytics</td><td>Views, orders, top products, avg rating trend</td><td><span class="badge should">Should</span></td></tr>
+    <tr><td>SA-09</td><td>Review management</td><td>Read reviews, flag suspicious ones, see trust score trend</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-10</td><td>Shop profile editor</td><td>Update photos, hours, description, delivery radius, bank details</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>SA-11</td><td>Monthly statement PDF</td><td>Download/share monthly earnings PDF for accounting</td><td><span class="badge should">Should</span></td></tr>
+  </table></div>
+
+  <h2>Delivery Partner App Features</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>Feature</th><th>Description</th><th>Priority</th></tr>
+    <tr><td>DA-01</td><td>Registration & light KYC</td><td>Phone OTP, Aadhaar, vehicle photo, bank account details</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-02</td><td>Go online / offline</td><td>Single toggle, GPS starts broadcasting to Redis when online</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-03</td><td>Order assignment</td><td>Alert with route, accept (30s timer) or skip, 3-skip limit</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-04</td><td>Navigation</td><td>Ola Maps deep-link for shop pickup and customer drop navigation</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-05</td><td>Pickup confirmation</td><td>Tap to confirm collected from shop</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-06</td><td>OTP delivery input</td><td>Enter OTP given by customer to confirm delivery</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-07</td><td>Earnings tracker</td><td>Per-delivery earnings, daily total, weekly payout history</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>DA-08</td><td>Performance rating</td><td>See own rating from customers, tips to improve</td><td><span class="badge should">Should</span></td></tr>
+  </table></div>
+
+  <h2>Admin Dashboard Features</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>Feature</th><th>Description</th><th>Priority</th></tr>
+    <tr><td>AD-01</td><td>KYC review queue</td><td>View docs via R2 signed URLs, approve/reject with reason, MSG91 notify</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-02</td><td>Shop management</td><td>View all shops, suspend/reinstate, edit details, override trust score</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-03</td><td>Order monitor</td><td>Live orders in-flight, stuck order alerts (&gt;15 min without partner)</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-04</td><td>Dispute resolution</td><td>View full order timeline, GPS trail, issue refund via Cashfree</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-05</td><td>Platform analytics</td><td>GMV, orders, active shops, active users, city breakdown</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-06</td><td>Delivery partner management</td><td>Approve, suspend, view earnings and rating</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-07</td><td>Broadcast tool</td><td>Push/SMS to all shops, all customers, or delivery partners</td><td><span class="badge should">Should</span></td></tr>
+    <tr><td>AD-08</td><td>Content moderation</td><td>Flag and remove abusive reviews, inappropriate product listings</td><td><span class="badge must">Must</span></td></tr>
+    <tr><td>AD-09</td><td>Finance dashboard</td><td>Total commissions, settlement status, refund tracking</td><td><span class="badge must">Must</span></td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ USER STORIES ============================================================ -->
+<div id="sec-userstories" class="doc-section">
+  <div class="section-tag">User Stories</div>
+  <h1>User Stories with Acceptance Criteria</h1>
+
+  <h2>Customer Stories</h2>
+
+  <div class="story">
+    <div class="as">Customer</div>
+    <div class="want">I want to log in with just my phone number so that I don't have to remember a password.</div>
+    <div class="so">So that signup is frictionless and I can start ordering immediately.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>OTP arrives within 5 seconds of tapping "Send OTP"</li>
+        <li>OTP is 6 digits and expires after 5 minutes</li>
+        <li>Wrong OTP shows error — locked after 3 attempts for 10 minutes</li>
+        <li>OTP is auto-read on Android without manual entry</li>
+        <li>New user is asked for name after OTP verification</li>
+        <li>Existing user goes directly to home screen</li>
+        <li>JWT stored securely in device keychain (Expo SecureStore)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="as">Customer</div>
+    <div class="want">I want to see shops near me sorted by trustworthiness so that I know which ones are reliable.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>Search results appear within 200ms of opening the app</li>
+        <li>Shops within configurable radius (default 3km) are shown</li>
+        <li>Closed shops are greyed out and moved to bottom of results</li>
+        <li>Each shop card shows distance, trust badge, star rating, and category</li>
+        <li>Filtering by category (Kirana, Vegetables, etc.) works with single tap</li>
+        <li>"Open now" filter shows only currently available shops</li>
+        <li>Results update automatically when shop opens/closes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="as">Customer</div>
+    <div class="want">I want to chat with the shopkeeper before ordering so I can verify product freshness.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>Chat button visible on every shop profile page</li>
+        <li>Messages delivered to shop owner within 2 seconds</li>
+        <li>Shop owner gets FCM push notification for new messages</li>
+        <li>Read receipts shown (sent, delivered)</li>
+        <li>Chat history persists across sessions</li>
+        <li>Customer can place order directly from chat screen</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="as">Customer</div>
+    <div class="want">I want to receive my order with an OTP confirmation so that I know it was actually delivered to me.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>4-digit OTP sent to customer via MSG91 when partner picks up order</li>
+        <li>OTP shown prominently in customer's order tracking screen</li>
+        <li>Delivery partner's app has an OTP input field</li>
+        <li>Order marked "Delivered" only after correct OTP entered</li>
+        <li>Wrong OTP shows error to delivery partner — 3 attempts before escalation</li>
+        <li>If customer unreachable after 3 attempts, escalation to admin</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Shop Owner Stories</h2>
+
+  <div class="story">
+    <div class="as">Shop owner</div>
+    <div class="want">I want to receive loud order alerts so that I never miss an order even when my phone is in my pocket.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>Custom ringtone for order notifications — louder and distinct from normal notifications</li>
+        <li>Full-screen alert shown even when phone is locked</li>
+        <li>Countdown timer visible — 3:00 minutes to respond</li>
+        <li>Order auto-cancelled and customer auto-refunded if no response in 3 minutes</li>
+        <li>SMS backup sent to shop owner's phone as fallback if FCM fails</li>
+        <li>Reject option requires selecting a reason (protects shop's metrics)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="story">
+    <div class="as">Shop owner</div>
+    <div class="want">I want to upload my products via a CSV file so that I don't spend hours adding them one by one.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>CSV template downloadable from app with category-specific columns pre-filled</li>
+        <li>Template works in WhatsApp (share to Sheets), Excel, and Google Sheets</li>
+        <li>Upload supports up to 500 products per CSV</li>
+        <li>Validation errors shown per-row with specific error message</li>
+        <li>Preview shown before final confirmation</li>
+        <li>Products go live in Typesense search within 30 seconds of confirmation</li>
+        <li>Upload progress indicator shown for large files</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Delivery Partner Stories</h2>
+
+  <div class="story">
+    <div class="as">Delivery partner</div>
+    <div class="want">I want to go online only when I'm available so that I have complete flexibility with my time.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>Single tap "Go Online" toggle on home screen</li>
+        <li>GPS broadcasting starts immediately on going online</li>
+        <li>Partner appears in assignment pool within 5 seconds</li>
+        <li>Going offline stops assignment — any active delivery continues</li>
+        <li>Auto-offline if app in background for more than 10 minutes with no activity</li>
+        <li>Battery saver mode available — reduces GPS frequency to every 15s when idle</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Admin Stories</h2>
+
+  <div class="story">
+    <div class="as">Admin</div>
+    <div class="want">I want to investigate a disputed delivery using GPS data so that I can make a fair decision.</div>
+    <div class="ac">
+      <div class="ac-title">Acceptance Criteria</div>
+      <ul>
+        <li>Full order timeline shown: placed → accepted → picked up → delivered with timestamps</li>
+        <li>GPS trail of delivery partner shown on map overlaid on route</li>
+        <li>OTP entry timestamp and location shown</li>
+        <li>Chat history between all parties accessible</li>
+        <li>One-click refund button calls Cashfree API directly</li>
+        <li>All admin decisions logged with timestamp and admin ID for audit trail</li>
+        <li>Ability to suspend delivery partner directly from dispute screen</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ EDGE CASES ============================================================ -->
+<div id="sec-edgecases" class="doc-section">
+  <div class="section-tag">Edge Cases</div>
+  <h1>Edge Cases & Handling</h1>
+  <p>Every known failure mode and the system's designed response. Click any item to expand.</p>
+
+  <h2>Order Flow Edge Cases</h2>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Shop doesn't respond within 3 minutes</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What happens</div>BullMQ scheduled job fires at exactly 3:00 minutes. Order status → "auto_cancelled". Cashfree refund initiated immediately. Customer gets FCM push + SMS: "Sorry, the shop didn't respond in time. Full refund initiated." Shop's response_time metric degraded — affects trust score in nightly job.</div>
+        <div><div class="ec-col-title">Prevention</div>Shop gets escalating alerts: 2:00 min remaining → 1:00 min → 0:30 sec. SMS sent at 2:00 if FCM not acknowledged. After 3 auto-cancellations in a week, admin gets alert to contact the shop owner.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Payment succeeds but order creation fails</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What happens</div>Cashfree webhook arrives with payment_status: SUCCESS. Order service fails due to server error. BullMQ dead-letter queue catches the failure. Admin alert fired. Payment is in "paid" state but no order exists. Manual intervention required within 30 minutes.</div>
+        <div><div class="ec-col-title">System design</div>Payment intent created BEFORE order in Supabase. Webhook handler is idempotent — can be retried 3 times. If all retries fail, Cashfree auto-refund initiated after 1 hour with customer notification. A "payment_reconciliation" BullMQ job runs every 15 minutes to detect orphaned payments.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">No delivery partner available in radius</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What happens</div>Assignment algorithm finds no available partner within 3km. System expands radius to 5km and retries every 90 seconds for up to 10 minutes. If still no partner after 10 minutes, customer is notified: "Finding a delivery partner is taking longer than usual." Customer gets option to wait or cancel with full refund.</div>
+        <div><div class="ec-col-title">Prevention</div>Admin dashboard shows "low delivery coverage" alert when fewer than 3 partners are online in an area. Automated MSG91 SMS sent to offline partners in the area: "Orders available near you! Go online to earn."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Customer not home — OTP delivery fails</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What happens</div>Delivery partner arrives, customer doesn't answer. Partner taps "Customer not answering". System calls/messages customer. 3 attempts over 10 minutes. If unreachable: order escalated to admin. Partner waits up to 15 minutes. If customer confirmed they're nearby, partner waits. If not, order returned to shop and customer refunded minus delivery fee.</div>
+        <div><div class="ec-col-title">Special case</div>Customer can share OTP with a family member or security guard. OTP is valid for the entire delivery window (from pickup to 2 hours after). Customer gets SMS with OTP so they can share it if needed.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Item out of stock discovered only when packing</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What happens</div>Shop accepted the order but discovered an item is actually out of stock while packing. Shop opens the order and taps "Item unavailable" next to the item. Customer gets FCM notification: "Raju removed Palak from your order — not available today." Order total adjusted. Customer can cancel or continue with adjusted order within 2 minutes.</div>
+        <div><div class="ec-col-title">Partial refund</div>Cashfree partial refund initiated for removed item. Customer gets new total confirmation. If customer doesn't respond in 2 minutes, order continues with remaining items automatically (with refund for removed item).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge med">Medium</span>
+      <span class="ec-title">Delivery partner's app crashes mid-delivery</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What happens</div>GPS broadcasting stops (Redis TTL expires in 30 seconds). Customer tracking map shows "Location unavailable" but order remains active. Partner reopens app — order resumes from last status. Customer gets notification: "Partner's location temporarily unavailable."</div>
+        <div><div class="ec-col-title">Recovery</div>On app reopen, partner sees "You have an active delivery" banner. Full order details restored from Supabase. GPS resumes. If partner is unreachable for more than 20 minutes during active delivery, admin alert fires.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge med">Medium</span>
+      <span class="ec-title">Duplicate order placed (double tap / network retry)</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Prevention</div>Idempotency key generated client-side (UUID) and sent with order creation request. Server checks idempotency key in Redis (TTL 10 minutes). If duplicate key detected, returns existing order instead of creating new one. Payment intent is also idempotency-keyed with Cashfree.</div>
+        <div><div class="ec-col-title">If still duplicated</div>BullMQ reconciliation job checks for orders from same customer to same shop with same items within 5 minutes. Flags for admin review. Second order auto-cancelled and refunded.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge med">Medium</span>
+      <span class="ec-title">Shop closes mid-order (internet cuts out)</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Scenario</div>Shop has accepted an order but their internet cuts out. They can't mark it ready. Delivery partner is waiting.</div>
+        <div><div class="ec-col-title">Handling</div>Order has a "max packing time" = estimated_ready_mins + 10 minutes. If exceeded, admin alert fires. Admin calls shop directly. If unreachable after 15 minutes, order cancelled, customer refunded, shop's completion_rate affected. Shop gets SMS when internet returns explaining what happened.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge med">Medium</span>
+      <span class="ec-title">Customer submits review without valid delivered order</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Prevention</div>POST /api/v1/reviews requires order_id in body. Server validates: order exists, belongs to this customer, status is "delivered", no review already exists for this order. All 4 checks must pass. Rate limited: max 10 review attempts per hour per user.</div>
+        <div><div class="ec-col-title">Competitor abuse</div>If a competitor tries to create fake negative reviews: they'd need a real delivered order first, making mass fake reviews economically unfeasible. Suspicious review velocity (5+ reviews in an hour) triggers admin alert.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge low">Low</span>
+      <span class="ec-title">Cashfree webhook arrives twice (duplicate webhook)</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Handling</div>Webhook handler checks if payment_id already processed (Supabase idempotency check). If already processed, returns 200 OK without re-processing. This is standard webhook design — Cashfree may retry on timeout.</div>
+        <div><div class="ec-col-title">HMAC verification</div>Every webhook verified with Cashfree HMAC signature before any processing. Invalid signatures return 400 and are logged for security monitoring.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Platform & Infrastructure Edge Cases</h2>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Supabase goes down during active orders</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">What fails</div>Order status updates cannot be written. New orders cannot be placed. Active orders already in delivery continue (delivery partner uses cached data). Redis has last-known order state for active deliveries (TTL 2 hours).</div>
+        <div><div class="ec-col-title">Recovery</div>Supabase Pro has 99.9% SLA. On recovery, BullMQ replays any failed writes from the dead-letter queue. Active delivery OTPs cached in Redis — delivery confirmation still works without Supabase temporarily. Admin notified immediately via PagerDuty-equivalent (Grafana alert).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">DigitalOcean droplet goes down</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Impact</div>Full platform unavailable. All active orders paused. Customers see connection error. Recovery time: 15–30 minutes (snapshot restore or new Droplet from Coolify backup).</div>
+        <div><div class="ec-col-title">Recovery plan</div>DO Snapshots taken weekly automatically. On outage: create new Droplet from snapshot (5 min), restore volumes from DO Spaces backup (10 min), Coolify redeploys all containers (5 min). Total RTO: ~20 minutes. Cloudflare shows maintenance page during outage.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge med">Medium</span>
+      <span class="ec-title">OTP SMS not delivered (MSG91 failure)</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Handling</div>MSG91 delivery receipt checked via webhook. If "failed" status received, system retries via secondary MSG91 route (DLT alternative template). If both fail, user sees: "SMS not received? Tap to resend" with 60-second cooldown. Max 3 resends per hour per phone number.</div>
+        <div><div class="ec-col-title">V2 plan</div>Add Gupshup as backup SMS provider. Route through Gupshup if MSG91 fails on first attempt. Dual-provider setup ensures &gt;99.9% OTP delivery rate.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Trust & Fraud Edge Cases</h2>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Delivery partner marks order delivered without actual delivery</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Prevention</div>OTP system prevents this — partner cannot mark delivered without customer's OTP. GPS trail shows partner's location at time of OTP entry. If location doesn't match customer's address (within 100m), flag raised for admin review. Three flags → partner suspended.</div>
+        <div><div class="ec-col-title">Customer recourse</div>Customer can report "Never received" within 24 hours of delivery. Admin investigates GPS trail. Full refund issued if fraud confirmed. Partner account suspended and earnings withheld pending investigation.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge high">High</span>
+      <span class="ec-title">Fake KYC documents uploaded</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Detection</div>Admin manually reviews all documents — photo match, Aadhaar validity checks. Name on Aadhaar must match name in shop profile. Obvious inconsistencies (photoshopped images, wrong name) caught during review. In V2: DigiLocker API integration for automated Aadhaar verification.</div>
+        <div><div class="ec-col-title">Post-approval fraud</div>If fraud discovered after approval: shop immediately suspended, all pending settlements withheld, customer refunded for any active orders. Case reported to local authority if fraud amount exceeds ₹10,000.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-case">
+    <div class="ec-head" onclick="toggle(this)">
+      <span class="badge med">Medium</span>
+      <span class="ec-title">Customer disputes order but actually received it</span>
+    </div>
+    <div class="ec-body">
+      <div class="ec-row">
+        <div><div class="ec-col-title">Evidence chain</div>GPS trail shows partner at correct location. OTP was entered correctly (customer or family member gave OTP). Chat history may show customer confirmed arrival. Timestamps consistent.</div>
+        <div><div class="ec-col-title">Admin decision</div>Admin reviews all evidence. If GPS + OTP + timing consistent with genuine delivery, dispute rejected with explanation to customer. Three fraudulent disputes in a month → customer account flagged. Repeat behaviour → account suspension.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TECH SPEC ============================================================ -->
+<div id="sec-techspec" class="doc-section">
+  <div class="section-tag">Technical Specification</div>
+  <h1>Technical Specification</h1>
+
+  <h2>Tech Stack Summary</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Layer</th><th>Technology</th><th>Purpose</th><th>Cost</th></tr>
+    <tr><td>Mobile apps</td><td>React Native + Expo</td><td>Customer, shop owner, delivery partner apps</td><td>Free</td></tr>
+    <tr><td>API server</td><td>Node.js + Express</td><td>REST API + business logic</td><td>Included in DO</td></tr>
+    <tr><td>Real-time</td><td>Socket.IO</td><td>Live tracking + order events + chat</td><td>Included in DO</td></tr>
+    <tr><td>Database</td><td>Supabase (PostgreSQL)</td><td>Core data — users, orders, payments</td><td>$0 → $25/mo</td></tr>
+    <tr><td>Cache + queue</td><td>Redis + BullMQ</td><td>Sessions, GPS cache, async jobs</td><td>Self-hosted on DO</td></tr>
+    <tr><td>Search</td><td>Typesense</td><td>Shop + product geo search</td><td>Self-hosted on DO</td></tr>
+    <tr><td>File storage</td><td>Cloudflare R2</td><td>Product images, KYC docs</td><td>Free up to 10GB</td></tr>
+    <tr><td>CDN + security</td><td>Cloudflare</td><td>DDoS, SSL, DNS, CDN</td><td>Free</td></tr>
+    <tr><td>Payments</td><td>Cashfree</td><td>UPI + card + settlements</td><td>1.75% per transaction</td></tr>
+    <tr><td>SMS / OTP</td><td>MSG91</td><td>OTP, order alerts to shops</td><td>₹0.18/SMS</td></tr>
+    <tr><td>Push notifications</td><td>Firebase FCM</td><td>All push notifications</td><td>Free</td></tr>
+    <tr><td>Maps</td><td>Ola Maps API</td><td>Geocoding, routing, ETA</td><td>Free 1M calls/mo</td></tr>
+    <tr><td>Hosting</td><td>DigitalOcean Bangalore</td><td>All backend containers via Coolify</td><td>$24/mo</td></tr>
+    <tr><td>Deployment</td><td>Coolify + Docker</td><td>Container orchestration + CI/CD</td><td>Free</td></tr>
+    <tr><td>Monitoring</td><td>Grafana + Prometheus</td><td>Metrics, logs, alerts</td><td>Free</td></tr>
+    <tr><td>Admin dashboard</td><td>React + Vite</td><td>Internal web dashboard</td><td>Free</td></tr>
+  </table></div>
+
+  <h2>Environment Configuration</h2>
+  <pre><code># Server (.env)
+NODE_ENV=production
+PORT=3000
+SOCKET_PORT=3001
+
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=xxx
+SUPABASE_ANON_KEY=xxx
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Typesense
+TYPESENSE_HOST=localhost
+TYPESENSE_PORT=8108
+TYPESENSE_API_KEY=xxx
+
+# Cloudflare R2
+R2_ACCOUNT_ID=xxx
+R2_ACCESS_KEY_ID=xxx
+R2_SECRET_ACCESS_KEY=xxx
+R2_BUCKET_PUBLIC=nearby-products
+R2_BUCKET_PRIVATE=nearby-kyc
+R2_PUBLIC_URL=https://cdn.nearby.app
+
+# Cashfree
+CASHFREE_APP_ID=xxx
+CASHFREE_SECRET_KEY=xxx
+CASHFREE_ENV=PROD
+CASHFREE_WEBHOOK_SECRET=xxx
+
+# MSG91
+MSG91_AUTH_KEY=xxx
+MSG91_TEMPLATE_OTP=xxx
+MSG91_SENDER_ID=NEARBY
+
+# Firebase
+FIREBASE_PROJECT_ID=xxx
+FIREBASE_PRIVATE_KEY=xxx
+FIREBASE_CLIENT_EMAIL=xxx
+
+# Ola Maps
+OLA_MAPS_API_KEY=xxx
+
+# JWT
+JWT_SECRET=xxx (256-bit random)
+JWT_REFRESH_SECRET=xxx (256-bit random)
+JWT_EXPIRY=30d
+JWT_REFRESH_EXPIRY=90d
+
+# App config
+OTP_TTL_SECONDS=300
+OTP_MAX_ATTEMPTS=3
+ORDER_ACCEPT_WINDOW_SECONDS=180
+DELIVERY_ASSIGNMENT_RADIUS_KM=3
+DELIVERY_MAX_WAIT_MINUTES=10
+COMMISSION_RATE=0.06
+</code></pre>
+
+  <h2>Folder Structure</h2>
+  <pre><code>nearby/
+├── apps/
+│   ├── customer/          # React Native customer app
+│   ├── shop/              # React Native shop owner app
+│   ├── delivery/          # React Native delivery partner app
+│   └── admin/             # React + Vite admin dashboard
+├── backend/
+│   ├── src/
+│   │   ├── routes/        # Express route handlers
+│   │   │   ├── auth.js
+│   │   │   ├── shops.js
+│   │   │   ├── products.js
+│   │   │   ├── orders.js
+│   │   │   ├── delivery.js
+│   │   │   ├── payments.js
+│   │   │   ├── reviews.js
+│   │   │   ├── search.js
+│   │   │   └── admin.js
+│   │   ├── middleware/
+│   │   │   ├── auth.js     # JWT verification
+│   │   │   ├── roleGuard.js
+│   │   │   ├── rateLimit.js
+│   │   │   └── validate.js
+│   │   ├── services/
+│   │   │   ├── supabase.js
+│   │   │   ├── redis.js
+│   │   │   ├── typesense.js
+│   │   │   ├── r2.js
+│   │   │   ├── cashfree.js
+│   │   │   ├── msg91.js
+│   │   │   ├── fcm.js
+│   │   │   └── olaMaps.js
+│   │   ├── jobs/           # BullMQ job definitions
+│   │   │   ├── notifyShop.js
+│   │   │   ├── assignDelivery.js
+│   │   │   ├── trustScore.js
+│   │   │   ├── analytics.js
+│   │   │   └── settlements.js
+│   │   ├── socket/         # Socket.IO event handlers
+│   │   │   ├── orderRoom.js
+│   │   │   ├── gpsTracker.js
+│   │   │   └── chat.js
+│   │   └── index.js
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── supabase/
+│   └── migrations/        # SQL migration files
+└── docs/                  # This documentation
+</code></pre>
+
+  <h2>Supabase Database Migrations</h2>
+  <pre><code>-- Users (managed by Supabase Auth + this extension)
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id),
+  phone TEXT UNIQUE NOT NULL,
+  name TEXT,
+  role TEXT CHECK (role IN ('customer','shop_owner','delivery','admin')) DEFAULT 'customer',
+  location GEOGRAPHY(POINT,4326),
+  fcm_token TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Shops
+CREATE TABLE shops (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID REFERENCES profiles(id) NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT,
+  address TEXT NOT NULL,
+  geo GEOGRAPHY(POINT,4326) NOT NULL,
+  hours JSONB,
+  is_open BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  kyc_status TEXT DEFAULT 'pending' CHECK (kyc_status IN ('pending','under_review','approved','rejected')),
+  trust_score FLOAT DEFAULT 0,
+  delivery_radius_km FLOAT DEFAULT 3,
+  holiday_until TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX shops_geo ON shops USING GIST(geo);
+CREATE INDEX shops_category ON shops(category);
+
+-- Products (also synced to Typesense)
+CREATE TABLE products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id UUID REFERENCES shops(id) NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT,
+  price DECIMAL(10,2) NOT NULL,
+  unit TEXT,
+  stock_qty INT DEFAULT 0,
+  is_available BOOLEAN DEFAULT TRUE,
+  images TEXT[],
+  deleted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Orders
+CREATE TABLE orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES profiles(id) NOT NULL,
+  shop_id UUID REFERENCES shops(id) NOT NULL,
+  delivery_partner_id UUID REFERENCES profiles(id),
+  status TEXT DEFAULT 'pending' CHECK (status IN (
+    'pending','accepted','packing','ready','assigned',
+    'picked_up','out_for_delivery','delivered',
+    'cancelled','auto_cancelled','rejected'
+  )),
+  delivery_address TEXT NOT NULL,
+  delivery_geo GEOGRAPHY(POINT,4326),
+  total_amount DECIMAL(10,2) NOT NULL,
+  payment_mode TEXT CHECK (payment_mode IN ('upi','card','cod')),
+  payment_status TEXT DEFAULT 'pending',
+  payment_id TEXT,
+  delivery_otp TEXT,
+  estimated_ready_mins INT,
+  idempotency_key UUID UNIQUE,
+  placed_at TIMESTAMPTZ DEFAULT NOW(),
+  accepted_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ
+);
+
+-- Order items
+CREATE TABLE order_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID REFERENCES orders(id) NOT NULL,
+  product_id UUID REFERENCES products(id) NOT NULL,
+  name TEXT NOT NULL,
+  qty INT NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL
+);
+
+-- Reviews (verified, post-delivery only)
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID UNIQUE REFERENCES orders(id) NOT NULL,
+  reviewer_id UUID REFERENCES profiles(id) NOT NULL,
+  shop_id UUID REFERENCES shops(id) NOT NULL,
+  rating INT CHECK (rating BETWEEN 1 AND 5) NOT NULL,
+  comment TEXT,
+  is_flagged BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Disputes
+CREATE TABLE disputes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID REFERENCES orders(id) NOT NULL,
+  reporter_id UUID REFERENCES profiles(id) NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open','investigating','resolved')),
+  resolution TEXT,
+  admin_id UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ
+);
+
+-- Row Level Security
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "customers see own orders" ON orders FOR SELECT
+  USING (customer_id = auth.uid() OR shop_id IN (
+    SELECT id FROM shops WHERE owner_id = auth.uid()
+  ));
+</code></pre>
+</div>
+
+<!-- ============================================================ API ============================================================ -->
+<div id="sec-api" class="doc-section">
+  <div class="section-tag">API Reference</div>
+  <h1>API Reference Summary</h1>
+  <p>Base URL: <code>https://api.nearby.app/api/v1</code>. All endpoints require <code>Authorization: Bearer {jwt}</code> unless marked Public.</p>
+
+  <h2>Authentication Headers</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Role</th><th>JWT role claim</th><th>Access</th></tr>
+    <tr><td>Public</td><td>None</td><td>OTP send/verify, shop/product browse</td></tr>
+    <tr><td>Customer</td><td>customer</td><td>Orders, cart, reviews, chat</td></tr>
+    <tr><td>Shop owner</td><td>shop_owner</td><td>Own shop management, own orders</td></tr>
+    <tr><td>Delivery</td><td>delivery</td><td>Own assignments, GPS updates</td></tr>
+    <tr><td>Admin</td><td>admin</td><td>All resources</td></tr>
+  </table></div>
+
+  <h2>Standard Response Format</h2>
+  <pre><code>// Success
+{ "success": true, "data": { ... }, "meta": { "page": 1, "total": 47 } }
+
+// Error
+{ "success": false, "error": { "code": "ORDER_NOT_FOUND", "message": "Order does not exist" } }
+
+// Error codes used throughout
+INVALID_OTP / OTP_EXPIRED / OTP_LOCKED
+SHOP_NOT_VERIFIED / SHOP_CLOSED / SHOP_NOT_FOUND
+ORDER_NOT_CANCELLABLE / ORDER_ACCEPT_EXPIRED
+PAYMENT_FAILED / PAYMENT_ALREADY_PROCESSED
+PRODUCT_OUT_OF_STOCK / INSUFFICIENT_STOCK
+UNAUTHORIZED / FORBIDDEN / RATE_LIMITED
+</code></pre>
+
+  <h2>Core Endpoints Quick Reference</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+    <tr><td><code>POST</code></td><td>/auth/send-otp</td><td>Public</td><td>Send OTP to phone</td></tr>
+    <tr><td><code>POST</code></td><td>/auth/verify-otp</td><td>Public</td><td>Verify OTP, get JWT</td></tr>
+    <tr><td><code>GET</code></td><td>/search/shops</td><td>Public</td><td>Geo search shops</td></tr>
+    <tr><td><code>GET</code></td><td>/search/products</td><td>Public</td><td>Cross-shop product search</td></tr>
+    <tr><td><code>POST</code></td><td>/shops</td><td>shop_owner</td><td>Register new shop</td></tr>
+    <tr><td><code>POST</code></td><td>/shops/:id/kyc</td><td>shop_owner</td><td>Upload KYC documents</td></tr>
+    <tr><td><code>PATCH</code></td><td>/shops/:id/toggle</td><td>shop_owner</td><td>Open/close shop</td></tr>
+    <tr><td><code>POST</code></td><td>/shops/:id/products</td><td>shop_owner</td><td>Add product</td></tr>
+    <tr><td><code>POST</code></td><td>/shops/:id/products/bulk</td><td>shop_owner</td><td>Bulk CSV upload</td></tr>
+    <tr><td><code>PATCH</code></td><td>/products/:id</td><td>shop_owner</td><td>Update stock/price</td></tr>
+    <tr><td><code>POST</code></td><td>/orders</td><td>customer</td><td>Place order</td></tr>
+    <tr><td><code>PATCH</code></td><td>/orders/:id/accept</td><td>shop_owner</td><td>Accept order</td></tr>
+    <tr><td><code>PATCH</code></td><td>/orders/:id/reject</td><td>shop_owner</td><td>Reject order</td></tr>
+    <tr><td><code>PATCH</code></td><td>/orders/:id/cancel</td><td>customer</td><td>Cancel order</td></tr>
+    <tr><td><code>POST</code></td><td>/delivery/availability</td><td>delivery</td><td>Go online/offline</td></tr>
+    <tr><td><code>POST</code></td><td>/delivery/:id/location</td><td>delivery</td><td>Push GPS update</td></tr>
+    <tr><td><code>PATCH</code></td><td>/delivery/:id/deliver</td><td>delivery</td><td>Confirm delivery with OTP</td></tr>
+    <tr><td><code>POST</code></td><td>/payments/webhook</td><td>Public+HMAC</td><td>Cashfree webhook</td></tr>
+    <tr><td><code>POST</code></td><td>/reviews</td><td>customer</td><td>Submit review</td></tr>
+    <tr><td><code>GET</code></td><td>/admin/kyc-queue</td><td>admin</td><td>List pending KYC</td></tr>
+    <tr><td><code>PATCH</code></td><td>/admin/kyc/:shop_id</td><td>admin</td><td>Approve/reject KYC</td></tr>
+    <tr><td><code>POST</code></td><td>/admin/broadcast</td><td>admin</td><td>Broadcast push/SMS</td></tr>
+  </table></div>
+
+  <h2>Socket.IO Events</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Event</th><th>Direction</th><th>Room</th><th>Payload</th></tr>
+    <tr><td>order:status_update</td><td>Server → Client</td><td>order:{orderId}</td><td>{ status, timestamp }</td></tr>
+    <tr><td>delivery:location</td><td>Delivery → Server</td><td>—</td><td>{ lat, lng, orderId }</td></tr>
+    <tr><td>delivery:location_update</td><td>Server → Customer</td><td>order:{orderId}</td><td>{ lat, lng, eta_minutes }</td></tr>
+    <tr><td>chat:message</td><td>Client → Server</td><td>chat:{shopId}</td><td>{ message, senderId }</td></tr>
+    <tr><td>chat:new_message</td><td>Server → Client</td><td>chat:{shopId}</td><td>{ message, sender, timestamp }</td></tr>
+    <tr><td>order:new</td><td>Server → Shop</td><td>shop:{shopId}</td><td>{ orderId, items, total, customer }</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ SECURITY ============================================================ -->
+<div id="sec-security" class="doc-section">
+  <div class="section-tag">Security Requirements</div>
+  <h1>Security Requirements</h1>
+
+  <div class="callout danger">
+    <strong>Security is non-negotiable</strong>
+    This platform handles real money (Cashfree payments), personal identity documents (Aadhaar), and location data. Every security measure below is mandatory for V1.
+  </div>
+
+  <h2>Authentication Security</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Requirement</th><th>Implementation</th><th>Priority</th></tr>
+    <tr><td>OTP brute force prevention</td><td>3 attempts → 10 min lock per phone number. Stored in Redis with TTL.</td><td><span class="badge high">Critical</span></td></tr>
+    <tr><td>OTP rate limiting</td><td>Max 5 OTP requests per phone per hour. Prevents SMS bombing.</td><td><span class="badge high">Critical</span></td></tr>
+    <tr><td>JWT signing</td><td>HS256 with 256-bit random secret. Separate secret for refresh tokens.</td><td><span class="badge high">Critical</span></td></tr>
+    <tr><td>JWT short expiry</td><td>Access token: 30 days. Refresh token: 90 days in Redis. Revocable.</td><td><span class="badge high">Critical</span></td></tr>
+    <tr><td>Role enforcement</td><td>Every API route has role guard middleware. Admin role never returned to clients.</td><td><span class="badge high">Critical</span></td></tr>
+    <tr><td>Supabase RLS</td><td>Row-level security ensures cross-user data access impossible even if API bypassed.</td><td><span class="badge high">Critical</span></td></tr>
+  </table></div>
+
+  <h2>Payment Security</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Requirement</th><th>Implementation</th></tr>
+    <tr><td>Server-side price calculation</td><td>Order total always calculated from database product prices — never from client request body. Client sends only product IDs and quantities.</td></tr>
+    <tr><td>Cashfree webhook HMAC</td><td>Every webhook verified with Cashfree secret key before processing. Invalid signatures return 400, logged for security monitoring.</td></tr>
+    <tr><td>Idempotency keys</td><td>Payment intents and order creation use idempotency keys — duplicate requests return existing results, never create duplicates.</td></tr>
+    <tr><td>PCI compliance</td><td>No card data ever touches NearBy servers. Cashfree SDK handles all card input. We are not in PCI scope.</td></tr>
+    <tr><td>Settlement audit trail</td><td>Every commission, payout, and refund logged in Supabase with Cashfree transaction ID.</td></tr>
+  </table></div>
+
+  <h2>Data Security</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Requirement</th><th>Implementation</th></tr>
+    <tr><td>KYC document storage</td><td>Aadhaar and GST docs stored in Cloudflare R2 private bucket. Only accessible via time-limited signed URLs (5 minutes). Never publicly accessible.</td></tr>
+    <tr><td>GPS data retention</td><td>Live GPS stored in Redis with 30s TTL — not persisted to Supabase. Historical GPS stored only for active disputes (30 days, then deleted).</td></tr>
+    <tr><td>Data minimisation</td><td>Customer phone number hashed before logging. Aadhaar number never stored — only document image reference in R2.</td></tr>
+    <tr><td>Encryption in transit</td><td>All traffic via HTTPS (Cloudflare TLS 1.3). Internal services on private DO VPC network.</td></tr>
+    <tr><td>Encryption at rest</td><td>Supabase encrypts at rest. Cloudflare R2 encrypts at rest. Redis data: sensitive fields encrypted with AES-256 before storage.</td></tr>
+  </table></div>
+
+  <h2>Infrastructure Security</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Layer</th><th>Controls</th></tr>
+    <tr><td>Cloudflare (edge)</td><td>DDoS mitigation, bot detection, IP reputation blocking, 100 WAF rules, rate limiting at edge</td></tr>
+    <tr><td>Nginx</td><td>Only Cloudflare IPs whitelisted. Direct IP access blocked. Request size limit 10MB. Server headers hidden.</td></tr>
+    <tr><td>Node.js API</td><td>Helmet.js headers. CORS restricted to app domains. Input validation with Joi on every endpoint. SQL injection impossible (Supabase parameterised queries).</td></tr>
+    <tr><td>DigitalOcean</td><td>Firewall rules: only ports 80, 443 publicly accessible. SSH restricted to admin IPs. DO VPC for internal service communication.</td></tr>
+    <tr><td>Secrets management</td><td>All secrets in .env files, never in code. .env in .gitignore. Coolify manages env vars securely for containers.</td></tr>
+  </table></div>
+
+  <h2>Rate Limiting Matrix</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Endpoint</th><th>Limit</th><th>Window</th><th>Consequence</th></tr>
+    <tr><td>POST /auth/send-otp</td><td>5 requests</td><td>per phone per hour</td><td>429, cooldown enforced</td></tr>
+    <tr><td>POST /auth/verify-otp</td><td>3 attempts</td><td>per OTP session</td><td>10-minute lock</td></tr>
+    <tr><td>POST /orders</td><td>10 orders</td><td>per customer per hour</td><td>429 Too Many Requests</td></tr>
+    <tr><td>GET /search/*</td><td>60 requests</td><td>per IP per minute</td><td>429 Too Many Requests</td></tr>
+    <tr><td>POST /reviews</td><td>10 reviews</td><td>per user per hour</td><td>429 Too Many Requests</td></tr>
+    <tr><td>POST /delivery/*/location</td><td>120 updates</td><td>per partner per minute</td><td>Silently dropped</td></tr>
+    <tr><td>Global (Nginx)</td><td>100 requests</td><td>per IP per minute</td><td>503 at Nginx level</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ LAUNCH ============================================================ -->
+<div id="sec-launch" class="doc-section">
+  <div class="section-tag">Launch Checklist</div>
+  <h1>Pre-Launch Checklist</h1>
+  <p>Every item must be checked before the first real customer can use the app.</p>
+
+  <h2>Infrastructure</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Item</th><th>Owner</th><th>Status</th></tr>
+    <tr><td>DigitalOcean Bangalore droplet created (2vCPU/4GB)</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>Coolify installed and configured on droplet</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>Supabase project created, schema migrations run</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>Supabase RLS policies verified and tested</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>Cloudflare domain configured, SSL active</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>Cloudflare R2 buckets created (public + private)</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>Redis running on droplet with persistence enabled</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>Typesense running, shop and product indexes created</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>DO Spaces backup configured in Coolify</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>Grafana + Prometheus deployed and dashboards set up</td><td>DevOps</td><td>☐</td></tr>
+    <tr><td>GitHub Actions CI/CD pipeline tested end-to-end</td><td>DevOps</td><td>☐</td></tr>
+  </table></div>
+
+  <h2>Third-Party Integrations</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Item</th><th>Owner</th><th>Status</th></tr>
+    <tr><td>Cashfree production account created and KYC approved</td><td>Business</td><td>☐</td></tr>
+    <tr><td>Cashfree webhook URL registered and HMAC tested</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>Cashfree test payment end-to-end verified</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>MSG91 DLT registration completed (mandatory India)</td><td>Business</td><td>☐</td></tr>
+    <tr><td>MSG91 OTP template approved by DLT</td><td>Business</td><td>☐</td></tr>
+    <tr><td>Firebase project created, FCM keys in server config</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>Ola Maps API key active, geocoding tested</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>All API keys rotated from development to production values</td><td>DevOps</td><td>☐</td></tr>
+  </table></div>
+
+  <h2>Application</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Item</th><th>Owner</th><th>Status</th></tr>
+    <tr><td>Full order flow tested: place → accept → deliver → review</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Cancellation + refund flow tested end-to-end</td><td>QA</td><td>☐</td></tr>
+    <tr><td>OTP delivery confirmation tested</td><td>QA</td><td>☐</td></tr>
+    <tr><td>KYC upload and admin approval flow tested</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Live GPS tracking verified (Socket.IO + Redis)</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Push notifications verified on Android + iOS</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Shop open/close toggle verified (Typesense sync)</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Bulk CSV upload tested with 100+ products</td><td>QA</td><td>☐</td></tr>
+    <tr><td>App tested on low-end Android (₹6,000 phone)</td><td>QA</td><td>☐</td></tr>
+    <tr><td>App tested on 2G/3G network conditions</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Admin dashboard: KYC approve/reject tested</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Admin dashboard: dispute resolution + refund tested</td><td>QA</td><td>☐</td></tr>
+    <tr><td>Rate limiting verified (OTP lock, order limit)</td><td>Backend</td><td>☐</td></tr>
+    <tr><td>Load test: 100 concurrent orders handled without crash</td><td>Backend</td><td>☐</td></tr>
+  </table></div>
+
+  <h2>Legal & Compliance</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Item</th><th>Owner</th><th>Status</th></tr>
+    <tr><td>Privacy Policy published and linked in all apps</td><td>Legal</td><td>☐</td></tr>
+    <tr><td>Terms of Service published for customers, shops, delivery partners</td><td>Legal</td><td>☐</td></tr>
+    <tr><td>Shop owner agreement (commission, KYC, conduct) signed during onboarding</td><td>Legal</td><td>☐</td></tr>
+    <tr><td>Delivery partner agreement (independent contractor terms) in app</td><td>Legal</td><td>☐</td></tr>
+    <tr><td>GST registration for NearBy platform entity (if applicable)</td><td>Finance</td><td>☐</td></tr>
+    <tr><td>Data localisation compliance confirmed (user data in India)</td><td>Legal</td><td>☐</td></tr>
+  </table></div>
+
+  <h2>Go-Live Day Ops</h2>
+  <ol class="num-list">
+    <li>Onboard 10 pilot shops manually — be there with them during setup</li>
+    <li>Sign up 20 beta customers (friends, family, neighbours) — get their feedback loop open</li>
+    <li>Have 5 delivery partners on standby for first 3 days</li>
+    <li>Admin monitors every order manually for first week</li>
+    <li>Daily 9 AM standup: orders placed, issues, shop feedback, partner issues</li>
+    <li>Week 1 target: 50 successful orders with zero unresolved disputes</li>
+  </ol>
+</div>
+
+<!-- ============================================================ METRICS ============================================================ -->
+<div id="sec-metrics" class="doc-section">
+  <div class="section-tag">Success Metrics & KPIs</div>
+  <h1>Success Metrics & KPIs</h1>
+
+  <h2>North Star Metric</h2>
+  <div class="callout info">
+    <strong>Weekly Transacting Shops (WTS)</strong>
+    The number of verified shops that complete at least one order in a given week. This captures both supply-side activation and demand-side pull simultaneously. A shop with no orders is not contributing to the mission — a shop with 20 orders/week is.
+  </div>
+
+  <h2>Customer Metrics</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Metric</th><th>Formula</th><th>M1 Target</th><th>M3 Target</th><th>M6 Target</th></tr>
+    <tr><td>Daily Active Users (DAU)</td><td>Unique users who open app</td><td>200</td><td>800</td><td>3,000</td></tr>
+    <tr><td>Orders per DAU</td><td>Daily orders / DAU</td><td>0.3</td><td>0.5</td><td>0.7</td></tr>
+    <tr><td>30-day repeat rate</td><td>% customers ordering again in 30d</td><td>25%</td><td>35%</td><td>45%</td></tr>
+    <tr><td>Cart abandonment</td><td>Carts started - orders placed / carts</td><td>&lt;50%</td><td>&lt;40%</td><td>&lt;35%</td></tr>
+    <tr><td>Review submission rate</td><td>Reviews / delivered orders</td><td>20%</td><td>30%</td><td>35%</td></tr>
+    <tr><td>App rating (Play Store)</td><td>Average star rating</td><td>4.0+</td><td>4.2+</td><td>4.4+</td></tr>
+  </table></div>
+
+  <h2>Supply Metrics (Shops)</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Metric</th><th>M1 Target</th><th>M3 Target</th><th>M6 Target</th></tr>
+    <tr><td>Verified shops onboarded</td><td>50</td><td>120</td><td>200</td></tr>
+    <tr><td>Weekly Transacting Shops</td><td>30</td><td>80</td><td>150</td></tr>
+    <tr><td>Shop order acceptance rate</td><td>80%</td><td>85%</td><td>90%</td></tr>
+    <tr><td>Avg shop rating</td><td>4.0</td><td>4.2</td><td>4.3</td></tr>
+    <tr><td>Shop monthly NPS</td><td>&gt;30</td><td>&gt;40</td><td>&gt;50</td></tr>
+    <tr><td>KYC approval rate</td><td>&gt;70%</td><td>&gt;75%</td><td>&gt;80%</td></tr>
+    <tr><td>KYC turnaround time</td><td>&lt;48 hrs</td><td>&lt;24 hrs</td><td>&lt;12 hrs</td></tr>
+  </table></div>
+
+  <h2>Delivery Metrics</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Metric</th><th>M1 Target</th><th>M3 Target</th><th>M6 Target</th></tr>
+    <tr><td>Active delivery partners</td><td>20</td><td>60</td><td>150</td></tr>
+    <tr><td>Average delivery time</td><td>&lt;55 min</td><td>&lt;45 min</td><td>&lt;40 min</td></tr>
+    <tr><td>Delivery success rate</td><td>&gt;92%</td><td>&gt;95%</td><td>&gt;97%</td></tr>
+    <tr><td>Partner avg rating</td><td>4.0</td><td>4.2</td><td>4.3</td></tr>
+    <tr><td>Assignment acceptance rate</td><td>&gt;70%</td><td>&gt;80%</td><td>&gt;85%</td></tr>
+  </table></div>
+
+  <h2>Platform Health Metrics</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Metric</th><th>Target</th><th>Alert threshold</th></tr>
+    <tr><td>API response time (p95)</td><td>&lt;200ms</td><td>&gt;500ms</td></tr>
+    <tr><td>API error rate</td><td>&lt;0.5%</td><td>&gt;2%</td></tr>
+    <tr><td>App crash rate</td><td>&lt;0.5%</td><td>&gt;1%</td></tr>
+    <tr><td>Platform uptime</td><td>&gt;99.5%</td><td>&lt;99%</td></tr>
+    <tr><td>OTP delivery success rate</td><td>&gt;98%</td><td>&lt;95%</td></tr>
+    <tr><td>Dispute rate</td><td>&lt;2% of orders</td><td>&gt;5%</td></tr>
+    <tr><td>Refund rate</td><td>&lt;5% of GMV</td><td>&gt;10%</td></tr>
+  </table></div>
+
+  <h2>Business Metrics</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Metric</th><th>M1</th><th>M3</th><th>M6</th></tr>
+    <tr><td>Gross Merchandise Value (GMV)</td><td>₹2L</td><td>₹15L</td><td>₹60L</td></tr>
+    <tr><td>Platform revenue (commission)</td><td>₹12k</td><td>₹90k</td><td>₹3.6L</td></tr>
+    <tr><td>Infra cost / GMV</td><td>&lt;2%</td><td>&lt;1%</td><td>&lt;0.5%</td></tr>
+    <tr><td>Customer Acquisition Cost (CAC)</td><td>&lt;₹200</td><td>&lt;₹150</td><td>&lt;₹100</td></tr>
+    <tr><td>Shop Acquisition Cost</td><td>&lt;₹500</td><td>&lt;₹300</td><td>&lt;₹200</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ RISKS ============================================================ -->
+<div id="sec-risks" class="doc-section">
+  <div class="section-tag">Risk Register</div>
+  <h1>Risk Register</h1>
+
+  <h2>Product Risks</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td>Shop owners don't adopt the app</td><td><span class="badge high">High</span></td><td><span class="badge high">High</span></td><td>White-glove onboarding — visit the shop physically for setup. Build app for Raju, not for a tech startup founder.</td></tr>
+    <tr><td>Delivery partners insufficient in early days</td><td><span class="badge high">High</span></td><td><span class="badge high">High</span></td><td>Recruit 20 delivery partners before launch. Ops team does first 50 deliveries personally if needed.</td></tr>
+    <tr><td>Low order volume → shops lose interest</td><td><span class="badge high">High</span></td><td><span class="badge high">High</span></td><td>Guarantee shops minimum 10 orders in first month (ops team buys to ensure this). Then show real demand data.</td></tr>
+    <tr><td>Fake reviews from competitors</td><td><span class="badge med">Medium</span></td><td><span class="badge med">Medium</span></td><td>Reviews only for delivered orders. One per order. Review velocity monitoring. Admin can remove with audit log.</td></tr>
+    <tr><td>Delivery fraud (fake OTP)</td><td><span class="badge med">Medium</span></td><td><span class="badge high">High</span></td><td>OTP system + GPS trail + customer controls OTP. Three GPS-inconsistent confirmations → partner suspended.</td></tr>
+    <tr><td>Shops not updating inventory in real time</td><td><span class="badge high">High</span></td><td><span class="badge med">Medium</span></td><td>Make toggling stock the simplest action in the app. Send daily reminder if shop has 5+ items marked unavailable.</td></tr>
+  </table></div>
+
+  <h2>Technical Risks</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td>Supabase outage during peak hours</td><td><span class="badge low">Low</span></td><td><span class="badge high">High</span></td><td>Active orders cached in Redis. Read-only mode served from cache. Supabase Pro SLA 99.9%.</td></tr>
+    <tr><td>Cashfree payment failures</td><td><span class="badge med">Medium</span></td><td><span class="badge high">High</span></td><td>COD always available as fallback. Webhook retry logic. Orphaned payment reconciliation job.</td></tr>
+    <tr><td>MSG91 OTP delivery failure</td><td><span class="badge med">Medium</span></td><td><span class="badge high">High</span></td><td>Retry with alternate route. V2: dual SMS provider. Manual OTP display for admin use.</td></tr>
+    <tr><td>Typesense search latency spike</td><td><span class="badge low">Low</span></td><td><span class="badge med">Medium</span></td><td>Typesense runs on same droplet (low latency). Cache frequent searches in Redis (5 min TTL).</td></tr>
+    <tr><td>DO droplet resource exhaustion</td><td><span class="badge med">Medium</span></td><td><span class="badge high">High</span></td><td>Grafana alerts at 70% CPU/RAM. One-click Droplet resize in DO panel. Upgrade to 8GB RAM when needed.</td></tr>
+  </table></div>
+
+  <h2>Business & Market Risks</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td>Blinkit/Swiggy launches competing local shop feature</td><td><span class="badge med">Medium</span></td><td><span class="badge high">High</span></td><td>Our moat is trust and community, not speed. Existing platforms can't charge 5% without destroying their business model. Double down on verified identity and human chat.</td></tr>
+    <tr><td>Regulatory change on marketplace models</td><td><span class="badge low">Low</span></td><td><span class="badge high">High</span></td><td>NearBy is a marketplace (platform, not inventory holder). DPIIT regulations apply to inventory-model e-commerce. Monitor ONDC integration as a hedge.</td></tr>
+    <tr><td>Shop owner data privacy concerns</td><td><span class="badge med">Medium</span></td><td><span class="badge med">Medium</span></td><td>Clear privacy policy in local language. Aadhaar docs stored privately. Explicit consent before every data collection.</td></tr>
+  </table></div>
+</div>
+
+<!-- ============================================================ SUPPORT ============================================================ -->
+<div id="sec-support" class="doc-section">
+  <div class="section-tag">Support Runbook</div>
+  <h1>Support & Operations Runbook</h1>
+
+  <h2>Escalation Matrix</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Issue</th><th>First Response</th><th>SLA</th><th>Escalation</th></tr>
+    <tr><td>Payment charged, order not placed</td><td>Admin checks orphaned payments</td><td>30 minutes</td><td>Manual refund via Cashfree + customer call</td></tr>
+    <tr><td>Order not delivered, marked delivered</td><td>Check GPS trail, contact partner</td><td>2 hours</td><td>Full refund + partner investigation</td></tr>
+    <tr><td>Shop can't accept orders (app issue)</td><td>Admin calls shop, checks server status</td><td>1 hour</td><td>Manual order management by admin</td></tr>
+    <tr><td>Customer can't login (OTP not received)</td><td>Check MSG91 delivery status</td><td>30 minutes</td><td>Manual OTP via admin console</td></tr>
+    <tr><td>KYC rejected — owner disagrees</td><td>Admin reviews documents again</td><td>24 hours</td><td>Senior admin review with video call</td></tr>
+    <tr><td>Platform down (all users affected)</td><td>DevOps alerted via Grafana</td><td>15 minutes acknowledgement</td><td>Incident channel, all hands on deck</td></tr>
+  </table></div>
+
+  <h2>Common Support Scenarios</h2>
+
+  <h3>Scenario: "I paid but my order was never confirmed"</h3>
+  <ol class="num-list">
+    <li>Check Supabase orders table for order matching customer phone + recent timestamp</li>
+    <li>Check Supabase payments table for payment_status</li>
+    <li>If payment_status = paid but no order: orphaned payment — run reconciliation manually, create order or refund</li>
+    <li>If payment_status = pending: Cashfree may still be processing — wait 5 minutes, check again</li>
+    <li>Contact customer with outcome within 30 minutes</li>
+  </ol>
+
+  <h3>Scenario: "Shop says they didn't receive order notification"</h3>
+  <ol class="num-list">
+    <li>Check Supabase order status — if "pending" for &gt;3 minutes, check BullMQ dead-letter queue</li>
+    <li>Check FCM delivery logs — was the notification sent?</li>
+    <li>Check if shop's FCM token is valid (may have reinstalled app)</li>
+    <li>Check if MSG91 SMS was sent as backup</li>
+    <li>If shop still didn't receive: manually call them with order details. Update their FCM token if needed.</li>
+  </ol>
+
+  <h3>Scenario: "Delivery partner says customer gave wrong OTP"</h3>
+  <ol class="num-list">
+    <li>Check Supabase orders table — delivery_otp field</li>
+    <li>Check if customer's phone number is correct (may have changed)</li>
+    <li>Admin can see OTP and relay it to partner via phone call</li>
+    <li>If customer is unreachable: follow "Customer not home" escalation path</li>
+    <li>Log incident — if pattern repeats with same customer, flag account</li>
+  </ol>
+
+  <h2>Daily Operations Checklist</h2>
+  <ol class="num-list">
+    <li><strong>9 AM:</strong> Check Grafana dashboard — any overnight alerts? Any failed BullMQ jobs?</li>
+    <li><strong>9:15 AM:</strong> Review KYC queue — process all pending applications</li>
+    <li><strong>10 AM:</strong> Check open disputes — any unresolved from yesterday?</li>
+    <li><strong>12 PM:</strong> Check order flow — any stuck orders? Any shops with 0 orders (might be offline)?</li>
+    <li><strong>6 PM:</strong> Peak hour monitoring — watch live order map, delivery partner availability</li>
+    <li><strong>9 PM:</strong> End-of-day summary: orders, GMV, issues, new shops onboarded</li>
+    <li><strong>Weekly:</strong> Trust score recompute (auto via BullMQ) — review any shops that dropped below 40</li>
+    <li><strong>Weekly:</strong> Settlement confirmation — all shops received T+1 payments correctly</li>
+  </ol>
+
+  <h2>Monitoring Alerts Setup</h2>
+  <div class="tbl-wrap"><table>
+    <tr><th>Alert</th><th>Condition</th><th>Channel</th><th>Action</th></tr>
+    <tr><td>High CPU</td><td>DO CPU &gt;80% for 5 min</td><td>Grafana → Telegram</td><td>Check top processes, consider resize</td></tr>
+    <tr><td>Supabase connection pool</td><td>&gt;80% connections used</td><td>Grafana → Telegram</td><td>Check for connection leaks in Node.js</td></tr>
+    <tr><td>BullMQ dead-letter</td><td>Any job in dead-letter queue</td><td>Grafana → Telegram</td><td>Investigate failed job, manual retry if needed</td></tr>
+    <tr><td>Order stuck</td><td>Order in "pending" &gt;4 minutes</td><td>Admin FCM push</td><td>Manual intervention — call shop</td></tr>
+    <tr><td>Low delivery coverage</td><td>&lt;3 partners online in active area</td><td>Admin FCM push</td><td>SMS available partners to come online</td></tr>
+    <tr><td>High dispute rate</td><td>&gt;5% of orders in last hour</td><td>Grafana → Telegram</td><td>Investigate pattern — delivery partner issue?</td></tr>
+    <tr><td>MSG91 failure rate</td><td>&gt;5% SMS not delivered</td><td>Grafana → Telegram</td><td>Check MSG91 status page, switch route</td></tr>
+  </table></div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function show(id) {
+  document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.getElementById('content').scrollTop = 0;
+}
+function toggle(header) {
+  const body = header.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+}
+// Init all edge cases open
+document.querySelectorAll('.ec-body').forEach(b => b.style.display = 'block');
+</script>
+</body>
+</html>

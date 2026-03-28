@@ -1,0 +1,59 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.flow-tabs{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.ftab{padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary)}
+.ftab.on{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success);font-weight:500}
+.steps-list{display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary)}
+.snum{width:22px;height:22px;border-radius:50%;background:var(--color-background-success);color:var(--color-text-success);font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.stitle{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.sdesc{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.stech{font-size:10px;color:var(--color-text-tertiary);font-family:var(--font-mono);margin-top:3px}
+</style>
+<div class="w">
+<div class="flow-tabs">
+  <span class="ftab on" onclick="sf(0,this)">F18 KYC review</span>
+  <span class="ftab" onclick="sf(1,this)">F19 Dispute handling</span>
+  <span class="ftab" onclick="sf(2,this)">F20 Platform monitoring</span>
+</div>
+<div class="steps-list" id="steps"></div>
+</div>
+<script>
+const flows=[
+  [
+    {t:'Admin gets KYC notification',d:'An admin team member gets an FCM push on their phone: "3 new KYC applications pending review". They open the admin React web dashboard on their laptop.',tech:'FCM to admin · BullMQ admin-notify job'},
+    {t:'KYC queue view',d:'The dashboard shows a table: shop name, owner name, category, submitted time, and a "Review" button. Items are sorted oldest first. A "Pending (3)" badge shows in the sidebar.',tech:'GET /api/v1/admin/kyc-queue · Supabase admin query'},
+    {t:'Open application — view documents',d:'Admin clicks "Review" on Raju Vegetables. They see: shop profile details, shop photo (from R2 CDN), and two "View Document" links for Aadhaar and GST. Clicking generates a 5-minute signed R2 URL — admin can view but not download.',tech:'Cloudflare R2 signed URL · 5 min TTL · GET /api/v1/admin/kyc/:id'},
+    {t:'Verify Aadhaar',d:'Admin checks the Aadhaar: name matches the shop owner name, photo looks genuine, no obvious photoshop. They flag it as verified internally. In V2, Aadhaar API integration auto-validates — in V1 this is manual.',tech:'Manual review · V2: DigiLocker API integration planned'},
+    {t:'Approve — shop goes live',d:'Admin clicks "Approve". A dropdown asks to select the trust category: "New shop (no history)". They confirm. Supabase updates kyc_status: approved, is_verified: true. BullMQ fires two jobs: MSG91 SMS to Raju + FCM push.',tech:'PATCH /api/v1/admin/kyc/:id · BullMQ notify · MSG91 SMS · Typesense index'},
+    {t:'Reject with reason',d:'If documents are unclear, admin clicks "Reject" → types reason: "Aadhaar photo is blurry. Please retake with good lighting." Raju gets SMS with the reason and a link to resubmit. The rejection loop is logged in Supabase.',tech:'PATCH /api/v1/admin/kyc/:id · reason stored · MSG91 SMS to owner'},
+  ],
+  [
+    {t:'Dispute submitted by customer',d:'Priya reports: "I paid ₹85 but my order was marked delivered and I never received it." She goes to Order → "Report a problem" → selects "Never received". A dispute ticket is created in Supabase.',tech:'POST /api/v1/disputes · Supabase disputes table'},
+    {t:'Admin sees dispute in queue',d:'Admin gets an FCM push: "New dispute: Order #NB-2847 — Priya says she didn\'t receive her order." Dashboard shows dispute queue sorted by recency.',tech:'GET /api/v1/admin/disputes · BullMQ admin-notify'},
+    {t:'Admin investigates',d:'Admin opens the dispute. They see: the full order timeline (placed, accepted, picked up, delivered), GPS track of Suresh\'s route overlaid on the map, the delivery OTP was entered at 7:43 PM. They call/message both parties.',tech:'Supabase order timeline · Redis GPS history · Socket.IO logs'},
+    {t:'Decision: full refund to customer',d:'GPS shows Suresh went to the right address. But OTP was entered from his location, not Priya\'s. Conclusion: delivery partner collected OTP dishonestly. Admin issues full refund to Priya and suspends Suresh pending review.',tech:'Cashfree Refund API · Supabase delivery_partner: suspended · FCM to Priya'},
+    {t:'Dispute resolved — all parties notified',d:'Priya gets SMS: "Refund of ₹85 is on its way". Suresh gets SMS: "Your account has been suspended pending investigation." Admin closes the ticket. Suresh\'s case is escalated to a performance review.',tech:'MSG91 SMS · Supabase dispute: resolved · BullMQ review job'},
+  ],
+  [
+    {t:'Admin morning dashboard check',d:'Every morning at 9 AM, admin opens the dashboard. They see: GMV yesterday ₹47,200, Orders placed 312, Active shops 87, New KYC requests 4, Open disputes 1. Green/red indicators show vs. last week.',tech:'GET /api/v1/admin/analytics?period=yesterday · Supabase aggregate'},
+    {t:'Live order monitor',d:'A live "Orders in flight" section shows: 14 orders currently active, colour-coded by status. Red: any order stuck in "Accepted" for over 15 minutes with no delivery partner — these need attention.',tech:'Supabase realtime subscription · Socket.IO admin room'},
+    {t:'Alert: shop with dropping trust score',d:'System alert: "Sharma Medical — trust score dropped to 38 (below 40 threshold). 3 complaints in last 7 days." Admin clicks to see the shop profile, reviews the complaints, decides to call the owner.',tech:'BullMQ nightly trust score job · alert_threshold: 40 · FCM to admin'},
+    {t:'City performance breakdown',d:'Analytics tab shows a city grid: Hyderabad (312 orders, ₹47k GMV), Secunderabad (89 orders, ₹13k GMV). Admin can identify which areas need more shop onboarding or delivery partner recruitment.',tech:'Supabase GROUP BY city · Typesense geo stats'},
+    {t:'Broadcast message to all shops',d:'Admin decides to send a Diwali message: "Happy Diwali from NearBy! Add festival offers to attract more orders 🪔". They type the message, select target: "All active shops", channel: Push + SMS. Hits send. BullMQ queues 87 FCM + 87 SMS messages.',tech:'POST /api/v1/admin/broadcast · BullMQ batch job · FCM + MSG91 bulk'},
+  ],
+];
+let cur=0;
+function sf(i,el){document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));el.classList.add('on');cur=i;render();}
+function render(){
+  document.getElementById('steps').innerHTML=flows[cur].map((s,i)=>`
+    <div class="srow"><div class="snum">${i+1}</div><div>
+      <div class="stitle">${s.t}</div>
+      <div class="sdesc">${s.d}</div>
+      <div class="stech">${s.tech}</div>
+    </div></div>`).join('');
+}
+render();
+</script>

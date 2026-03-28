@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nearby_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  typesense:
+    image: typesense/typesense:0.25.2
+    container_name: nearby_typesense
+    ports:
+      - "8108:8108"
+    volumes:
+      - typesense_data:/data
+    command: --data-dir /data --api-key=nearby_dev_key --enable-cors
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    container_name: nearby_api
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+      - typesense
+    env_file: .env
+    command: npm run dev
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  typesense_data:

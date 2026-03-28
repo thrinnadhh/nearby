@@ -1,0 +1,68 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.prog{height:4px;background:var(--color-background-secondary);border-radius:2px;margin-bottom:12px}
+.prog-fill{height:4px;background:var(--color-background-info);border-radius:2px;transition:width .3s}
+.stepper{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap}
+.step-dot{min-width:26px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary);transition:all .15s;padding:0 7px;white-space:nowrap}
+.step-dot.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.step-dot.done{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.panel{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;background:var(--color-background-primary)}
+.panel-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.screen-label{font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px}
+.what{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px}
+.tech-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.tech{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);font-family:var(--font-mono)}
+.phase{font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px}
+.phase.browse{background:var(--color-background-info);color:var(--color-text-info)}
+.phase.cart{background:var(--color-background-warning);color:var(--color-text-warning)}
+.phase.pay{background:var(--color-background-danger);color:var(--color-text-danger)}
+.phase.track{background:var(--color-background-success);color:var(--color-text-success)}
+.nav{display:flex;justify-content:space-between;margin-top:10px;align-items:center}
+button{font-size:12px;padding:5px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+</style>
+<div class="w">
+<div class="prog"><div class="prog-fill" id="prog"></div></div>
+<div class="stepper" id="dots"></div>
+<div class="panel" id="panel"></div>
+</div>
+<script>
+const steps=[
+  {phase:'browse',phaseLabel:'Browsing',title:'Home screen — discover nearby shops',screen:'Home',what:'Customer sees shop categories and a map-style list of open shops nearby. Each shop card shows: shop name, owner photo, category, distance (e.g. "0.8 km"), trust badge (Trusted/Good/New), star rating, and estimated delivery time. Shops closed right now are greyed out.',tech:['Typesense geo query','trust_score sort','Socket.IO connected']},
+  {phase:'browse',phaseLabel:'Browsing',title:'Search for a specific item',screen:'Search screen',what:'Customer types "tomatoes" in the search bar. Typesense returns both products (tomatoes from Raju Vegetables, ₹28/500g) and shops that carry them, ranked by proximity. Typo-tolerant — "tomatoe" still works. Results appear in under 100ms.',tech:['Typesense full-text + geo','GET /api/v1/search/products','Ola Maps lat/lng']},
+  {phase:'browse',phaseLabel:'Browsing',title:'Open shop profile',screen:'Shop detail screen',what:'Customer taps Raju Vegetables. They see: shop owner\'s real name and photo, trust badge, 47 reviews with average 4.6 stars, working hours, a "Chat with owner" button, and the full product catalogue grid. Out-of-stock items show greyed with "Unavailable".',tech:['GET /api/v1/shops/:id','GET /api/v1/shops/:id/reviews','Cloudflare R2 images']},
+  {phase:'browse',phaseLabel:'Browsing',title:'Chat with shopkeeper before ordering',screen:'Chat screen',what:'Customer taps "Chat with owner" and asks "Anna, is the chicken fresh today?". Owner sees the message in their app instantly. This real conversation builds trust before any money changes hands. Socket.IO powers the real-time exchange.',tech:['Socket.IO room: shop:{id}','Supabase messages table','FCM push to owner']},
+  {phase:'cart',phaseLabel:'Cart',title:'Add items to cart',screen:'Product catalogue / cart',what:'Customer taps "+" next to Tomatoes (₹28), Onions (₹22), and Green Chillies (₹15). Cart icon in the top right updates with item count and total. All items must be from the same shop — if they try to add from another shop, a "Start new cart?" prompt appears.',tech:['React Native state','Cart stored locally','No API call until checkout']},
+  {phase:'cart',phaseLabel:'Cart',title:'Review cart & apply address',screen:'Cart review screen',what:'Cart shows all items, quantities, individual prices, and subtotal ₹65. Below that: delivery address (auto-filled from saved location). Customer can change address. Delivery fee ₹20 shown. Order total: ₹85. A "Proceed to Payment" button is prominently displayed.',tech:['Ola Maps address display','Supabase user.location','Delivery fee from shop settings']},
+  {phase:'pay',phaseLabel:'Payment',title:'Choose payment method',screen:'Payment screen',what:'Customer chooses between: UPI (GPay/PhonePe/Paytm via Cashfree), Debit/Credit Card, or Cash on Delivery. For COD, no gateway is opened. For UPI, Cashfree SDK opens the UPI app directly. A "Order Summary" mini-card is shown above the payment options.',tech:['Cashfree React Native SDK','POST /api/v1/payments/initiate','COD bypasses gateway']},
+  {phase:'pay',phaseLabel:'Payment',title:'UPI payment completes',screen:'UPI app (GPay/PhonePe)',what:'Customer pays ₹85 via GPay. Cashfree processes the transaction. A webhook is fired to NearBy\'s server within 2-3 seconds. The server verifies the HMAC signature, marks payment as "paid" in Supabase, and immediately triggers the order creation pipeline.',tech:['Cashfree webhook','HMAC verification','POST /api/v1/payments/webhook','Supabase payment update']},
+  {phase:'pay',phaseLabel:'Payment',title:'Order confirmed screen',screen:'Order placed!',what:'Customer sees a confirmation screen: "Order #NB-2847 placed! Raju Vegetables has been notified." A countdown shows: shop has 3 minutes to accept. FCM push notification also sent: "Your order is waiting for shop confirmation." Customer can see order status in real-time.',tech:['FCM push notification','Socket.IO order room created','BullMQ: notify shop job']},
+  {phase:'track',phaseLabel:'Tracking',title:'Shop accepts — packing begins',screen:'Order tracking screen',what:'Shop accepts within 90 seconds. Status updates to "Raju is packing your order 📦". Customer sees a timeline: Ordered ✓ → Accepted ✓ → Packing → On the way → Delivered. Push notification: "Raju accepted your order! Estimated delivery: 25 mins."',tech:['Socket.IO emit to order room','PATCH /api/v1/orders/:id/accept','FCM push to customer']},
+  {phase:'track',phaseLabel:'Tracking',title:'Delivery partner picks up',screen:'Live tracking map',what:'A local delivery partner (Suresh, ⭐ 4.8) picks up the order. Customer sees a live map (Leaflet.js + OpenStreetMap) with Suresh\'s location moving in real-time, updated every 5 seconds. ETA shown: "12 minutes away". Partner\'s phone number shown for emergencies.',tech:['Socket.IO GPS stream','Redis GEOADD TTL 30s','Ola Maps ETA API','Leaflet.js map']},
+  {phase:'track',phaseLabel:'Tracking',title:'Delivery OTP confirmation',screen:'OTP delivery confirm',what:'Suresh arrives at the door. He shows the delivery OTP to the customer (or the customer shows it to him). Customer enters the 4-digit OTP in the delivery partner\'s app to confirm receipt. This prevents fake delivery confirmations. Order status: Delivered ✓.',tech:['MSG91 OTP to customer','PATCH /api/v1/delivery/:id/deliver','Supabase order status: delivered']},
+  {phase:'track',phaseLabel:'Tracking',title:'Review & rate the shop',screen:'Rate your experience',what:'2 minutes after delivery, a gentle prompt appears: "How was Raju Vegetables? 🌟". Customer gives 4 stars and types "Fresh vegetables, fast delivery!". This is verified (tied to a real delivered order) and immediately updates Raju\'s trust score in the nightly BullMQ job.',tech:['POST /api/v1/reviews','BullMQ trust score job','Typesense shop ranking update']},
+];
+let cur=0;
+function render(){
+  const pct=Math.round((cur+1)/steps.length*100);
+  document.getElementById('prog').style.width=pct+'%';
+  document.getElementById('dots').innerHTML=steps.map((s,i)=>`<div class="step-dot ${i===cur?'active':i<cur?'done':''}" onclick="go(${i})">${i+1}</div>`).join('');
+  const s=steps[cur];
+  document.getElementById('panel').innerHTML=`
+    <span class="phase ${s.phase}">${s.phaseLabel}</span>
+    <div class="panel-title">${s.title}</div>
+    <div class="screen-label">Screen: ${s.screen}</div>
+    <div class="what">${s.what}</div>
+    <div class="tech-row">${s.tech.map(t=>`<span class="tech">${t}</span>`).join('')}</div>
+    <div class="nav">
+      <button onclick="go(${cur-1})" ${cur===0?'disabled':''}>← Back</button>
+      <span style="font-size:11px;color:var(--color-text-tertiary)">${cur+1} / ${steps.length}</span>
+      <button class="primary" onclick="go(${cur+1})" ${cur===steps.length-1?'disabled':''}>Next →</button>
+    </div>`;
+}
+function go(i){if(i>=0&&i<steps.length){cur=i;render();}}
+render();
+</script>

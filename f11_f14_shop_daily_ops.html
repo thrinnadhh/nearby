@@ -1,0 +1,65 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.flow-tabs{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.ftab{padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary)}
+.ftab.on{background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning);font-weight:500}
+.steps-list{display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary)}
+.snum{width:22px;height:22px;border-radius:50%;background:var(--color-background-warning);color:var(--color-text-warning);font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.stitle{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.sdesc{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.stech{font-size:10px;color:var(--color-text-tertiary);font-family:var(--font-mono);margin-top:3px}
+</style>
+<div class="w">
+<div class="flow-tabs">
+  <span class="ftab on" onclick="sf(0,this)">F11 Receive orders</span>
+  <span class="ftab" onclick="sf(1,this)">F12 Inventory mgmt</span>
+  <span class="ftab" onclick="sf(2,this)">F13 Earnings</span>
+  <span class="ftab" onclick="sf(3,this)">F14 Open/close</span>
+</div>
+<div class="steps-list" id="steps"></div>
+</div>
+<script>
+const flows=[
+  [
+    {t:'Order notification arrives',d:'Raju hears a loud alert tone (different from normal notifications — custom sound for orders). His phone screen lights up with: "New order! ₹165 from Priya. 3 items. Confirm within 3:00 minutes." A countdown timer is visible.',tech:'FCM high-priority push · Socket.IO order event'},
+    {t:'Order details reviewed',d:'Raju opens the order: Tomatoes 500g ×2 (₹56), Onions 1kg (₹45), Potatoes 1kg (₹40). Delivery address shown on a small map. Customer name and trust level shown (new customer). Two big buttons: green "Accept" and red "Reject".',tech:'GET /api/v1/orders/:id · Supabase order details'},
+    {t:'Raju accepts the order',d:'He taps Accept and enters estimated pack time: "10 minutes". Order status → Accepted. Customer gets notified instantly. Delivery partner assignment begins in the background.',tech:'PATCH /api/v1/orders/:id/accept · BullMQ delivery assignment'},
+    {t:'Packing begins',d:'Raju packs the items. His order screen shows a checklist he can tick: ✓ Tomatoes ✓ Onions ✓ Potatoes. When done, he taps "Ready for Pickup" — delivery partner is notified to come collect.',tech:'PATCH /api/v1/orders/:id/ready · FCM to delivery partner'},
+    {t:'Delivery partner collects',d:'Suresh (delivery partner) arrives, shows his partner ID in the app. Raju confirms handover by tapping "Handed to Suresh". Order status → Out for Delivery. Raju\'s work for this order is done.',tech:'PATCH /api/v1/delivery/:id/pickup · Socket.IO emit'},
+    {t:'Rejection flow (if needed)',d:'If Raju is out of onions, he taps Reject → selects reason "Item out of stock". Customer is refunded automatically via Cashfree. Raju should then update his inventory to prevent future disappointment.',tech:'PATCH /api/v1/orders/:id/reject · Cashfree auto-refund'},
+  ],
+  [
+    {t:'Inventory dashboard',d:'Raju opens the "Products" tab. He sees all 31 products in a grid with current stock numbers. Items below 5 units show a yellow warning. Items at 0 show red "Out of stock". He can search within his own catalogue.',tech:'GET /api/v1/shops/:id/products · Supabase stock_qty'},
+    {t:'Quick stock toggle',d:'Raju just sold the last of his palak spinach directly in-store (offline sale). He taps the palak card → swipes the "Available" toggle to OFF. Within 15 seconds, palak disappears from customer search results.',tech:'PATCH /api/v1/products/:id · Redis pub/sub · Typesense update'},
+    {t:'Price update',d:'Market rates went up — tomatoes are now ₹35 instead of ₹28. Raju taps the tomato card → Edit Price → ₹35 → Save. The new price is immediately live for the next customer who opens his shop.',tech:'PATCH /api/v1/products/:id · Supabase + Typesense sync'},
+    {t:'New product added midday',d:'A customer calls asking if he has karela. He does! He quickly adds it: photo → "Karela 500g" → ₹40 → stock 20 → save. Live in 30 seconds. He can also tell the customer to check the app.',tech:'POST /api/v1/shops/:id/products · BullMQ Typesense job'},
+    {t:'Low stock alert',d:'At the end of the day, the app shows a summary: "5 items running low, 2 out of stock". Raju reviews and updates quantities after restocking from the next morning\'s market visit.',tech:'BullMQ nightly inventory alert · FCM push to owner'},
+  ],
+  [
+    {t:'Today\'s earnings summary',d:'From the dashboard home, Raju sees a card: "Today: ₹2,840 from 14 orders". He taps it to expand and sees each order, the gross amount, the 6% platform commission deducted, and his net earnings.',tech:'GET /api/v1/shops/:id/earnings?period=today · Supabase aggregate'},
+    {t:'Weekly earnings breakdown',d:'Earnings tab shows a 7-day bar chart. This week: Mon ₹1,200, Tue ₹2,100, Wed ₹980... Total: ₹11,340. Commission paid to NearBy: ₹680. Net payout: ₹10,660.',tech:'Supabase shop_analytics_daily · chart rendered in app'},
+    {t:'Settlement history',d:'A "Settlements" sub-tab shows each Cashfree T+1 transfer with date, amount, and UTR number for his accounting. He can tap any settlement to see which orders it covers.',tech:'GET /api/v1/shops/:id/earnings · Cashfree settlement data'},
+    {t:'Monthly summary download',d:'Raju taps "Download Statement" → a PDF is generated showing all orders, commissions, and payouts for the month. He can share it with his accountant via WhatsApp.',tech:'BullMQ PDF generation job · Cloudflare R2 temp URL · Expo Share'},
+  ],
+  [
+    {t:'Morning — open shop',d:'Raju wakes up at 7 AM. Opens NearBy shop app. A big toggle on the home screen shows "CLOSED". He taps it → "OPEN". His shop instantly appears in customer searches for the next hour.',tech:'PATCH /api/v1/shops/:id/toggle · Supabase is_open: true · Typesense filter'},
+    {t:'Set custom hours for today',d:'It\'s a festival — he\'ll close at 1 PM today. He taps "Set today\'s hours" → end time 1:00 PM. A BullMQ job is scheduled to auto-close his shop at exactly 1 PM IST.',tech:'PATCH /api/v1/shops/:id · BullMQ scheduled close job'},
+    {t:'Holiday mode',d:'Raju is going to his village for 3 days. He taps "Holiday Mode" → selects date range Dec 20-22. His shop shows "Back on Dec 23" to customers who try to visit it. No orders during this period.',tech:'Supabase holiday_until timestamp · Typesense open_now: false'},
+    {t:'Evening — close shop',d:'At 9 PM, Raju taps the toggle to CLOSED. Any orders placed in the last few minutes that he hasn\'t accepted yet are auto-cancelled and refunded. His shop disappears from "Open Now" searches.',tech:'PATCH /api/v1/shops/:id/toggle · Pending orders auto-cancelled · Cashfree refund'},
+  ],
+];
+let cur=0;
+function sf(i,el){document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));el.classList.add('on');cur=i;render();}
+function render(){
+  document.getElementById('steps').innerHTML=flows[cur].map((s,i)=>`
+    <div class="srow"><div class="snum">${i+1}</div><div>
+      <div class="stitle">${s.t}</div>
+      <div class="sdesc">${s.d}</div>
+      <div class="stech">${s.tech}</div>
+    </div></div>`).join('');
+}
+render();
+</script>

@@ -1,0 +1,54 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.stepper{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap}
+.step-dot{min-width:26px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary);transition:all .15s;padding:0 7px}
+.step-dot.active{background:var(--color-background-danger);color:var(--color-text-danger);border-color:var(--color-border-danger)}
+.step-dot.done{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.panel{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;background:var(--color-background-primary)}
+.panel-title{font-size:14px;font-weight:500;margin-bottom:3px}
+.screen-label{font-size:11px;color:var(--color-text-tertiary);margin-bottom:8px}
+.what{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px}
+.tech-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.tech{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);font-family:var(--font-mono)}
+.nav{display:flex;justify-content:space-between;margin-top:10px;align-items:center}
+button{font-size:12px;padding:5px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--color-background-danger);color:var(--color-text-danger);border-color:var(--color-border-danger)}
+</style>
+<div class="w">
+<div class="stepper" id="dots"></div>
+<div class="panel" id="panel"></div>
+</div>
+<script>
+const steps=[
+  {title:'Suresh downloads delivery app & registers',screen:'Login',what:'Suresh, a college student, downloads "NearBy Delivery" app. Phone OTP login via MSG91. A screen asks him to confirm he\'s registering as a delivery partner. Role: delivery set in JWT.',tech:['MSG91 OTP','role: delivery','JWT issued']},
+  {title:'Light KYC — Aadhaar & vehicle',screen:'KYC screen',what:'Suresh uploads: his Aadhaar card photo (to R2 private bucket) and a photo of his bike with number plate visible. No driving licence required in V1 — just Aadhaar + vehicle. Admin reviews within 12 hours.',tech:['POST /api/v1/shops/:id/kyc','R2 private bucket','admin_kyc_queue']},
+  {title:'KYC approved — bank details added',screen:'Bank details',what:'Admin approves. Suresh gets FCM push: "You\'re approved! Add your bank account to receive payouts." He enters account number + IFSC. Cashfree validates the bank details before saving.',tech:['MSG91 SMS approval','Cashfree bank validation','Supabase delivery_partner.bank_ref']},
+  {title:'Mark as available & go online',screen:'Delivery dashboard',what:'Suresh\'s home screen shows a big toggle: "Go Online". He taps it. His GPS location is sent to Redis (TTL 30s, refreshed every 20s while online). He\'s now in the pool of available delivery partners near him.',tech:['PATCH /api/v1/delivery/availability','Redis GEOADD','Socket.IO connected']},
+  {title:'Order assignment notification',screen:'New delivery alert',what:'Ping! A loud alert: "New delivery — Raju Vegetables to Priya. 0.8 km pickup + 1.2 km drop. Earn ₹40". A map shows the route. Two buttons: "Accept" (30 sec timer) or "Skip". Skipping too often reduces priority score.',tech:['FCM high-priority push','Socket.IO delivery room','Redis geo nearest partner']},
+  {title:'Navigate to shop for pickup',screen:'Navigation screen',what:'Suresh accepts. App opens Ola Maps navigation to Raju\'s shop. Meanwhile Raju is packing. ETA to shop: 4 minutes. Suresh can chat with Raju if the shop is hard to find.',tech:['Ola Maps navigation intent','Socket.IO route to shop']},
+  {title:'Collect from shop',screen:'Pickup confirmation',what:'Suresh arrives at Raju\'s shop. Raju shows him the packed order bag. Suresh taps "Confirm Pickup" in his app. Order status → "Out for Delivery". Customer immediately sees Suresh\'s location on their map.',tech:['PATCH /api/v1/delivery/:id/pickup','Socket.IO live tracking starts','FCM to customer']},
+  {title:'Navigate to customer — GPS live',screen:'Delivery navigation',what:'Suresh\'s app sends his GPS coordinates every 5 seconds to the server (Socket.IO). These flow through Redis → Ola Maps ETA → Socket.IO room → customer\'s live map. Customer sees "Suresh is 8 min away".',tech:['Socket.IO GPS emit every 5s','Redis GEOADD TTL 30s','Ola Maps ETA','Customer Leaflet.js map']},
+  {title:'OTP delivery confirmation',screen:'Delivery OTP',what:'Suresh arrives at Priya\'s building gate. Her app shows a 4-digit OTP. She tells him "2847". He types it in his app and taps "Confirm Delivery". Server validates OTP. Order → Delivered. Both get confirmation notifications.',tech:['PATCH /api/v1/delivery/:id/deliver','MSG91 OTP to customer','Supabase order: delivered']},
+  {title:'Earnings shown instantly',screen:'Earnings screen',what:'Suresh sees ₹40 credited to his NearBy wallet. Today\'s total: ₹280 from 7 deliveries. A "Withdraw" button shows his bank details. Withdrawals are processed via Cashfree every Tuesday and Friday.',tech:['Supabase earnings update','Cashfree T+1 payout','GET /api/v1/delivery/earnings']},
+];
+let cur=0;
+function render(){
+  document.getElementById('dots').innerHTML=steps.map((s,i)=>`<div class="step-dot ${i===cur?'active':i<cur?'done':''}" onclick="go(${i})">${i+1}</div>`).join('');
+  const s=steps[cur];
+  document.getElementById('panel').innerHTML=`
+    <div class="panel-title">${s.title}</div>
+    <div class="screen-label">Screen: ${s.screen}</div>
+    <div class="what">${s.what}</div>
+    <div class="tech-row">${s.tech.map(t=>`<span class="tech">${t}</span>`).join('')}</div>
+    <div class="nav">
+      <button onclick="go(${cur-1})" ${cur===0?'disabled':''}>← Back</button>
+      <span style="font-size:11px;color:var(--color-text-tertiary)">${cur+1} / ${steps.length}</span>
+      <button class="primary" onclick="go(${cur+1})" ${cur===steps.length-1?'disabled':''}>Next →</button>
+    </div>`;
+}
+function go(i){if(i>=0&&i<steps.length){cur=i;render();}}
+render();
+</script>

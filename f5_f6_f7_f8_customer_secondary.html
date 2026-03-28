@@ -1,0 +1,70 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.flow-tabs{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.ftab{padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary)}
+.ftab.on{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary);font-weight:500}
+.steps-list{display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary)}
+.snum{width:22px;height:22px;border-radius:50%;background:var(--color-background-secondary);color:var(--color-text-secondary);font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.scontent{}
+.stitle{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.sdesc{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.stech{font-size:10px;color:var(--color-text-tertiary);font-family:var(--font-mono);margin-top:3px}
+</style>
+<div class="w">
+<div class="flow-tabs">
+  <span class="ftab on" onclick="setFlow(0,this)">F5 Cancel & refund</span>
+  <span class="ftab" onclick="setFlow(1,this)">F6 Leave review</span>
+  <span class="ftab" onclick="setFlow(2,this)">F7 Chat with shop</span>
+  <span class="ftab" onclick="setFlow(3,this)">F8 Reorder</span>
+</div>
+<div class="steps-list" id="steps"></div>
+</div>
+<script>
+const flows=[
+  [
+    {t:'Customer opens active order',d:'From the "My Orders" tab, customer taps on the current order. They see real-time status. A red "Cancel Order" button is visible only while status is "Pending" or "Accepted" — disappears once packed.',tech:'GET /api/v1/orders/:id'},
+    {t:'Cancel reason selected',d:'A bottom sheet pops up with cancel reasons: "Changed my mind", "Wrong items added", "Taking too long", "Other". Customer selects one and taps "Cancel Order".',tech:'UI only — reason stored locally'},
+    {t:'Cancellation eligibility checked',d:'Server checks: is order still cancellable? (not yet picked up by delivery partner). If yes, order status → "cancelled". If no (already picked up), cancellation is blocked and a message shows: "Contact support".',tech:'PATCH /api/v1/orders/:id/cancel · Supabase status check'},
+    {t:'Cashfree refund initiated',d:'For UPI/card payments, Cashfree refund API is called automatically. Refund amount: full ₹85. Customer gets an SMS from Cashfree: "Refund of ₹85 initiated, arrives in 3-5 business days". COD orders show no refund needed.',tech:'Cashfree Refund API · MSG91 SMS · T+3 days'},
+    {t:'Order history updated',d:'Cancelled order appears in history with a red "Cancelled" badge and the refund status shown: "Refund processing". Once Cashfree confirms, status updates to "Refunded ✓".',tech:'Cashfree webhook · Supabase update'},
+  ],
+  [
+    {t:'Review prompt appears',d:'2 minutes after order status changes to "Delivered", a FCM push notification arrives: "How was Raju Vegetables? Tell others 🌟". App shows a rating card at top of home screen.',tech:'BullMQ delayed job · FCM push · 2 min delay'},
+    {t:'Star rating selected',d:'Customer taps 4 stars out of 5. The screen expands to show a text box: "Tell us what you think (optional)". Below that: emoji quick-select buttons: 🥬 Fresh · ⚡ Fast · 💰 Value · 👍 Friendly.',tech:'React Native local state'},
+    {t:'Review submitted',d:'Customer types "Fresh tomatoes! Quick delivery." and submits. Server validates: this customer has a real delivered order from this shop. No review without delivery. One review per order, not per shop per day.',tech:'POST /api/v1/reviews · order_id FK · Supabase RLS'},
+    {t:'Trust score queued for update',d:'A BullMQ job is queued to recompute Raju\'s trust score that night. The review is immediately visible on the shop page (unweighted until nightly job runs). Rating counter increments in real-time.',tech:'BullMQ nightly job · Typesense shop doc update'},
+  ],
+  [
+    {t:'Customer opens shop profile',d:'On the shop detail screen, below the shop info and above the product grid, there\'s a "Chat with Raju" button showing the owner\'s photo and "Usually replies in 5 min".',tech:'GET /api/v1/shops/:id · response_time metric'},
+    {t:'Chat window opens',d:'A full-screen chat opens. Previous messages (if any) are loaded from Supabase. A text input at the bottom. Customer types: "Do you have karela today?" and hits send.',tech:'Supabase messages table · Socket.IO room: shop:{shopId}:chat'},
+    {t:'Message delivered to shop owner',d:'Raju gets a FCM push notification on his shop owner app: "New message from Priya: Do you have karela today?". He opens the app and sees the chat. Responds: "Yes anna, fresh stock just arrived 🙂".',tech:'FCM push to shop owner · Socket.IO emit'},
+    {t:'Customer places order with confidence',d:'Customer, now knowing the stock is fresh, taps "Back to shop" and adds karela to cart. The pre-order chat builds the trust that makes NearBy different from dark stores.',tech:'Regular cart flow continues'},
+  ],
+  [
+    {t:'Customer opens order history',d:'From the profile tab → "My Orders", customer sees a list of all past orders. Each card shows: shop name, items summary, date, total paid, and a "Reorder" button.',tech:'GET /api/v1/orders?status=delivered'},
+    {t:'Reorder tapped',d:'Customer taps "Reorder" on last week\'s kirana order. App checks: is this shop still open? Are all items still available? If yes, cart is pre-filled with the same items.',tech:'Typesense availability check · shop is_open check'},
+    {t:'Availability conflicts resolved',d:'If any item is now out of stock, a modal shows: "2 items unavailable — Palak (out of stock), Methi (out of stock). Continue with 4 available items?" Customer taps Yes.',tech:'Supabase product availability · Typesense is_available filter'},
+    {t:'Cart filled — checkout as normal',d:'Cart opens pre-filled. Customer can adjust quantities, add more items, then proceeds to payment exactly like a fresh order. Address is already saved. One-tap UPI payment.',tech:'Normal F3 checkout flow'},
+  ],
+];
+let cur=0;
+function setFlow(i,el){
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');cur=i;render();
+}
+function render(){
+  document.getElementById('steps').innerHTML=flows[cur].map((s,i)=>`
+    <div class="srow">
+      <div class="snum">${i+1}</div>
+      <div class="scontent">
+        <div class="stitle">${s.t}</div>
+        <div class="sdesc">${s.d}</div>
+        <div class="stech">${s.tech}</div>
+      </div>
+    </div>`).join('');
+}
+render();
+</script>

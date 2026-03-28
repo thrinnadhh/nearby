@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -type d -not -path */node_modules/* -not -path */.git/*)",
+      "Bash(find /Users/trinadh/projects/LSE/apps -type f -not -path */node_modules/*)",
+      "Bash(find /Users/trinadh/projects/LSE -type f -not -path */node_modules/* -not -path */.DS_Store -not -path */files/*)"
+    ]
+  }
+}

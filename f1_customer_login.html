@@ -1,0 +1,51 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{padding:.75rem 0;font-family:var(--font-sans)}
+.stepper{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);background:var(--color-background-primary);transition:all .15s;flex-shrink:0}
+.step-dot.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.step-dot.done{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.panel{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;background:var(--color-background-primary)}
+.panel-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.screen-label{font-size:11px;color:var(--color-text-tertiary);margin-bottom:10px}
+.what{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px}
+.tech-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tech{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);font-family:var(--font-mono)}
+.nav{display:flex;justify-content:space-between;margin-top:10px}
+button{font-size:12px;padding:5px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.err{font-size:11px;color:var(--color-text-danger);margin-top:6px}
+</style>
+<div class="w">
+<div class="stepper" id="dots"></div>
+<div class="panel" id="panel"></div>
+</div>
+<script>
+const steps=[
+  {title:'App downloaded & opened',screen:'Splash screen',what:'User installs NearBy from Play Store / App Store. On first launch they see a splash screen with the app logo, tagline "Your neighbourhood, delivered." and a Get Started button.',tech:['React Native','Expo Go','Coolify-served APK']},
+  {title:'Phone number entry',screen:'Login screen',what:'User types their 10-digit mobile number. No email, no password — just phone. A "Send OTP" button is enabled once 10 digits are entered. The UI shows "We\'ll send you a one-time code" for clarity.',tech:['React Native TextInput','POST /api/v1/auth/send-otp','MSG91 API']},
+  {title:'OTP received & entered',screen:'OTP verification screen',what:'A 6-digit OTP arrives via MSG91 SMS within 3 seconds. User enters it into 6 individual digit boxes. Auto-reads SMS on Android. A 60-second resend timer is shown. 3 wrong attempts locks the phone for 10 minutes.',tech:['MSG91 OTP','Redis TTL 5min','Auto-read Android SMS']},
+  {title:'Account created / found',screen:'Welcome screen',what:'If new user: a quick profile screen asks for their name. If returning user: they go straight to home. JWT token stored securely in device keychain. Role is set to "customer" automatically.',tech:['Supabase Auth','JWT 30-day','Expo SecureStore','POST /auth/verify-otp']},
+  {title:'Location permission',screen:'Location permission prompt',what:'App requests "Allow location access". This is critical — it powers the nearby shop search. If denied, user can enter their area manually. Location is stored in Supabase user profile as a geo point.',tech:['Expo Location API','Ola Maps geocode','Supabase user.location']},
+  {title:'Home screen shown',screen:'Customer home',what:'User lands on the home screen showing shop categories (Kirana, Vegetables, Pharmacy, Food, etc.), nearby open shops sorted by trust score and distance, and a search bar. Onboarding complete.',tech:['Typesense geo query','Socket.IO connect','FCM token registered']},
+];
+let cur=0;
+function render(){
+  document.getElementById('dots').innerHTML=steps.map((s,i)=>`<div class="step-dot ${i===cur?'active':i<cur?'done':''}" onclick="go(${i})">${i+1}</div>`).join('');
+  const s=steps[cur];
+  document.getElementById('panel').innerHTML=`
+    <div class="panel-title">${s.title}</div>
+    <div class="screen-label">Screen: ${s.screen}</div>
+    <div class="what">${s.what}</div>
+    <div class="tech-row">${s.tech.map(t=>`<span class="tech">${t}</span>`).join('')}</div>
+    <div class="nav">
+      <button onclick="go(${cur-1})" ${cur===0?'disabled':''}>← Back</button>
+      <span style="font-size:11px;color:var(--color-text-tertiary);align-self:center">${cur+1} of ${steps.length}</span>
+      <button class="primary" onclick="go(${cur+1})" ${cur===steps.length-1?'disabled':''}>Next →</button>
+    </div>`;
+}
+function go(i){if(i>=0&&i<steps.length){cur=i;render();}}
+render();
+</script>
