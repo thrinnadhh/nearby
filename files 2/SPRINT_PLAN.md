@@ -31,8 +31,8 @@
 | 1.6 | Set up Redis on DO droplet via Coolify | [DV] | ⬜ | With persistence enabled |
 | 1.7 | Set up Typesense on DO droplet via Coolify | [DV] | ⬜ | Create shops + products indexes |
 | 1.8 | Set up Cloudflare R2 (public + private buckets) | [DV] | ⬜ | nearby-products, nearby-kyc |
-| 1.9 | Bootstrap Node.js + Express project | [BE] | 🔵 | With middleware, error handling, logging |
-| 1.10 | Set up docker-compose.yml for local dev | [BE] | 🔵 | Redis + Typesense + API all in one |
+| 1.9 | Bootstrap Node.js + Express project | [BE] | ⬜ | With middleware, error handling, logging |
+| 1.10 | Set up docker-compose.yml for local dev | [BE] | ⬜ | Redis + Typesense + API all in one |
 | 1.11 | Register MSG91 account + DLT template approval | [PM] | ⬜ | Takes 2–3 days — start immediately |
 | 1.12 | Create Firebase project + FCM config | [DV] | ⬜ | Download google-services.json |
 | 1.13 | Implement POST /auth/send-otp | [BE] | ⬜ | MSG91 + Redis OTP storage |

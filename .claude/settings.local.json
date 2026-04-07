@@ -3,7 +3,33 @@
     "allow": [
       "Bash(find . -type d -not -path */node_modules/* -not -path */.git/*)",
       "Bash(find /Users/trinadh/projects/LSE/apps -type f -not -path */node_modules/*)",
-      "Bash(find /Users/trinadh/projects/LSE -type f -not -path */node_modules/* -not -path */.DS_Store -not -path */files/*)"
+      "Bash(find /Users/trinadh/projects/LSE -type f -not -path */node_modules/* -not -path */.DS_Store -not -path */files/*)",
+      "Bash(npm audit:*)",
+      "Read(//Users/trinadh/.claude/plugins/cache/thedotmack/claude-mem/10.6.2/**)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Read(//Users/trinadh/Downloads/**)",
+      "Bash(npm test:*)",
+      "Bash(NODE_OPTIONS=--experimental-vm-modules npm test)",
+      "Bash(npm ls:*)",
+      "Bash(timeout 30 bash -c 'NODE_OPTIONS=--experimental-vm-modules npm test 2>&1')",
+      "Read(//tmp/**)",
+      "Bash(NODE_OPTIONS=--experimental-vm-modules npm test --silent)",
+      "Bash(node -c src/index.js)",
+      "Bash(node -c src/middleware/auth.js)",
+      "Bash(node -c src/middleware/validate.js)",
+      "Bash(npm list:*)",
+      "Bash(timeout 5 npm start)",
+      "Bash(node --check src/index.js)",
+      "Bash(node --check src/middleware/rateLimit.js)",
+      "Bash(node --check src/routes/payments.js)",
+      "Bash(node --check src/routes/auth.js)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
+    ],
+    "additionalDirectories": [
+      "/Users/trinadh/.claude",
+      "/Users/trinadh/projects/nearby"
     ]
   }
 }

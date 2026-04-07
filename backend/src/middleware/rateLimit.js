@@ -6,14 +6,31 @@ import { RATE_LIMITED } from '../utils/errors.js';
 import logger from '../utils/logger.js';
 
 /**
+ * Create a store based on environment.
+ * In production, use Redis. In test, use memory.
+ */
+const createStore = (prefix) => {
+  // In test environment, use default memory store
+  if (process.env.NODE_ENV === 'test') {
+    return undefined; // express-rate-limit uses memory store by default
+  }
+
+  // In production/development, use Redis
+  return new RedisStore({
+    sendCommand: async (...args) => {
+      // redis.call() expects command as first arg, then rest are parameters
+      return redis.call(args[0], ...args.slice(1));
+    },
+    prefix,
+  });
+};
+
+/**
  * Global rate limiter: 100 requests per 15 minutes per IP.
  * Uses Redis-backed store for distributed deployments.
  */
 export const globalLimiter = rateLimit({
-  store: new RedisStore({
-    client: redis,
-    prefix: 'rl:global:',
-  }),
+  store: createStore('rl:global:'),
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: false,
@@ -36,10 +53,7 @@ export const globalLimiter = rateLimit({
  * Keyed by phone number to prevent brute force attacks on specific targets.
  */
 export const otpLimiter = rateLimit({
-  store: new RedisStore({
-    client: redis,
-    prefix: 'rl:otp:',
-  }),
+  store: createStore('rl:otp:'),
   windowMs: 60 * 60 * 1000,
   max: 5,
   keyGenerator: (req) => {
@@ -61,10 +75,7 @@ export const otpLimiter = rateLimit({
  * Used for login, payment, order creation.
  */
 export const strictLimiter = rateLimit({
-  store: new RedisStore({
-    client: redis,
-    prefix: 'rl:strict:',
-  }),
+  store: createStore('rl:strict:'),
   windowMs: 60 * 1000,
   max: 10,
   handler: (req, res) => {
@@ -82,10 +93,7 @@ export const strictLimiter = rateLimit({
  * Search rate limiter: 30 requests per minute per user/IP.
  */
 export const searchLimiter = rateLimit({
-  store: new RedisStore({
-    client: redis,
-    prefix: 'rl:search:',
-  }),
+  store: createStore('rl:search:'),
   windowMs: 60 * 1000,
   max: 30,
   keyGenerator: (req) => {
