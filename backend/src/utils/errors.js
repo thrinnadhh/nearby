@@ -13,6 +13,7 @@ export const INVALID_OTP               = 'INVALID_OTP';
 export const OTP_EXPIRED               = 'OTP_EXPIRED';
 export const OTP_LOCKED                = 'OTP_LOCKED';
 export const OTP_RATE_LIMITED          = 'OTP_RATE_LIMITED';
+export const INVALID_PHONE             = 'INVALID_PHONE';
 export const INVALID_TOKEN             = 'INVALID_TOKEN';
 export const TOKEN_EXPIRED             = 'TOKEN_EXPIRED';
 

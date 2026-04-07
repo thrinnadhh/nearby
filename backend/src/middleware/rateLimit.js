@@ -6,6 +6,18 @@ import { RATE_LIMITED } from '../utils/errors.js';
 import logger from '../utils/logger.js';
 
 /**
+ * Mask phone number for logging (show only last 4 digits).
+ * @private
+ * @param {string} phone - Phone number
+ * @returns {string} Masked phone number
+ */
+function maskPhone(phone) {
+  if (!phone) return 'unknown';
+  const digits = phone.replace(/\D/g, '');
+  return `+91****${digits.slice(-4)}`;
+}
+
+/**
  * Create a store based on environment.
  * In production, use Redis. In test, use memory.
  */
@@ -51,6 +63,7 @@ export const globalLimiter = rateLimit({
 /**
  * OTP rate limiter: 5 OTP requests per hour per phone number.
  * Keyed by phone number to prevent brute force attacks on specific targets.
+ * Phone numbers are masked in logs to protect PII.
  */
 export const otpLimiter = rateLimit({
   store: createStore('rl:otp:'),
@@ -61,7 +74,7 @@ export const otpLimiter = rateLimit({
   },
   handler: (req, res) => {
     logger.warn('OTP rate limit exceeded', {
-      phone: req.body?.phone || 'unknown',
+      phone: maskPhone(req.body?.phone),
       ip: req.ip,
     });
     res.status(429).json(

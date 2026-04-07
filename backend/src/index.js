@@ -35,6 +35,21 @@ import { registerOrderRoom } from './socket/orderRoom.js';
 import { registerGpsTracker } from './socket/gpsTracker.js';
 import { registerChat } from './socket/chat.js';
 
+// Validate required environment variables at startup
+const requiredEnvVars = [
+  'JWT_SECRET',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'REDIS_URL',
+  'MSG91_AUTH_KEY',
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    logger.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 

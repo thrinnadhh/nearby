@@ -1,14 +1,30 @@
 import Joi from 'joi';
 
-export const phoneSchema = Joi.string()
-  .pattern(/^[6-9]\d{9}$/)
-  .required()
-  .messages({ 'string.pattern.base': 'Invalid Indian mobile number' });
+export const phoneSchema = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[6-9]\d{9}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Invalid Indian mobile number (10 digits, starting with 6-9)',
+    }),
+});
 
-export const otpSchema = Joi.string()
-  .length(6)
-  .pattern(/^\d+$/)
-  .required();
+export const verifyOtpSchema = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[6-9]\d{9}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Invalid Indian mobile number (10 digits, starting with 6-9)',
+    }),
+  otp: Joi.string()
+    .length(6)
+    .pattern(/^\d+$/)
+    .required()
+    .messages({
+      'string.length': 'OTP must be 6 digits',
+      'string.pattern.base': 'OTP must contain only digits',
+    }),
+});
 
 export const paginationSchema = Joi.object({
   page:  Joi.number().integer().min(1).default(1),

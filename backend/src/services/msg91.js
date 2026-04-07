@@ -9,7 +9,7 @@ if (!MSG91_AUTH_KEY) {
 }
 
 /**
- * Send SMS via MSG91.
+ * Send SMS via MSG91 using POST with Authorization header.
  * @private
  * @param {string} phone - Phone number with country code (e.g., '+919876543210')
  * @param {string} message - SMS content (max 160 chars)
@@ -20,14 +20,21 @@ async function sendSms(phone, message) {
     // Extract phone number without '+' prefix
     const phoneNumber = phone.replace(/\D/g, '');
 
-    const path = `/api/sms/send?authkey=${MSG91_AUTH_KEY}&route=4&sender=${MSG91_SENDER_ID}&mobile=${phoneNumber}&message=${encodeURIComponent(message)}`;
+    const payload = JSON.stringify({
+      route: '4',
+      sender: MSG91_SENDER_ID,
+      mobile: phoneNumber,
+      message: message,
+    });
 
     const options = {
       hostname: 'api.msg91.com',
-      path,
-      method: 'GET',
+      path: '/api/sms/send',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MSG91_AUTH_KEY}`,
+        'Content-Length': Buffer.byteLength(payload),
       },
     };
 
@@ -49,6 +56,7 @@ async function sendSms(phone, message) {
     });
 
     req.on('error', reject);
+    req.write(payload);
     req.end();
   });
 }
