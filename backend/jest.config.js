@@ -7,10 +7,6 @@ dotenv.config({ path: path.join(__dirname, '.env.test') });
 
 export default {
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.js'],
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
   transform: {
     '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
   },
