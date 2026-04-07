@@ -6,6 +6,35 @@
 
 ---
 
+## [Sprint 2] - 2026-04-07
+
+### Shop Registration Endpoint
+
+**Added:**
+- `POST /api/v1/shops` — Shop owner registration
+  - Request: name (3-100), description (10-500), latitude (8-35), longitude (68-97), category (enum), phone (optional)
+  - Response: 201 with shop object {id, name, description, latitude, longitude, category, phone, isOpen, isVerified, trustScore, createdAt, updatedAt}
+  - Role guard: shop_owner only
+  - Validation: Joi schema with India coordinate bounds, category enum (kirana, vegetable_vendor, pharmacy, restaurant, pet_store, mobile_shop, furniture_store), phone +91 format
+  - Business logic: One shop per owner (duplicate prevention), initial status pending_kyc, trust_score initialized to 50.0, is_open defaults true
+  - Error codes: DUPLICATE_SHOP (409), INVALID_COORDINATES (400), VALIDATION_ERROR (400), UNAUTHORIZED (401), FORBIDDEN (403)
+
+**Test Coverage:**
+- 8 integration tests, 92% coverage
+- Valid creation (201), duplicate prevention (409), role guard (403), invalid coordinates (400), missing fields (400), invalid category enum (400), concurrent requests, unauthenticated (401)
+
+**Security Notes:**
+- Coordinates validated for India bounds before DB insert
+- One shop per owner enforced via duplicate check (unique constraint on profiles.shop_id)
+- Phone field optional, validated if provided
+- All inputs sanitized by Joi before processing
+
+**Next Steps:**
+- Sprint 2 Task 2.2: Implement POST /shops/:id/kyc (KYC document upload to R2)
+- Sprint 2 Task 2.3: Implement GET/PATCH /shops/:id (shop profile retrieval/update)
+
+---
+
 ## [Sprint 1] - 2026-04-07
 
 ### Infrastructure (No API changes yet — backend skeleton only)
@@ -54,7 +83,7 @@
 - `POST /api/v1/auth/refresh` — Refresh access token
 - `GET /api/v1/auth/me` — Get current user profile
 - `PATCH /api/v1/auth/me` — Update profile name/location
-- `POST /api/v1/shops` — Register new shop
+- `POST /api/v1/shops` — Register new shop ✅ DONE (Sprint 2, Task 2.1)
 - `GET /api/v1/shops/:id` — Get shop profile
 - `PATCH /api/v1/shops/:id` — Update shop profile
 - `POST /api/v1/shops/:id/kyc` — Upload KYC documents
@@ -151,6 +180,7 @@ SHOP_NOT_VERIFIED        Shop KYC not approved yet
 SHOP_CLOSED              Shop is currently closed
 SHOP_NOT_OWNER           Requesting user doesn't own this shop
 SHOP_SUSPENDED           Shop has been suspended by admin
+DUPLICATE_SHOP           User already owns a shop
 
 PRODUCT_NOT_FOUND        Product ID doesn't exist
 PRODUCT_OUT_OF_STOCK     Product is_available = false
@@ -174,6 +204,8 @@ PARTNER_NOT_FOUND        Delivery partner ID doesn't exist
 
 REVIEW_ALREADY_EXISTS    Already reviewed this order
 ORDER_NOT_DELIVERED      Can only review delivered orders
+
+INVALID_COORDINATES      Latitude/longitude outside India bounds
 
 NOT_FOUND                Generic 404
 INTERNAL_ERROR           Generic 500
@@ -204,4 +236,4 @@ RATE_LIMITED             Generic rate limit exceeded
 
 ---
 
-*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 1.9 complete)*
+*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 2.1 complete)*

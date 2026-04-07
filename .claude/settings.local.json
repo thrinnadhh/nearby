@@ -25,7 +25,13 @@
       "Bash(node --check src/routes/payments.js)",
       "Bash(node --check src/routes/auth.js)",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(xargs cat:*)",
+      "Bash(node -c src/routes/auth.js)",
+      "Bash(node -e ':*)",
+      "Bash(node --check src/utils/validators.js)",
+      "Bash(node --check src/utils/errors.js)",
+      "Bash(node --check src/__tests__/integration/auth.test.js)"
     ],
     "additionalDirectories": [
       "/Users/trinadh/.claude",

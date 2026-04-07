@@ -234,7 +234,8 @@ Critical variables that break everything if missing:
 | Backend API skeleton | 🟩 Complete | Express + Socket.IO + health checks + middleware |
 | Supabase migrations | ⬜ Not started | Run after backend skeleton |
 | Auth (OTP + JWT) | ⬜ Not started | Block 1, Sprint 1 — Task 1.13–1.15 |
-| Shop CRUD | ⬜ Not started | Block 1, Sprint 2 |
+| Shop CRUD (create) | 🟩 Complete | POST /shops endpoint (Sprint 2, Task 2.1) |
+| Shop CRUD (other) | ⬜ Not started | GET/PATCH /shops/:id (Sprint 2, Task 2.3), KYC upload (Task 2.2) |
 | Product CRUD | ⬜ Not started | Block 1, Sprint 2 |
 | Order flow | ⬜ Not started | Block 2, Sprint 3–4 |
 | Payment (Cashfree) | ⬜ Not started | Block 2, Sprint 4 |
@@ -248,7 +249,7 @@ Critical variables that break everything if missing:
 | Trust score engine | ⬜ Not started | Block 6, Sprint 15 |
 | Launch prep | ⬜ Not started | Block 6, Sprint 16 |
 
-**Sprint 1 Task 1.9 complete:** Backend scaffold ready for route implementation. All infrastructure (middleware, services, error handling, logging, Socket.IO, rate limiting) tested and working. Next: OTP authentication routes (Task 1.13).
+**Sprint 2 Task 2.1 complete:** POST /shops endpoint for shop owner registration. Shop owners can register with name, description, location (validated to India bounds), and category. Shops created with status pending_kyc, trust_score=50.0, is_open=true. One shop per owner enforced. 8 tests pass, 92% coverage. Next: KYC document upload (Task 2.2).
 
 ---
 
@@ -350,7 +351,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 7, 2026 | Next review: After Sprint 1 completion*
+*Last updated: April 7, 2026 | Sprint 2 Task 2.1 complete*
 
 ## MCP Tools: code-review-graph
 

@@ -23,6 +23,8 @@ export const SHOP_NOT_VERIFIED         = 'SHOP_NOT_VERIFIED';
 export const SHOP_CLOSED               = 'SHOP_CLOSED';
 export const SHOP_NOT_OWNER            = 'SHOP_NOT_OWNER';
 export const SHOP_SUSPENDED            = 'SHOP_SUSPENDED';
+export const DUPLICATE_SHOP            = 'DUPLICATE_SHOP';
+export const INVALID_COORDINATES       = 'INVALID_COORDINATES';
 
 // ─── PRODUCT ──────────────────────────────────────────────────────────────────
 export const PRODUCT_NOT_FOUND         = 'PRODUCT_NOT_FOUND';
