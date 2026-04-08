@@ -31,15 +31,15 @@
 | 1.6 | Set up Redis on DO droplet via Coolify | [DV] | ⬜ | With persistence enabled |
 | 1.7 | Set up Typesense on DO droplet via Coolify | [DV] | ⬜ | Create shops + products indexes |
 | 1.8 | Set up Cloudflare R2 (public + private buckets) | [DV] | ⬜ | nearby-products, nearby-kyc |
-| 1.9 | Bootstrap Node.js + Express project | [BE] | ⬜ | With middleware, error handling, logging |
-| 1.10 | Set up docker-compose.yml for local dev | [BE] | ⬜ | Redis + Typesense + API all in one |
+| 1.9 | Bootstrap Node.js + Express project | [BE] | ✅ | Implemented in `backend/` with middleware stack, error handling, logging, Socket.IO bootstrapping. |
+| 1.10 | Set up docker-compose.yml for local dev | [BE] | ✅ | `docker-compose.yml` present for local Redis + Typesense + API workflow. |
 | 1.11 | Register MSG91 account + DLT template approval | [PM] | ⬜ | Takes 2–3 days — start immediately |
 | 1.12 | Create Firebase project + FCM config | [DV] | ⬜ | Download google-services.json |
-| 1.13 | Implement POST /auth/send-otp | [BE] | ⬜ | MSG91 + Redis OTP storage |
-| 1.14 | Implement POST /auth/verify-otp | [BE] | ⬜ | JWT issue, role assignment |
-| 1.15 | Implement JWT middleware + roleGuard | [BE] | ⬜ | customer/shop_owner/delivery/admin |
+| 1.13 | Implement POST /auth/send-otp | [BE] | ✅ | Implemented in backend auth routes with Redis-backed OTP flow. |
+| 1.14 | Implement POST /auth/verify-otp | [BE] | ✅ | Implemented with JWT issue and profile-linked auth flow. |
+| 1.15 | Implement JWT middleware + roleGuard | [BE] | ✅ | `authenticate`, JWT verify, and role guards implemented for protected routes. |
 | 1.16 | Set up GitHub Actions CI pipeline | [DV] | ⬜ | Run tests on every PR |
-| 1.17 | Write tests for auth flow | [BE] | ⬜ | OTP send, verify, lockout |
+| 1.17 | Write tests for auth flow | [BE] | ✅ | Auth integration tests exist for OTP send/verify and lockout behavior. |
 
 **Sprint 1 Definition of Done:** Any dev can `docker-compose up` and test OTP login via Postman.
 
@@ -51,19 +51,19 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 2.1 | Implement POST /shops (create shop) | [BE] | ⬜ | Basic profile, status: pending_kyc |
-| 2.2 | Implement POST /shops/:id/kyc | [BE] | ⬜ | Multipart upload → R2 private bucket |
-| 2.3 | Implement GET/PATCH /shops/:id | [BE] | ⬜ | Get shop, update profile |
-| 2.4 | Implement PATCH /shops/:id/toggle | [BE] | ⬜ | Open/close + Typesense sync |
-| 2.5 | Implement POST /shops/:id/products | [BE] | ⬜ | Single product + R2 image + Typesense index |
-| 2.6 | Implement POST /shops/:id/products/bulk | [BE] | ⬜ | CSV parse, validate, batch index |
-| 2.7 | Implement PATCH /products/:id | [BE] | ⬜ | Stock toggle, price update + Typesense sync |
-| 2.8 | Implement DELETE /products/:id | [BE] | ⬜ | Soft delete, Typesense remove |
-| 2.9 | Implement GET /search/shops | [BE] | ⬜ | Typesense geo + category + open_now |
-| 2.10 | Implement GET /search/products | [BE] | ⬜ | Cross-shop product search |
-| 2.11 | Set up Typesense shop + product schemas | [BE] | ⬜ | Fields: geo, trust_score, is_open, etc. |
-| 2.12 | Implement Sharp.js image resize pipeline | [BE] | ⬜ | 600×600 + 150×150 thumbnail |
-| 2.13 | GET /products/template (CSV download) | [BE] | ⬜ | Category-specific columns |
+| 2.1 | Implement POST /shops (create shop) | [BE] | ✅ | Implemented and integration-tested. |
+| 2.2 | Implement POST /shops/:id/kyc | [BE] | ✅ | Multipart KYC upload to R2 private bucket with signed URL flow. |
+| 2.3 | Implement GET/PATCH /shops/:id | [BE] | ✅ | Shop profile read/update implemented and tested. |
+| 2.4 | Implement PATCH /shops/:id/toggle | [BE] | ✅ | Open/close flow implemented with async Typesense sync. |
+| 2.5 | Implement POST /shops/:id/products | [BE] | ✅ | Single product create with optional image upload, R2 URL mapping, Typesense queue. |
+| 2.6 | Implement POST /shops/:id/products/bulk | [BE] | ✅ | CSV parse/validate with partial success handling and non-blocking Typesense sync. |
+| 2.7 | Implement PATCH /products/:id | [BE] | ✅ | Product price/stock update implemented with ownership checks and Typesense sync. |
+| 2.8 | Implement DELETE /products/:id | [BE] | ✅ | Soft delete via `deleted_at` implemented with Typesense removal queue. |
+| 2.9 | Implement GET /search/shops | [BE] | ✅ | Public Typesense geo search implemented with category/open filters and validation. |
+| 2.10 | Implement GET /search/products | [BE] | ✅ | Public Typesense product search with `q`, optional category/shop filters, typo tolerance, and validation. |
+| 2.11 | Set up Typesense shop + product schemas | [BE] | ✅ | Canonical `shops` + `products` schemas added with geo/trust/open/search fields and `npm run seed:typesense` bootstrap. |
+| 2.12 | Implement Sharp.js image resize pipeline | [BE] | ✅ | Sharp-based 600×600 full + 150×150 thumbnail pipeline implemented and now unit-verified for resize + failure handling. |
+| 2.13 | GET /products/template (CSV download) | [BE] | ✅ | CSV template download implemented with optional category-prefilled sample row. |
 | 2.14 | Design: shop owner app wireframes | [DS] | ⬜ | Registration, dashboard, product list |
 | 2.15 | Design: customer app wireframes | [DS] | ⬜ | Home, search, shop profile |
 

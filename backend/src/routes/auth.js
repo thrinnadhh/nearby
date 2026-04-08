@@ -179,16 +179,22 @@ router.post('/verify-otp', async (req, res, next) => {
 
     // Check OTP validity and match using timing-safe comparison
     // This prevents timing attacks that could reveal partial OTP
+    if (!storedOtp) {
+      logger.warn('OTP verification failed: OTP expired', {
+        phone: phone.slice(-4),
+      });
+      return res.status(400).json(
+        errorResponse(OTP_EXPIRED, 'OTP expired. Please request a new one.')
+      );
+    }
+
     let isValidOtp = false;
-    if (storedOtp) {
-      try {
-        // Use constant-time comparison to prevent timing attacks
-        crypto.timingSafeEqual(Buffer.from(storedOtp), Buffer.from(otp));
-        isValidOtp = true;
-      } catch (err) {
-        // timingSafeEqual throws if buffers don't match
-        isValidOtp = false;
-      }
+    try {
+      // Use constant-time comparison to prevent timing attacks
+      isValidOtp = crypto.timingSafeEqual(Buffer.from(storedOtp), Buffer.from(otp));
+    } catch (err) {
+      // timingSafeEqual throws if buffers don't match
+      isValidOtp = false;
     }
 
     // Handle invalid or expired OTP (unified error message to prevent enumeration)

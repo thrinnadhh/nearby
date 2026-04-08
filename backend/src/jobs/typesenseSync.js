@@ -4,12 +4,17 @@ import { redis } from '../services/redis.js';
 import { typesense } from '../services/typesense.js';
 
 const TYPESENSE_SHOPS_INDEX = 'shops';
-const TYPESENSE_SYNC_TIMEOUT = 15000; // 15 seconds
+const TYPESENSE_PRODUCTS_INDEX = 'products';
 
 /**
- * BullMQ queue for async Typesense shop synchronization.
- * Used when: shop is_open toggled, shop trust_score updated, KYC approved.
- * Job data: { shopId: string, action: 'sync' | 'remove', shopData?: object }
+ * BullMQ queue for async Typesense synchronization.
+ * Handles shop sync/remove and product sync/remove actions.
+ *
+ * Job data shapes:
+ *   Shop sync:    { shopId, action: 'sync',           shopData?: object }
+ *   Shop remove:  { shopId, action: 'remove' }
+ *   Product sync: { productId, action: 'product_sync', productData: object }
+ *   Product remove: { productId, action: 'product_remove' }
  */
 export const typesenseSyncQueue = new Queue('typesense-sync', {
   connection: redis,
@@ -26,28 +31,28 @@ export const typesenseSyncQueue = new Queue('typesense-sync', {
 
 /**
  * Worker that processes Typesense sync jobs.
- * Syncs shop documents or removes them from search index.
+ * Syncs shop/product documents or removes them from the search index.
  */
 const typesenseSyncWorker = new Worker(
   'typesense-sync',
   async (job) => {
-    const { shopId, action, shopData } = job.data;
+    const { action } = job.data;
 
     logger.debug('Processing Typesense sync job', {
       jobId: job.id,
-      shopId,
       action,
     });
 
     try {
       if (action === 'sync') {
-        // Sync: upsert shop document to Typesense
+        // ── Shop sync: upsert shop document ──────────────────────────────────
+        const { shopId, shopData } = job.data;
+
         if (!shopData) {
           logger.warn('Typesense sync job missing shopData', { shopId, jobId: job.id });
           return;
         }
 
-        // Construct Typesense shop document (must match schema)
         const typesenseDoc = {
           id: shopData.id,
           owner_id: shopData.owner_id,
@@ -56,6 +61,10 @@ const typesenseSyncWorker = new Worker(
           description: shopData.description || '',
           latitude: shopData.latitude || 0,
           longitude: shopData.longitude || 0,
+          geo_location: [
+            Number(shopData.latitude || 0),
+            Number(shopData.longitude || 0),
+          ],
           is_open: shopData.is_open,
           is_verified: shopData.is_verified,
           trust_score: shopData.trust_score || 50.0,
@@ -63,32 +72,27 @@ const typesenseSyncWorker = new Worker(
           updated_at: Math.floor(new Date(shopData.updated_at).getTime() / 1000),
         };
 
-        // Upsert document in Typesense
         await typesense
           .collections(TYPESENSE_SHOPS_INDEX)
           .documents()
           .upsert(typesenseDoc);
 
-        logger.info('Typesense sync completed: upsert', {
-          shopId,
-          jobId: job.id,
-        });
+        logger.info('Typesense sync completed: shop upsert', { shopId, jobId: job.id });
+
       } else if (action === 'remove') {
-        // Remove: delete shop document from Typesense
+        // ── Shop remove: delete shop document ────────────────────────────────
+        const { shopId } = job.data;
+
         try {
           await typesense
             .collections(TYPESENSE_SHOPS_INDEX)
             .documents(shopId)
             .delete();
 
-          logger.info('Typesense sync completed: remove', {
-            shopId,
-            jobId: job.id,
-          });
+          logger.info('Typesense sync completed: shop remove', { shopId, jobId: job.id });
         } catch (err) {
-          // If document doesn't exist in Typesense, ignore the error
           if (err.statusCode === 404 || err.message?.includes('Not found')) {
-            logger.debug('Typesense document already removed or never indexed', {
+            logger.debug('Typesense shop document already removed or never indexed', {
               shopId,
               jobId: job.id,
             });
@@ -96,17 +100,61 @@ const typesenseSyncWorker = new Worker(
           }
           throw err;
         }
+
+      } else if (action === 'product_sync') {
+        // ── Product sync: upsert product document ────────────────────────────
+        const { productId, productData } = job.data;
+
+        if (!productData) {
+          logger.warn('Typesense product_sync job missing productData', {
+            productId,
+            jobId: job.id,
+          });
+          return;
+        }
+
+        await typesense
+          .collections(TYPESENSE_PRODUCTS_INDEX)
+          .documents()
+          .upsert({
+            id: productId,
+            ...productData,
+          });
+
+        logger.info('Typesense sync completed: product upsert', { productId, jobId: job.id });
+
+      } else if (action === 'product_remove') {
+        // ── Product remove: delete product document ───────────────────────────
+        const { productId } = job.data;
+
+        try {
+          await typesense
+            .collections(TYPESENSE_PRODUCTS_INDEX)
+            .documents(productId)
+            .delete();
+
+          logger.info('Typesense sync completed: product remove', { productId, jobId: job.id });
+        } catch (err) {
+          if (err.message?.includes('Not Found') || err.statusCode === 404) {
+            logger.debug('Typesense product document already removed or never indexed', {
+              productId,
+              jobId: job.id,
+            });
+            return;
+          }
+          throw err;
+        }
+
       } else {
         logger.warn('Unknown Typesense sync action', {
-          shopId,
           action,
           jobId: job.id,
+          jobData: job.data,
         });
       }
     } catch (err) {
       logger.error('Typesense sync job failed', {
         jobId: job.id,
-        shopId,
         action,
         error: err.message,
         stack: err.stack,
@@ -116,7 +164,7 @@ const typesenseSyncWorker = new Worker(
   },
   {
     connection: redis,
-    concurrency: 5, // Process up to 5 jobs concurrently
+    concurrency: 5,
   }
 );
 
@@ -136,14 +184,14 @@ typesenseSyncWorker.on('completed', (job) => {
 typesenseSyncWorker.on('failed', (job, err) => {
   logger.error('Typesense sync job failed permanently', {
     jobId: job?.id,
-    shopId: job?.data?.shopId,
+    action: job?.data?.action,
     error: err.message,
     attempts: job?.attemptsMade,
   });
 });
 
 /**
- * Listen for job errors (transient errors during processing).
+ * Listen for worker errors (transient errors during processing).
  */
 typesenseSyncWorker.on('error', (err) => {
   logger.error('Typesense sync worker error', {

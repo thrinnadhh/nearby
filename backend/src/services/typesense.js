@@ -1,5 +1,9 @@
 import Typesense from 'typesense';
 import logger from '../utils/logger.js';
+import {
+  getMissingCollectionSchemas,
+  TYPESENSE_COLLECTION_SCHEMAS,
+} from './typesenseSchema.js';
 
 const TYPESENSE_HOST = process.env.TYPESENSE_HOST || 'localhost';
 const TYPESENSE_PORT = process.env.TYPESENSE_PORT || '8108';
@@ -26,4 +30,28 @@ logger.info('Typesense client initialized', {
   protocol: TYPESENSE_PROTOCOL,
 });
 
-export { client as typesense };
+async function ensureTypesenseCollections() {
+  const existingCollections = await client.collections().retrieve();
+  const missingSchemas = getMissingCollectionSchemas(existingCollections);
+
+  for (const schema of missingSchemas) {
+    await client.collections().create(schema);
+    logger.info('Typesense collection created', {
+      collection: schema.name,
+      fields: schema.fields.length,
+    });
+  }
+
+  if (missingSchemas.length === 0) {
+    logger.info('Typesense collections already present', {
+      collections: TYPESENSE_COLLECTION_SCHEMAS.map((schema) => schema.name),
+    });
+  }
+
+  return {
+    created: missingSchemas.map((schema) => schema.name),
+    existing: existingCollections.map((collection) => collection.name),
+  };
+}
+
+export { client as typesense, ensureTypesenseCollections };

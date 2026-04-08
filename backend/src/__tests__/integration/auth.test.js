@@ -1,4 +1,123 @@
 import request from 'supertest';
+
+const mockRedisStore = new Map();
+const mockProfileStore = new Map();
+
+jest.mock('../../services/redis.js', () => ({
+  redis: {
+    get: jest.fn(async (key) => (mockRedisStore.has(key) ? mockRedisStore.get(key) : null)),
+    setex: jest.fn(async (key, _ttl, value) => {
+      mockRedisStore.set(key, value);
+      return 'OK';
+    }),
+    exists: jest.fn(async (key) => (mockRedisStore.has(key) ? 1 : 0)),
+    ttl: jest.fn(async () => 600),
+    del: jest.fn(async (...keys) => {
+      keys.flat().forEach((key) => mockRedisStore.delete(key));
+      return 1;
+    }),
+    incr: jest.fn(async (key) => {
+      const nextValue = String(Number(mockRedisStore.get(key) || '0') + 1);
+      mockRedisStore.set(key, nextValue);
+      return Number(nextValue);
+    }),
+    expire: jest.fn(async () => 1),
+    ping: jest.fn().mockResolvedValue('PONG'),
+    call: jest.fn().mockResolvedValue(null),
+    keys: jest.fn(async (pattern) => {
+      const prefix = pattern.replace('*', '');
+      return [...mockRedisStore.keys()].filter((key) => key.startsWith(prefix));
+    }),
+  },
+}));
+
+jest.mock('../../services/supabase.js', () => ({
+  supabase: {
+    from: jest.fn((table) => {
+      if (table !== 'profiles') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          insert: jest.fn().mockReturnThis(),
+          update: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        };
+      }
+
+      let mode = 'select';
+      let phone = null;
+      let insertRecord = null;
+
+      const chain = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn((record) => {
+          mode = 'insert';
+          insertRecord = record;
+          return chain;
+        }),
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn((field, value) => {
+          if (field === 'phone') phone = value;
+          return chain;
+        }),
+        single: jest.fn(async () => {
+          if (mode === 'insert') {
+            const record = Array.isArray(insertRecord) ? insertRecord[0] : insertRecord;
+            mockProfileStore.set(record.phone, record);
+            return {
+              data: {
+                id: record.id,
+                phone: record.phone,
+                role: record.role,
+                shop_id: record.shop_id || null,
+              },
+              error: null,
+            };
+          }
+
+          const profile = mockProfileStore.get(phone);
+          if (!profile) {
+            return { data: null, error: { code: 'PGRST116', message: 'No rows found' } };
+          }
+
+          return {
+            data: {
+              id: profile.id,
+              phone: profile.phone,
+              role: profile.role,
+              shop_id: profile.shop_id || null,
+            },
+            error: null,
+          };
+        }),
+      };
+
+      return chain;
+    }),
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: {}, error: null }),
+    },
+  },
+}));
+
+jest.mock('../../services/r2.js', () => ({
+  uploadFile: jest.fn().mockResolvedValue({ ETag: '"test-etag"' }),
+  getSignedFileUrl: jest.fn().mockResolvedValue('https://example.r2.dev/signed'),
+  deleteFile: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../services/msg91.js', () => ({
+  sendOtp: jest.fn().mockResolvedValue({ type: 'success' }),
+  sendNotification: jest.fn().mockResolvedValue({ type: 'success' }),
+}));
+
+jest.mock('../../jobs/typesenseSync.js', () => ({
+  typesenseSyncQueue: {
+    add: jest.fn().mockResolvedValue({ id: 'job-123' }),
+  },
+  typesenseSyncWorker: {},
+}));
+
 import { app } from '../../index.js';
 import { redis } from '../../services/redis.js';
 import { supabase } from '../../services/supabase.js';
@@ -7,6 +126,8 @@ import { verifyToken } from '../../middleware/auth.js';
 describe('Auth Routes', () => {
   // Clean up Redis and database before each test
   beforeEach(async () => {
+    mockRedisStore.clear();
+    mockProfileStore.clear();
     // Clear all OTP-related Redis keys
     const keys = await redis.keys('otp:*');
     if (keys.length > 0) {
@@ -266,13 +387,14 @@ describe('Auth Routes', () => {
     it('should lock user after 3 failed attempts', async () => {
       const phone = '9876543210';
 
-      // Three failed attempts
+      // Three failed attempts; third one should trigger lockout
       for (let i = 0; i < 3; i++) {
         await redis.setex(`otp:code:${phone}`, 300, '123456');
+        const expectedStatus = i === 2 ? 429 : 400;
         await request(app)
           .post('/api/v1/auth/verify-otp')
           .send({ phone, otp: '000000' })
-          .expect(400);
+          .expect(expectedStatus);
       }
 
       // Fourth attempt should be locked
@@ -430,7 +552,7 @@ describe('Auth Routes', () => {
 
   describe('Full OTP Flow Integration', () => {
     it('should complete send + verify flow successfully', async () => {
-      const phone = '9876543210';
+      const phone = '9876543201';
 
       // 1. Send OTP
       const sendResponse = await request(app)
@@ -461,7 +583,7 @@ describe('Auth Routes', () => {
     });
 
     it('should reject flow if OTP expires between send and verify', async () => {
-      const phone = '9876543210';
+      const phone = '9876543202';
 
       // Send OTP
       await request(app)
@@ -482,7 +604,7 @@ describe('Auth Routes', () => {
     });
 
     it('should block after 3 consecutive failed verifications', async () => {
-      const phone = '9876543210';
+      const phone = '9876543203';
 
       // Send OTP
       await request(app)
@@ -490,17 +612,19 @@ describe('Auth Routes', () => {
         .send({ phone })
         .expect(200);
 
-      // Try to verify with wrong OTP 3 times
+      // Try to verify with wrong OTP 3 times; third one should trigger lockout
       for (let i = 1; i <= 3; i++) {
         await redis.setex(`otp:code:${phone}`, 300, '123456');
 
         const response = await request(app)
           .post('/api/v1/auth/verify-otp')
           .send({ phone, otp: '000000' })
-          .expect(400);
+          .expect(i === 3 ? 429 : 400);
 
         if (i < 3) {
           expect(response.body.error.code).toBe('INVALID_OTP');
+        } else {
+          expect(response.body.error.code).toBe('OTP_LOCKED');
         }
       }
 

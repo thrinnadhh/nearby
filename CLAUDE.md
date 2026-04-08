@@ -239,11 +239,11 @@ Critical variables that break everything if missing:
 | Shop CRUD (kyc upload) | 🟩 Complete | POST /shops/:id/kyc endpoint (Sprint 2, Task 2.2) |
 | Shop CRUD (read/update) | 🟩 Complete | GET/PATCH /shops/:id (Sprint 2, Task 2.3) |
 | Shop CRUD (toggle) | 🟩 Complete | PATCH /shops/:id/toggle endpoint (Sprint 2, Task 2.4) |
-| Product CRUD | ⬜ Not started | Block 1, Sprint 2 |
+| Product CRUD | 🟩 Complete | Create, bulk upload, update, and soft delete complete (Sprint 2, Tasks 2.5-2.8) |
 | Order flow | ⬜ Not started | Block 2, Sprint 3–4 |
 | Payment (Cashfree) | ⬜ Not started | Block 2, Sprint 4 |
 | Delivery tracking | ⬜ Not started | Block 3, Sprint 5–6 |
-| Search (Typesense) | ⬜ Not started | Block 3, Sprint 5 |
+| Search (Typesense) | 🟩 Complete | Shop/product search endpoints plus schema bootstrap complete (Sprint 2, Tasks 2.9-2.11) |
 | Customer app | ⬜ Not started | Block 4, Sprint 7–10 |
 | Shop owner app | ⬜ Not started | Block 4, Sprint 9–12 |
 | Delivery app | ⬜ Not started | Block 5, Sprint 11–13 |
@@ -252,7 +252,7 @@ Critical variables that break everything if missing:
 | Trust score engine | ⬜ Not started | Block 6, Sprint 15 |
 | Launch prep | ⬜ Not started | Block 6, Sprint 16 |
 
-**Sprint 2 Tasks 2.1–2.4 complete:** Shop registration (POST /shops), KYC document upload (POST /shops/:id/kyc), shop profile management (GET/PATCH /shops/:id), and shop toggle (PATCH /shops/:id/toggle) fully implemented and tested. Shop owners can create shops with name, description, location (validated to India bounds), and category. Shops initialized with status pending_kyc, trust_score=50.0, is_open=true. One shop per owner enforced. KYC documents (PDF, 1-10 MB) uploaded to Cloudflare R2 private bucket with signed URLs (5-min TTL). Idempotency keys prevent duplicate uploads. Shop profiles can be retrieved and updated (name, description, category, phone only). Shop toggle (open/close) triggers async BullMQ Typesense sync job: upserts shop doc if opening, removes from index if closing. Defense-in-depth ownership verification at middleware + service layers prevents JWT forgery. All 44 tests passing (8 POST + 8 KYC + 5 GET + 10 PATCH + 13 TOGGLE), 100% coverage on toggle endpoint. Next: POST /shops/:id/products (Task 2.5).
+**Sprint 2 backend core, public search, Typesense schema bootstrap, and Sharp image pipeline are complete:** Shop registration (POST /shops), KYC document upload (POST /shops/:id/kyc), shop profile management (GET/PATCH /shops/:id), shop toggle (PATCH /shops/:id/toggle), single product creation (POST /shops/:id/products), bulk product CSV upload (POST /shops/:id/products/bulk), product update (PATCH /products/:id), product soft delete (DELETE /products/:id), public shop geo search (GET /api/v1/search/shops), public product search (GET /api/v1/search/products), canonical Typesense collection setup, and Sharp-based product image resizing are implemented and tested. Shop owners can create shops with name, description, location (validated to India bounds), and category. Shops initialize with `pending_kyc`, `trust_score=50.0`, and `is_open=true`. KYC documents (PDF, 1-10 MB) upload to Cloudflare R2 private bucket with signed URLs (5-min TTL). Products can be created individually with optional image upload, inserted in bulk from CSV with row validation and partial-success handling, updated for price/stock, soft deleted through `deleted_at`, and discovered through Typesense-backed search endpoints. Product images are resized via Sharp to `600x600` full and `150x150` thumbnail JPEGs before upload, with focused failure coverage. Typesense now has explicit `shops` and `products` collection schemas plus a reproducible `npm run seed:typesense` bootstrap path for local/dev setup. Defense-in-depth ownership verification at middleware + service layers prevents JWT forgery on protected endpoints. Verified with 106 focused integration/unit checks across shop, product, search, Typesense schema, and image pipeline flows. Next: remaining Sprint 2 tasks in the detailed plan (`2.14`, `2.15`) or transition into Sprint 3 order work once you want to treat design tasks separately.
 
 ---
 

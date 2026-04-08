@@ -5,10 +5,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MIN_FILE_SIZE = 1 * 1024; // 1 KB
 
 /**
- * Configure multer for file uploads.
- * Stores files in memory (not disk) for direct R2 upload.
- * Max file size: 10 MB.
- * Validates MIME type (PDF only) and file size bounds.
+ * Default upload — PDF only (KYC documents).
+ * Stores files in memory for direct R2 upload.
+ * Max file size: 10 MB, min: 1 KB.
  */
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -44,6 +43,56 @@ const upload = multer({
     logger.debug('File passed multer validation', {
       fieldname: file.fieldname,
       size: file.size,
+    });
+    cb(null, true);
+  },
+});
+
+/**
+ * Image upload — JPEG, PNG, WEBP only (product images).
+ * Stores files in memory for Sharp processing before R2 upload.
+ * Max file size: 5 MB.
+ */
+export const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) {
+      logger.warn('Rejected non-image file for product upload', {
+        mimetype: file.mimetype,
+        filename: file.originalname,
+      });
+      return cb(new Error('Only JPEG, PNG, or WEBP images are allowed'), false);
+    }
+    logger.debug('Image file passed multer validation', {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
+    });
+    cb(null, true);
+  },
+});
+
+/**
+ * CSV upload — CSV/plain text only (bulk product import).
+ * Stores files in memory for csv-parse processing.
+ * Max file size: 2 MB.
+ */
+export const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['text/csv', 'application/vnd.ms-excel', 'text/plain'];
+    if (!allowed.includes(file.mimetype)) {
+      logger.warn('Rejected non-CSV file for bulk upload', {
+        mimetype: file.mimetype,
+        filename: file.originalname,
+      });
+      return cb(new Error('Only CSV files are allowed'), false);
+    }
+    logger.debug('CSV file passed multer validation', {
+      fieldname: file.fieldname,
+      mimetype: file.mimetype,
     });
     cb(null, true);
   },

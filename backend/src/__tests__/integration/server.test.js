@@ -1,5 +1,44 @@
 import request from 'supertest';
-import { app } from '../../index.js';
+
+jest.mock('../../services/redis.js', () => ({
+  redis: {
+    ping: jest.fn().mockResolvedValue('PONG'),
+    disconnect: jest.fn(),
+    call: jest.fn().mockResolvedValue(null),
+  },
+}));
+
+jest.mock('../../services/supabase.js', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: {}, error: null }),
+    },
+  },
+}));
+
+jest.mock('../../services/typesense.js', () => ({
+  typesense: {
+    collections: {
+      retrieve: jest.fn().mockResolvedValue([]),
+    },
+  },
+  ensureTypesenseCollections: jest.fn().mockResolvedValue({ created: [], existing: [] }),
+}));
+
+jest.mock('../../services/r2.js', () => ({
+  uploadFile: jest.fn().mockResolvedValue({ ETag: '"test-etag"' }),
+  getSignedFileUrl: jest.fn().mockResolvedValue('https://example.r2.dev/signed'),
+  deleteFile: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../jobs/typesenseSync.js', () => ({
+  typesenseSyncQueue: {
+    add: jest.fn().mockResolvedValue({ id: 'job-123' }),
+  },
+  typesenseSyncWorker: {},
+}));
+
+import { app, socketServer } from '../../index.js';
 
 describe('Server Endpoints', () => {
   describe('GET /health', () => {
@@ -31,6 +70,17 @@ describe('Server Endpoints', () => {
 
       expect(response.body.data.environment).toBeDefined();
       expect(['development', 'test', 'production']).toContain(response.body.data.environment);
+    });
+  });
+
+  describe('Socket server', () => {
+    it('exposes a dedicated socket health endpoint', async () => {
+      const response = await request(socketServer)
+        .get('/health')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.transport).toBe('socket.io');
     });
   });
 

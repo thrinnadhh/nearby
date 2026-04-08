@@ -34,6 +34,7 @@ import { globalLimiter } from './middleware/rateLimit.js';
 import { registerOrderRoom } from './socket/orderRoom.js';
 import { registerGpsTracker } from './socket/gpsTracker.js';
 import { registerChat } from './socket/chat.js';
+import { setRealtimeServer } from './socket/ioRegistry.js';
 
 // Validate required environment variables at startup
 const requiredEnvVars = [
@@ -51,6 +52,7 @@ for (const envVar of requiredEnvVars) {
 }
 
 const PORT = process.env.PORT || 3000;
+const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Parse allowed Socket.IO origins from env
@@ -80,7 +82,7 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -139,7 +141,8 @@ app.get('/readiness', async (req, res) => {
 // 7. Mount all route files under /api/v1/
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/shops', shopsRouter);
-app.use('/api/v1/products', productsRouter);
+// Product routes include both nested shop creation/bulk endpoints and product update endpoints.
+app.use('/api/v1', productsRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1/payments', paymentsRouter);
@@ -161,19 +164,32 @@ app.use((req, res) => {
 // 9. Global error handler — must be last middleware
 app.use(errorHandler);
 
-// 10. Create HTTP server
-const httpServer = createServer(app);
+// 10. Create dedicated API and Socket.IO servers
+const apiServer = createServer(app);
+const socketApp = express();
+
+socketApp.get('/health', (_req, res) => {
+  res.json(successResponse({
+    status: 'ok',
+    transport: 'socket.io',
+    timestamp: new Date().toISOString(),
+  }));
+});
+
+const socketServer = createServer(socketApp);
 
 // 11. Attach Socket.IO with security middleware
-const io = new SocketIO(httpServer, {
+const io = new SocketIO(socketServer, {
   cors: {
     origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
-    allowedHeaders: ['Authorization']
+    allowedHeaders: ['Authorization'],
   },
   transports: ['websocket', 'polling'],
 });
+
+setRealtimeServer(io);
 
 // Socket.IO authentication middleware — verifies JWT before connection
 io.use((socket, next) => {
@@ -184,7 +200,7 @@ io.use((socket, next) => {
     if (!token) {
       logger.warn('Socket.IO connection rejected: no token', {
         socketId: socket.id,
-        clientIp: socket.handshake.address
+        clientIp: socket.handshake.address,
       });
       return next(new Error('UNAUTHORIZED'));
     }
@@ -199,13 +215,13 @@ io.use((socket, next) => {
     logger.debug('Socket authenticated', {
       socketId: socket.id,
       userId: socket.userId,
-      role: socket.role
+      role: socket.role,
     });
     next();
   } catch (err) {
     logger.warn('Socket.IO authentication failed', {
       socketId: socket.id,
-      error: err.message
+      error: err.message,
     });
     next(new Error('INVALID_TOKEN'));
   }
@@ -227,7 +243,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     logger.debug('Socket.IO client disconnected', {
       socketId: socket.id,
-      userId: socket.userId
+      userId: socket.userId,
     });
   });
 
@@ -240,10 +256,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// 12. Start server only if not in test mode
+// 12. Start servers only if not in test mode
 let server;
+let socketListener;
 if (process.env.NODE_ENV !== 'test') {
-  server = httpServer.listen(PORT, () => {
+  server = apiServer.listen(PORT, () => {
     logger.info(`NearBy API started on port ${PORT}`, {
       environment: NODE_ENV,
       timestamp: new Date().toISOString(),
@@ -252,22 +269,36 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info('Readiness probe: GET /readiness');
   });
 
+  socketListener = socketServer.listen(SOCKET_PORT, () => {
+    logger.info(`NearBy Socket.IO started on port ${SOCKET_PORT}`, {
+      environment: NODE_ENV,
+      timestamp: new Date().toISOString(),
+    });
+    logger.info('Socket health check: GET /health');
+  });
+
   // 13. Graceful shutdown
   process.on('SIGTERM', () => {
-    logger.warn('SIGTERM signal received: closing HTTP server');
+    logger.warn('SIGTERM signal received: closing HTTP and Socket.IO servers');
     server.close(() => {
       logger.info('HTTP server closed');
-      redis.disconnect();
-      process.exit(0);
+      socketListener?.close(() => {
+        logger.info('Socket.IO server closed');
+        redis.disconnect();
+        process.exit(0);
+      });
     });
   });
 
   process.on('SIGINT', () => {
-    logger.warn('SIGINT signal received: closing HTTP server');
+    logger.warn('SIGINT signal received: closing HTTP and Socket.IO servers');
     server.close(() => {
       logger.info('HTTP server closed');
-      redis.disconnect();
-      process.exit(0);
+      socketListener?.close(() => {
+        logger.info('Socket.IO server closed');
+        redis.disconnect();
+        process.exit(0);
+      });
     });
   });
 }
@@ -282,4 +313,5 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-export { app, io };
+export { app, io, apiServer, socketServer };
+export default app;

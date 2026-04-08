@@ -8,6 +8,170 @@
 
 ## [Sprint 2] - 2026-04-08
 
+### Product Image Resize Pipeline (Sharp.js)
+
+**Verified:**
+- Product image uploads use Sharp.js before R2 upload
+  - Full image resized to `600x600` with `fit: 'cover'`
+  - Thumbnail resized to `150x150` with `fit: 'cover'`
+  - Both outputs converted to JPEG before upload
+- Upload keys remain under `/products/{shopId}/{productId}-full.jpg` and `/products/{shopId}/{productId}-thumb.jpg`
+
+**Error Handling:**
+- Sharp processing failures return `UPLOAD_FAILED (500)` before any R2 write
+- R2 full/thumbnail upload failures also return `UPLOAD_FAILED (500)`
+
+**Test Coverage:**
+- 2 focused unit tests covering resize dimensions/JPEG conversion and Sharp failure handling
+
+### Typesense Schema Bootstrap
+
+**Added:**
+- Canonical Typesense collection schemas for:
+  - `shops` — includes `geo_location`, `trust_score`, `is_open`, `is_verified`, and searchable shop fields
+  - `products` — includes `shop_id`, `category`, `price`, `stock_quantity`, `is_available`, and searchable product fields
+- `ensureTypesenseCollections()` in `/Users/trinadh/projects/nearby/backend/src/services/typesense.js`
+- `npm run seed:typesense` script via `/Users/trinadh/projects/nearby/backend/src/scripts/seedTypesense.js`
+
+**Behavior:**
+- Reads existing Typesense collections
+- Creates missing `shops` and `products` collections idempotently
+- Leaves existing collections intact
+
+**Compatibility Notes:**
+- Shop sync payload now includes `geo_location`
+- Product/search endpoints now align with explicit collection schemas instead of implicit document shape assumptions
+
+**Test Coverage:**
+- 5 unit tests covering schema contents and missing-collection detection
+
+### Product Search Endpoint (GET /search/products)
+
+**Added:**
+- `GET /api/v1/search/products` — Public cross-shop product search
+  - Auth: Public
+  - Query: required `q`, optional `category`, `shop_id`, `page`, `limit`
+  - Validation: `q` required, `category` restricted to supported product categories, `shop_id` must be a UUID
+  - Search backend: Typesense `products` collection with `is_available:=true` baseline filter, optional category/shop filters, typo tolerance, and prefix search
+  - Response: `200` with normalized product results plus `{ found, page, limit }` meta
+  - Error codes: VALIDATION_ERROR (400), INTERNAL_ERROR (500)
+
+**Test Coverage:**
+- 6 integration tests covering happy path, default filter behavior, missing query, invalid category, invalid `shop_id`, and Typesense failure handling
+
+**Security Notes:**
+- Query params are Joi-validated before reaching Typesense
+- Search is read-only and only returns indexed product documents marked available
+- No raw client input is written to storage or executed server-side
+
+### Shop Search Endpoint (GET /search/shops)
+
+**Added:**
+- `GET /api/v1/search/shops` — Public geo search for nearby shops
+  - Auth: Public
+  - Query: `lat`, `lng`, optional `radius_km`, `category`, `open_only`, `page`, `limit`
+  - Validation: coordinates restricted to India bounds, `radius_km` capped at `20`, and `category` restricted to supported shop categories
+  - Search backend: Typesense `shops` collection with geo filter, optional category filter, optional open-only filter, and trust-score secondary sorting
+  - Response: `200` with normalized shop search results plus `{ found, page, limit }` meta
+  - Error codes: VALIDATION_ERROR (400), INTERNAL_ERROR (500)
+
+**Indexing Notes:**
+- Shop Typesense sync payload now includes `geo_location` alongside `latitude`/`longitude` so geo-radius queries can execute against indexed shop documents
+
+**Test Coverage:**
+- 6 integration tests covering valid geo search, default query behavior, missing coordinates, invalid category, invalid radius, and Typesense failure handling
+
+**Security Notes:**
+- Query params are Joi-validated before reaching Typesense
+- Output is read-only search data; no auth bypass risk because the endpoint is intentionally public
+- No raw client input is interpolated beyond validated enum/number fields
+
+### Product Template Endpoint (GET /products/template)
+
+**Added:**
+- `GET /api/v1/products/template` — Download product CSV template
+  - Auth: Bearer JWT (`shop_owner` role)
+  - Query: optional `category`
+  - Validation: `category` must be one of the supported product categories
+  - Response: `200 text/csv` attachment with header `name,description,category,price_paise,stock_quantity,unit`
+  - Behavior: returns a sample row; when `category` is provided, the row is prefilled with category-specific example values and the filename suffix includes the category
+  - Error codes: VALIDATION_ERROR (400), UNAUTHORIZED (401), FORBIDDEN (403)
+
+**Test Coverage:**
+- 5 integration tests covering authenticated download, category-prefilled output, invalid category validation, missing auth, and wrong-role access
+
+**Security Notes:**
+- Route is protected with `authenticate` + `roleGuard(['shop_owner'])`
+- No filesystem access or path-based filename handling is exposed to the client
+- Output is generated server-side from fixed templates rather than raw client input
+
+### Product Delete Endpoint (DELETE /products/:id)
+
+**Added:**
+- `DELETE /api/v1/products/:productId` — Soft-delete a product
+  - Auth: Bearer JWT (`shop_owner` role)
+  - Authorization: Owner can only delete products belonging to their own shop
+  - Behavior: sets `deleted_at`, forces `is_available=false`, and queues async `product_remove` Typesense sync
+  - Response: 204 with no body
+  - Error codes: PRODUCT_NOT_FOUND (404), UNAUTHORIZED (401), FORBIDDEN (403)
+  - Pattern: Fire-and-forget queueing (queue failure does not fail the endpoint)
+
+**Database Changes:**
+- Added migration `010_products_soft_delete.sql`
+- New column: `products.deleted_at TIMESTAMPTZ`
+
+**Test Coverage:**
+- 8 integration tests covering happy path, ownership denial, missing auth, wrong role, already deleted products, and queue-failure resilience
+
+### Product Update Endpoint (PATCH /products/:id)
+
+**Added:**
+- `PATCH /api/v1/products/:productId` — Update mutable product fields
+  - Auth: Bearer JWT (`shop_owner` role)
+  - Authorization: Owner can only update products belonging to their own shop
+  - Request: JSON with one or both of `price`, `stock_quantity`
+  - Validation: at least one field required, `price` in paise integer, `stock_quantity` integer `>= 0`
+  - Response: 200 with updated product object in camelCase
+  - Error codes: VALIDATION_ERROR (400), PRODUCT_NOT_FOUND (404), UNAUTHORIZED (401), FORBIDDEN (403)
+  - Side effects: Queues async `product_sync` BullMQ Typesense job after update
+  - Pattern: Fire-and-forget queueing (queue failure does not fail the endpoint)
+
+**Test Coverage:**
+- 7 integration tests covering stock update, price update, missing auth, wrong role, ownership denial, invalid product id, and Typesense queue sync
+
+**Security Notes:**
+- Route is protected with `authenticate` + `roleGuard(['shop_owner'])`
+- Product ownership is re-verified server-side through the owning shop before update
+- Only explicit mutable fields are patched; no raw request body is written directly
+- This endpoint updates stored product pricing only; it does not change the rule that order totals must be calculated server-side from DB values
+
+### Bulk Product Upload Endpoint (POST /shops/:id/products/bulk)
+
+**Added:**
+- `POST /api/v1/shops/:shopId/products/bulk` — Bulk-create products from CSV
+  - Auth: Bearer JWT (`shop_owner` role)
+  - Authorization: User can only upload products for their own shop (verified via JWT + database)
+  - Request: `multipart/form-data` with `csv` file field only
+  - CSV columns: `name, description, category, price_paise, stock_quantity, unit`
+  - Limits: CSV MIME only, max 2 MB, max 100 data rows
+  - Response: 201 when all valid rows are inserted, 207 when some rows fail validation
+  - Error codes: VALIDATION_ERROR (400), INVALID_FILE_TYPE (400), FILE_TOO_LARGE (413), UNAUTHORIZED (401), FORBIDDEN (403)
+  - Side effects: Queues one async `product_sync` BullMQ Typesense job per inserted product
+  - Pattern: Fire-and-forget queueing (queue failure does not fail the endpoint)
+
+**Test Coverage:**
+- 12 integration tests covering auth, role guard, happy path, partial success, CSV schema validation, empty file handling, file-size enforcement, and queue resilience
+
+**Security Notes:**
+- Shop ownership verified at middleware and service layers
+- CSV rows validated server-side before any insert
+- Large files rejected before processing
+- No raw CSV values written directly without Joi validation/coercion
+
+**Next Steps:**
+- Sprint 2 Task 2.7: Implement PATCH /products/:id
+- Sprint 2 Task 2.8: Implement DELETE /products/:id ✅ DONE
+
 ### Shop Toggle Endpoint (PATCH /shops/:id/toggle)
 
 **Added:**
@@ -215,13 +379,13 @@
 - `GET /api/v1/shops/:id/earnings` — Earnings and settlements
 - `GET /api/v1/shops/:id/products` — List shop products
 - `POST /api/v1/shops/:id/products` — Add single product
-- `POST /api/v1/shops/:id/products/bulk` — Bulk CSV upload
-- `GET /api/v1/products/template` — Download CSV template
-- `PATCH /api/v1/products/:id` — Update product (stock/price)
-- `DELETE /api/v1/products/:id` — Soft delete product
+- `POST /api/v1/shops/:id/products/bulk` — Bulk CSV upload ✅ DONE (Sprint 2, Task 2.6)
+- `GET /api/v1/products/template` — Download CSV template ✅ DONE (Sprint 3, Task 3.1)
+- `PATCH /api/v1/products/:id` — Update product (stock/price) ✅ DONE (Sprint 2, Task 2.7)
+- `DELETE /api/v1/products/:id` — Soft delete product ✅ DONE (Sprint 2, Task 2.8)
 - `POST /api/v1/products/:id/image` — Upload product image
-- `GET /api/v1/search/shops` — Geo search shops
-- `GET /api/v1/search/products` — Cross-shop product search
+- `GET /api/v1/search/shops` — Geo search shops ✅ DONE (Sprint 3, Task 3.2)
+- `GET /api/v1/search/products` — Cross-shop product search ✅ DONE (Sprint 2, Task 2.10)
 
 ### Added (Sprint 3-4)
 - `POST /api/v1/orders` — Place order

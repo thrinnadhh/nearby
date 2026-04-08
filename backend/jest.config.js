@@ -7,6 +7,7 @@ dotenv.config({ path: path.join(__dirname, '.env.test') });
 
 export default {
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/src/__tests__/setupEnv.js'],
   transform: {
     '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
   },
