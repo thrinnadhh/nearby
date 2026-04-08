@@ -16,6 +16,7 @@ import {
 import { supabase } from './supabase.js';
 import { uploadFile, getSignedFileUrl } from './r2.js';
 import { redis } from './redis.js';
+import { typesenseSyncQueue } from '../jobs/typesenseSync.js';
 
 const MIN_FILE_SIZE = 1 * 1024; // 1 KB
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -25,7 +26,7 @@ const KYC_IDEMPOTENCY_TTL = 300; // 5 minutes in seconds
 
 /**
  * ShopService — encapsulates all shop business logic.
- * Provides methods for shop creation, retrieval, updates, and KYC upload.
+ * Provides methods for shop creation, retrieval, updates, KYC upload, and toggling.
  */
 class ShopService {
   /**
@@ -489,6 +490,194 @@ class ShopService {
       throw new AppError(
         INTERNAL_ERROR,
         'An unexpected error occurred while updating shop',
+        500
+      );
+    }
+  }
+
+  /**
+   * Toggle shop open/close status atomically.
+   * Verifies ownership via defense-in-depth checks.
+   * Queues async Typesense sync job: sync if opening, remove if closing.
+   *
+   * @param {string} userId - User ID (must be shop owner)
+   * @param {string} shopId - Shop ID to toggle
+   * @returns {Promise<Object>} Updated shop object with toggled is_open status
+   * @throws {AppError} If shop not found, user doesn't own shop, or database error
+   */
+  static async toggleShop(userId, shopId) {
+    logger.info('Toggling shop open/close status', {
+      userId,
+      shopId,
+    });
+
+    try {
+      // 1. Validate shopId is a valid UUID
+      if (!shopId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shopId)) {
+        logger.warn('Invalid shopId format', {
+          userId,
+          shopId,
+        });
+        throw new AppError(
+          SHOP_NOT_FOUND,
+          'Shop does not exist.',
+          404
+        );
+      }
+
+      // 2. Fetch shop from database to verify existence and ownership
+      const { data: shop, error: shopError } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', shopId)
+        .single();
+
+      if (shopError || !shop) {
+        logger.warn('Shop not found during toggle', {
+          userId,
+          shopId,
+          error: shopError?.message,
+        });
+        throw new AppError(
+          SHOP_NOT_FOUND,
+          'Shop does not exist.',
+          404
+        );
+      }
+
+      // 3. Verify user owns this shop (defense-in-depth check)
+      if (shop.owner_id !== userId) {
+        logger.warn('Unauthorized shop toggle attempt', {
+          userId,
+          shopId,
+          shopOwnerId: shop.owner_id,
+        });
+        throw new AppError(
+          UNAUTHORIZED,
+          'You are not authorized to toggle this shop.',
+          403
+        );
+      }
+
+      // 4. Toggle is_open status atomically
+      const newIsOpenStatus = !shop.is_open;
+      const now = new Date().toISOString();
+
+      const { data: updatedShop, error: updateError } = await supabase
+        .from('shops')
+        .update({
+          is_open: newIsOpenStatus,
+          updated_at: now,
+        })
+        .eq('id', shopId)
+        .select()
+        .single();
+
+      if (updateError) {
+        logger.error('Error toggling shop status', {
+          error: updateError.message,
+          userId,
+          shopId,
+        });
+        throw new AppError(
+          INTERNAL_ERROR,
+          'Failed to toggle shop status',
+          500
+        );
+      }
+
+      logger.info('Shop status toggled successfully', {
+        shopId: updatedShop.id,
+        userId,
+        isOpenBefore: shop.is_open,
+        isOpenAfter: updatedShop.is_open,
+      });
+
+      // 5. Queue async Typesense sync job (fire-and-forget)
+      // If shop is now open, sync it to Typesense
+      // If shop is now closed, remove it from Typesense
+      const typesenseAction = newIsOpenStatus ? 'sync' : 'remove';
+
+      try {
+        const jobData = {
+          shopId: updatedShop.id,
+          action: typesenseAction,
+        };
+
+        // Only include shopData for sync action
+        if (typesenseAction === 'sync') {
+          jobData.shopData = {
+            id: updatedShop.id,
+            owner_id: updatedShop.owner_id,
+            name: updatedShop.name,
+            category: updatedShop.category,
+            description: updatedShop.description,
+            latitude: updatedShop.latitude,
+            longitude: updatedShop.longitude,
+            is_open: updatedShop.is_open,
+            is_verified: updatedShop.is_verified,
+            trust_score: updatedShop.trust_score,
+            created_at: updatedShop.created_at,
+            updated_at: updatedShop.updated_at,
+          };
+        }
+
+        await typesenseSyncQueue.add(
+          'sync',
+          jobData,
+          {
+            delay: 0, // Immediate job execution
+          }
+        );
+
+        logger.debug('Typesense sync job queued', {
+          shopId,
+          action: typesenseAction,
+          jobQueued: true,
+        });
+      } catch (queueErr) {
+        // Log queue error but don't fail the endpoint (async job failure is non-critical)
+        logger.warn('Failed to queue Typesense sync job', {
+          shopId,
+          error: queueErr.message,
+          action: typesenseAction,
+        });
+      }
+
+      // 6. Return immutably constructed response with camelCase keys
+      return {
+        id: updatedShop.id,
+        ownerId: updatedShop.owner_id,
+        name: updatedShop.name,
+        category: updatedShop.category,
+        description: updatedShop.description,
+        phone: updatedShop.phone,
+        latitude: updatedShop.latitude,
+        longitude: updatedShop.longitude,
+        isOpen: updatedShop.is_open,
+        isVerified: updatedShop.is_verified,
+        trustScore: updatedShop.trust_score,
+        kycStatus: updatedShop.kyc_status,
+        kycDocumentUrl: updatedShop.kyc_document_url,
+        createdAt: updatedShop.created_at,
+        updatedAt: updatedShop.updated_at,
+      };
+    } catch (err) {
+      // Re-throw AppError as-is
+      if (err.isOperational) {
+        throw err;
+      }
+
+      // Catch unexpected errors
+      logger.error('Unexpected error toggling shop status', {
+        error: err.message,
+        userId,
+        shopId,
+        stack: err.stack,
+      });
+      throw new AppError(
+        INTERNAL_ERROR,
+        'An unexpected error occurred while toggling shop status',
         500
       );
     }

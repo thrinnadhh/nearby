@@ -6,7 +6,11 @@ import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import upload from '../middleware/multer.js';
 import { validate } from '../middleware/validate.js';
-import { createShopSchema, updateShopSchema } from '../utils/validators.js';
+import {
+  createShopSchema,
+  updateShopSchema,
+  toggleShopSchema,
+} from '../utils/validators.js';
 import ShopService from '../services/shops.js';
 
 const router = Router();
@@ -140,6 +144,50 @@ router.patch(
     } catch (err) {
       // 3. Forward error to error handler middleware
       logger.error('Update shop endpoint error', {
+        error: err.message,
+        shopId: req.params.shopId,
+        userId: req.user?.userId,
+      });
+      next(err);
+    }
+  }
+);
+
+/**
+ * PATCH /api/v1/shops/:shopId/toggle
+ * Toggle shop open/close status for authenticated owner.
+ * Requires: Authentication + shop_owner role + ownership of shop
+ * Request body: Empty (no fields required)
+ * Response: 200 with updated shop object showing toggled is_open status
+ * Side effects: Queues async Typesense sync job (sync if opening, remove if closing)
+ */
+router.patch(
+  '/:shopId/toggle',
+  authenticate,
+  roleGuard(['shop_owner']),
+  validate(toggleShopSchema, 'body'),
+  shopOwnerGuard(),
+  async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+
+      // 1. Call service to toggle shop status
+      const updatedShop = await ShopService.toggleShop(
+        req.user.userId,
+        shopId
+      );
+
+      // 2. Return 200 with updated shop
+      logger.info('Toggle shop endpoint success', {
+        shopId,
+        userId: req.user.userId,
+        newStatus: updatedShop.isOpen ? 'open' : 'closed',
+      });
+
+      res.status(200).json(successResponse(updatedShop));
+    } catch (err) {
+      // 3. Forward error to error handler middleware
+      logger.error('Toggle shop endpoint error', {
         error: err.message,
         shopId: req.params.shopId,
         userId: req.user?.userId,

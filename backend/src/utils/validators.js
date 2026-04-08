@@ -122,6 +122,11 @@ export const updateShopSchema = Joi.object({
   'object.min': 'At least one field must be provided for update',
 });
 
+export const toggleShopSchema = Joi.object({
+  // No required body fields — toggle endpoint accepts empty body
+  // Any fields present are silently ignored (immutable state)
+}).unknown(true).optional();
+
 export const validate = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, { abortEarly: false });
   if (error) {

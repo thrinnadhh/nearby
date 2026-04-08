@@ -6,7 +6,54 @@
 
 ---
 
-## [Sprint 2] - 2026-04-07
+## [Sprint 2] - 2026-04-08
+
+### Shop Toggle Endpoint (PATCH /shops/:id/toggle)
+
+**Added:**
+- `PATCH /api/v1/shops/:shopId/toggle` — Toggle shop open/close status
+  - Auth: Bearer JWT (shop_owner role)
+  - Authorization: User can only toggle their own shop (verified via JWT + database)
+  - Request: Empty JSON body `{}` (no required fields)
+  - Response: 200 with updated shop object (camelCase keys: id, ownerId, name, category, description, phone, latitude, longitude, isOpen, isVerified, trustScore, kycStatus, kycDocumentUrl, createdAt, updatedAt)
+  - Error codes: SHOP_NOT_FOUND (404), UNAUTHORIZED (403 for cross-shop access), UNAUTHORIZED (401 for missing JWT), FORBIDDEN (403 for non-shop_owner role)
+  - Side effects: Queues async BullMQ Typesense sync job (immediate execution)
+    - If shop is being opened: upserts shop document to Typesense index (makes shop searchable)
+    - If shop is being closed: removes shop document from Typesense index (hides from search)
+  - Job configuration: 3 retries with 2s exponential backoff, 5 concurrent jobs, removes on complete, keeps on fail for debugging
+  - Pattern: Fire-and-forget (queue error does not fail endpoint response)
+  - Security: Defense-in-depth ownership verification at middleware + service layer
+
+**Test Coverage:**
+- 13 integration tests, 100% coverage
+- Happy paths: toggle closed→open (200), toggle open→closed (200)
+- Error cases: shop not found (404), unauthorized owner (403), missing auth header (401), invalid UUID format (404), non-shop_owner role (403)
+- Async behavior: Typesense queue job called with correct action ('sync' or 'remove')
+- Edge cases: empty body accepted (200), concurrent toggles with last-write-wins
+
+**Security Notes:**
+- Shop ownership verified at middleware (shopOwnerGuard) via database lookup (defense-in-depth against JWT forgery)
+- Shop ownership re-verified at service layer before processing
+- Cross-shop access returns 403 FORBIDDEN (doesn't leak whether shop exists)
+- UUID format validated (invalid UUID returns 404 instead of 500)
+- Async job failure is non-critical (logged as warning, doesn't affect endpoint response)
+
+**Database Changes:**
+- No new columns (uses existing shops.is_open field)
+- shops.updated_at field updated on toggle
+
+**Middleware Stack:**
+1. authenticate — JWT verification
+2. roleGuard(['shop_owner']) — Role enforcement
+3. validate(toggleShopSchema) — Input validation (empty body allowed)
+4. shopOwnerGuard — Async database ownership verification
+5. handler — Route handler
+
+**Next Steps:**
+- Sprint 2 Task 2.5: Implement POST /shops/:id/products (single product creation)
+- Sprint 2 Task 2.6: Implement POST /shops/:id/products/bulk (CSV bulk upload)
+
+---
 
 ### Shop Profile Endpoints (GET and PATCH)
 
@@ -53,10 +100,6 @@
 3. validate(updateShopSchema) — Input validation (PATCH only)
 4. shopOwnerGuard — Async database ownership verification
 5. handler — Route handler
-
-**Next Steps:**
-- Sprint 2 Task 2.4: Implement PATCH /shops/:id/toggle (open/close shop with Typesense sync)
-- Sprint 2 Task 2.5: Implement POST /shops/:id/products (single product creation)
 
 ---
 
@@ -167,7 +210,7 @@
 - `GET /api/v1/shops/:id` — Get shop profile ✅ DONE (Sprint 2, Task 2.3)
 - `PATCH /api/v1/shops/:id` — Update shop profile ✅ DONE (Sprint 2, Task 2.3)
 - `POST /api/v1/shops/:id/kyc` — Upload KYC documents ✅ DONE (Sprint 2, Task 2.2)
-- `PATCH /api/v1/shops/:id/toggle` — Open/close shop
+- `PATCH /api/v1/shops/:id/toggle` — Open/close shop ✅ DONE (Sprint 2, Task 2.4)
 - `GET /api/v1/shops/:id/analytics` — Shop analytics
 - `GET /api/v1/shops/:id/earnings` — Earnings and settlements
 - `GET /api/v1/shops/:id/products` — List shop products
@@ -321,4 +364,4 @@ RATE_LIMITED             Generic rate limit exceeded
 
 ---
 
-*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 2.3 complete)*
+*Updated automatically when APIs change. Last update: April 8, 2026 (Sprint 2.4 complete)*

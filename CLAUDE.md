@@ -131,7 +131,8 @@ nearby/
 │   │   │   ├── trustScore.js    ← Nightly trust score recompute
 │   │   │   ├── autoCancel.js    ← Cancel order if shop doesn't respond in 3min
 │   │   │   ├── analytics.js     ← Nightly shop analytics aggregation
-│   │   │   └── settlements.js   ← Weekly earnings summary to shops
+│   │   │   ├── settlements.js   ← Weekly earnings summary to shops
+│   │   │   └── typesenseSync.js ← Async Typesense index sync
 │   │   ├── socket/              ← Socket.IO event handlers
 │   │   │   ├── orderRoom.js     ← Order status events
 │   │   │   ├── gpsTracker.js    ← Delivery partner GPS → Redis → customer
@@ -237,6 +238,7 @@ Critical variables that break everything if missing:
 | Shop CRUD (create) | 🟩 Complete | POST /shops endpoint (Sprint 2, Task 2.1) |
 | Shop CRUD (kyc upload) | 🟩 Complete | POST /shops/:id/kyc endpoint (Sprint 2, Task 2.2) |
 | Shop CRUD (read/update) | 🟩 Complete | GET/PATCH /shops/:id (Sprint 2, Task 2.3) |
+| Shop CRUD (toggle) | 🟩 Complete | PATCH /shops/:id/toggle endpoint (Sprint 2, Task 2.4) |
 | Product CRUD | ⬜ Not started | Block 1, Sprint 2 |
 | Order flow | ⬜ Not started | Block 2, Sprint 3–4 |
 | Payment (Cashfree) | ⬜ Not started | Block 2, Sprint 4 |
@@ -250,7 +252,7 @@ Critical variables that break everything if missing:
 | Trust score engine | ⬜ Not started | Block 6, Sprint 15 |
 | Launch prep | ⬜ Not started | Block 6, Sprint 16 |
 
-**Sprint 2 Tasks 2.1–2.3 complete:** Shop registration (POST /shops), KYC document upload (POST /shops/:id/kyc), and shop profile management (GET/PATCH /shops/:id) fully implemented and tested. Shop owners can create shops with name, description, location (validated to India bounds), and category. Shops initialized with status pending_kyc, trust_score=50.0, is_open=true. One shop per owner enforced. KYC documents (PDF, 1-10 MB) uploaded to Cloudflare R2 private bucket with signed URLs (5-min TTL). Idempotency keys prevent duplicate uploads. Shop profiles can be retrieved and updated (name, description, category, phone only). All mutable/immutable fields protected at service layer. Defense-in-depth ownership verification at middleware + service layers prevents JWT forgery. All 31 tests passing (8 POST + 8 KYC + 5 GET + 10 PATCH), 92% coverage. Next: PATCH /shops/:id/toggle (Task 2.4).
+**Sprint 2 Tasks 2.1–2.4 complete:** Shop registration (POST /shops), KYC document upload (POST /shops/:id/kyc), shop profile management (GET/PATCH /shops/:id), and shop toggle (PATCH /shops/:id/toggle) fully implemented and tested. Shop owners can create shops with name, description, location (validated to India bounds), and category. Shops initialized with status pending_kyc, trust_score=50.0, is_open=true. One shop per owner enforced. KYC documents (PDF, 1-10 MB) uploaded to Cloudflare R2 private bucket with signed URLs (5-min TTL). Idempotency keys prevent duplicate uploads. Shop profiles can be retrieved and updated (name, description, category, phone only). Shop toggle (open/close) triggers async BullMQ Typesense sync job: upserts shop doc if opening, removes from index if closing. Defense-in-depth ownership verification at middleware + service layers prevents JWT forgery. All 44 tests passing (8 POST + 8 KYC + 5 GET + 10 PATCH + 13 TOGGLE), 100% coverage on toggle endpoint. Next: POST /shops/:id/products (Task 2.5).
 
 ---
 
@@ -300,6 +302,7 @@ notify-customer      — order status changes to customer
 trust-score          — nightly scheduled at 2 AM IST
 analytics-aggregate  — nightly scheduled at 3 AM IST
 earnings-summary     — weekly on Monday 9 AM IST
+typesense-sync       — async shop/product index sync (3 retries, 2s backoff)
 ```
 
 ---
@@ -352,7 +355,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 7, 2026 | Sprint 2 Tasks 2.1–2.3 complete*
+*Last updated: April 8, 2026 | Sprint 2 Tasks 2.1–2.4 complete*
 
 ## MCP Tools: code-review-graph
 
