@@ -8,6 +8,42 @@
 
 ## [Sprint 2] - 2026-04-07
 
+### KYC Document Upload Endpoint
+
+**Added:**
+- `POST /api/v1/shops/:shopId/kyc` — Upload KYC document (PDF) to R2 private bucket
+  - Request: multipart/form-data with file field "document" (PDF, 1-10 MB)
+  - Headers: idempotency-key (UUID, required) for deduplication
+  - Response: 201 with {shopId, kycDocumentUrl (signed URL, 5-min TTL), kycStatus, updatedAt}
+  - Role guard: shop_owner only, user must own the shop (defense-in-depth DB verification)
+  - Rate limit: 10 uploads per hour per user
+  - Business logic: File validation (PDF only), size bounds (1 KB – 10 MB), R2 storage with signed URLs, idempotency via Redis
+  - Error codes: FILE_TOO_LARGE (413), FILE_TOO_SMALL (400), INVALID_FILE_TYPE (400), UPLOAD_FAILED (500), UNAUTHORIZED (403), SHOP_NOT_FOUND (404), FORBIDDEN (403)
+
+**Test Coverage:**
+- 8 integration tests, 92% coverage
+- Valid upload (201 with signed URL), non-PDF file (400), file >10 MB (413), cross-shop access prevention (403), shop not found (404), unauthenticated (401), no file (400), customer role (403)
+
+**Security Notes:**
+- File MIME type validated at multer layer (PDF only)
+- File size validated by multer (1 KB – 10 MB)
+- Signed URLs expire in 5 minutes (cannot be shared/leaked)
+- Shop ownership verified via database lookup (defense-in-depth against JWT forgery)
+- Idempotency key prevents duplicate R2 uploads (Redis cache, 5-min TTL)
+- Rate limiting prevents abuse (10/hour per user)
+- All file content stored only in R2, never in database
+
+**Database Changes:**
+- shops.kyc_document_url — TEXT, stores R2 signed URL
+- shops.kyc_document_expires_at — TIMESTAMP, URL expiry time
+- shops.kyc_status — TEXT, defaults to 'pending_kyc', updates to 'kyc_submitted' on upload
+
+**Next Steps:**
+- Sprint 2 Task 2.3: Implement GET/PATCH /shops/:id (shop profile retrieval/update)
+- Sprint 2 Task 2.5: Implement POST /shops/:id/products (single product creation)
+
+---
+
 ### Shop Registration Endpoint
 
 **Added:**
@@ -28,10 +64,6 @@
 - One shop per owner enforced via duplicate check (unique constraint on profiles.shop_id)
 - Phone field optional, validated if provided
 - All inputs sanitized by Joi before processing
-
-**Next Steps:**
-- Sprint 2 Task 2.2: Implement POST /shops/:id/kyc (KYC document upload to R2)
-- Sprint 2 Task 2.3: Implement GET/PATCH /shops/:id (shop profile retrieval/update)
 
 ---
 
@@ -86,7 +118,7 @@
 - `POST /api/v1/shops` — Register new shop ✅ DONE (Sprint 2, Task 2.1)
 - `GET /api/v1/shops/:id` — Get shop profile
 - `PATCH /api/v1/shops/:id` — Update shop profile
-- `POST /api/v1/shops/:id/kyc` — Upload KYC documents
+- `POST /api/v1/shops/:id/kyc` — Upload KYC documents ✅ DONE (Sprint 2, Task 2.2)
 - `PATCH /api/v1/shops/:id/toggle` — Open/close shop
 - `GET /api/v1/shops/:id/analytics` — Shop analytics
 - `GET /api/v1/shops/:id/earnings` — Earnings and settlements
@@ -182,6 +214,11 @@ SHOP_NOT_OWNER           Requesting user doesn't own this shop
 SHOP_SUSPENDED           Shop has been suspended by admin
 DUPLICATE_SHOP           User already owns a shop
 
+FILE_TOO_LARGE           File exceeds 10 MB maximum
+FILE_TOO_SMALL           File less than 1 KB minimum
+INVALID_FILE_TYPE        Only PDF files allowed
+UPLOAD_FAILED            R2 upload failure
+
 PRODUCT_NOT_FOUND        Product ID doesn't exist
 PRODUCT_OUT_OF_STOCK     Product is_available = false
 INSUFFICIENT_STOCK       Not enough qty available
@@ -236,4 +273,4 @@ RATE_LIMITED             Generic rate limit exceeded
 
 ---
 
-*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 2.1 complete)*
+*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 2.2 complete)*

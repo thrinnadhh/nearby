@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimitLib from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { redis } from '../services/redis.js';
 import { errorResponse } from '../utils/response.js';
@@ -38,10 +38,40 @@ const createStore = (prefix) => {
 };
 
 /**
+ * Create a custom rate limiter with configurable window and max requests.
+ * @param {string} name - Limiter name (for logging and Redis key prefix)
+ * @param {number} max - Maximum requests per window
+ * @param {number} windowSeconds - Time window in seconds (will be converted to milliseconds)
+ * @param {Function} keyGenerator - Optional function to generate rate limit key (defaults to userId or IP)
+ * @returns {Function} Express rate limit middleware
+ */
+export const rateLimit = (name, max, windowSeconds) => {
+  return rateLimitLib({
+    store: createStore(`rl:${name}:`),
+    windowMs: windowSeconds * 1000, // Convert seconds to milliseconds
+    max,
+    keyGenerator: (req) => {
+      return req.user?.userId || req.ip;
+    },
+    standardHeaders: false,
+    handler: (req, res) => {
+      logger.warn(`${name} rate limit exceeded`, {
+        userId: req.user?.userId || 'anonymous',
+        ip: req.ip,
+        path: req.path,
+      });
+      res.status(429).json(
+        errorResponse(RATE_LIMITED, `Too many ${name} requests. Please try again later.`)
+      );
+    },
+  });
+};
+
+/**
  * Global rate limiter: 100 requests per 15 minutes per IP.
  * Uses Redis-backed store for distributed deployments.
  */
-export const globalLimiter = rateLimit({
+export const globalLimiter = rateLimitLib({
   store: createStore('rl:global:'),
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -65,7 +95,7 @@ export const globalLimiter = rateLimit({
  * Keyed by phone number to prevent brute force attacks on specific targets.
  * Phone numbers are masked in logs to protect PII.
  */
-export const otpLimiter = rateLimit({
+export const otpLimiter = rateLimitLib({
   store: createStore('rl:otp:'),
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -87,7 +117,7 @@ export const otpLimiter = rateLimit({
  * Strict rate limiter: 10 requests per minute for sensitive endpoints.
  * Used for login, payment, order creation.
  */
-export const strictLimiter = rateLimit({
+export const strictLimiter = rateLimitLib({
   store: createStore('rl:strict:'),
   windowMs: 60 * 1000,
   max: 10,
@@ -105,7 +135,7 @@ export const strictLimiter = rateLimit({
 /**
  * Search rate limiter: 30 requests per minute per user/IP.
  */
-export const searchLimiter = rateLimit({
+export const searchLimiter = rateLimitLib({
   store: createStore('rl:search:'),
   windowMs: 60 * 1000,
   max: 30,
@@ -124,6 +154,7 @@ export const searchLimiter = rateLimit({
 });
 
 export default {
+  rateLimit,
   globalLimiter,
   otpLimiter,
   strictLimiter,

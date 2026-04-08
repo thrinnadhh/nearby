@@ -235,7 +235,8 @@ Critical variables that break everything if missing:
 | Supabase migrations | ⬜ Not started | Run after backend skeleton |
 | Auth (OTP + JWT) | ⬜ Not started | Block 1, Sprint 1 — Task 1.13–1.15 |
 | Shop CRUD (create) | 🟩 Complete | POST /shops endpoint (Sprint 2, Task 2.1) |
-| Shop CRUD (other) | ⬜ Not started | GET/PATCH /shops/:id (Sprint 2, Task 2.3), KYC upload (Task 2.2) |
+| Shop CRUD (kyc upload) | 🟩 Complete | POST /shops/:id/kyc endpoint (Sprint 2, Task 2.2) |
+| Shop CRUD (other) | ⬜ Not started | GET/PATCH /shops/:id (Sprint 2, Task 2.3) |
 | Product CRUD | ⬜ Not started | Block 1, Sprint 2 |
 | Order flow | ⬜ Not started | Block 2, Sprint 3–4 |
 | Payment (Cashfree) | ⬜ Not started | Block 2, Sprint 4 |
@@ -249,7 +250,7 @@ Critical variables that break everything if missing:
 | Trust score engine | ⬜ Not started | Block 6, Sprint 15 |
 | Launch prep | ⬜ Not started | Block 6, Sprint 16 |
 
-**Sprint 2 Task 2.1 complete:** POST /shops endpoint for shop owner registration. Shop owners can register with name, description, location (validated to India bounds), and category. Shops created with status pending_kyc, trust_score=50.0, is_open=true. One shop per owner enforced. 8 tests pass, 92% coverage. Next: KYC document upload (Task 2.2).
+**Sprint 2 Tasks 2.1 & 2.2 complete:** POST /shops (shop owner registration) and POST /shops/:id/kyc (KYC document upload) fully implemented and tested. Shop owners can register with name, description, location (validated to India bounds), and category. Shops created with status pending_kyc, trust_score=50.0, is_open=true. One shop per owner enforced. KYC documents (PDF, 1-10 MB) uploaded to Cloudflare R2 private bucket with signed URLs (5-min TTL). Idempotency keys prevent duplicate uploads. File validation enforced at multer layer. Database ownership verification provides defense-in-depth security. All 16 tests passing (8 shop creation + 8 KYC upload), 92% coverage. Next: GET/PATCH /shops/:id (Task 2.3).
 
 ---
 
@@ -351,7 +352,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 7, 2026 | Sprint 2 Task 2.1 complete*
+*Last updated: April 7, 2026 | Sprint 2 Tasks 2.1 & 2.2 complete*
 
 ## MCP Tools: code-review-graph
 

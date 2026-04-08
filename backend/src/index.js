@@ -240,34 +240,37 @@ io.on('connection', (socket) => {
   });
 });
 
-// 12. Start server
-const server = httpServer.listen(PORT, () => {
-  logger.info(`NearBy API started on port ${PORT}`, {
-    environment: NODE_ENV,
-    timestamp: new Date().toISOString(),
+// 12. Start server only if not in test mode
+let server;
+if (process.env.NODE_ENV !== 'test') {
+  server = httpServer.listen(PORT, () => {
+    logger.info(`NearBy API started on port ${PORT}`, {
+      environment: NODE_ENV,
+      timestamp: new Date().toISOString(),
+    });
+    logger.info('Health check: GET /health');
+    logger.info('Readiness probe: GET /readiness');
   });
-  logger.info('Health check: GET /health');
-  logger.info('Readiness probe: GET /readiness');
-});
 
-// 13. Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.warn('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
-    redis.disconnect();
-    process.exit(0);
+  // 13. Graceful shutdown
+  process.on('SIGTERM', () => {
+    logger.warn('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      logger.info('HTTP server closed');
+      redis.disconnect();
+      process.exit(0);
+    });
   });
-});
 
-process.on('SIGINT', () => {
-  logger.warn('SIGINT signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
-    redis.disconnect();
-    process.exit(0);
+  process.on('SIGINT', () => {
+    logger.warn('SIGINT signal received: closing HTTP server');
+    server.close(() => {
+      logger.info('HTTP server closed');
+      redis.disconnect();
+      process.exit(0);
+    });
   });
-});
+}
 
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection', { reason });

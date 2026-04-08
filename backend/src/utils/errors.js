@@ -26,6 +26,12 @@ export const SHOP_SUSPENDED            = 'SHOP_SUSPENDED';
 export const DUPLICATE_SHOP            = 'DUPLICATE_SHOP';
 export const INVALID_COORDINATES       = 'INVALID_COORDINATES';
 
+// ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
+export const FILE_TOO_LARGE            = 'FILE_TOO_LARGE';
+export const FILE_TOO_SMALL            = 'FILE_TOO_SMALL';
+export const INVALID_FILE_TYPE         = 'INVALID_FILE_TYPE';
+export const UPLOAD_FAILED             = 'UPLOAD_FAILED';
+
 // ─── PRODUCT ──────────────────────────────────────────────────────────────────
 export const PRODUCT_NOT_FOUND         = 'PRODUCT_NOT_FOUND';
 export const PRODUCT_OUT_OF_STOCK      = 'PRODUCT_OUT_OF_STOCK';

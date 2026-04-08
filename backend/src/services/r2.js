@@ -2,32 +2,32 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import logger from '../utils/logger.js';
 
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
+const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
 const R2_PRODUCTS_BUCKET = process.env.R2_PRODUCTS_BUCKET || 'nearby-products';
 const R2_KYC_BUCKET = process.env.R2_KYC_BUCKET || 'nearby-kyc';
 
-if (!R2_ACCOUNT_ID) {
-  throw new Error('R2_ACCOUNT_ID is not configured');
+if (!accountId) {
+  throw new Error('CLOUDFLARE_ACCOUNT_ID is not configured');
 }
-if (!R2_ACCESS_KEY_ID) {
-  throw new Error('R2_ACCESS_KEY_ID is not configured');
+if (!accessKeyId) {
+  throw new Error('CLOUDFLARE_R2_ACCESS_KEY_ID is not configured');
 }
-if (!R2_SECRET_ACCESS_KEY) {
-  throw new Error('R2_SECRET_ACCESS_KEY is not configured');
+if (!secretAccessKey) {
+  throw new Error('CLOUDFLARE_R2_SECRET_ACCESS_KEY is not configured');
 }
 
 const s3Client = new S3Client({
   region: 'auto',
-  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId: R2_ACCESS_KEY_ID,
-    secretAccessKey: R2_SECRET_ACCESS_KEY,
+    accessKeyId,
+    secretAccessKey,
   },
 });
 
-logger.info('Cloudflare R2 client initialized', { accountId: R2_ACCOUNT_ID });
+logger.info('Cloudflare R2 client initialized', { accountId });
 
 /**
  * Upload file to R2 bucket.
