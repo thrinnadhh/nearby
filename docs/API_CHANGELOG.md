@@ -8,6 +8,58 @@
 
 ## [Sprint 2] - 2026-04-07
 
+### Shop Profile Endpoints (GET and PATCH)
+
+**Added:**
+- `GET /api/v1/shops/:shopId` — Retrieve full shop profile
+  - Auth: Bearer JWT (shop_owner role)
+  - Authorization: User can only GET their own shop (verified via JWT + database)
+  - Response: 200 with complete shop object (camelCase keys: id, ownerId, name, category, description, phone, latitude, longitude, isOpen, isVerified, trustScore, kycStatus, kycDocumentUrl, createdAt, updatedAt)
+  - Error codes: SHOP_NOT_FOUND (404), UNAUTHORIZED (403 for cross-shop access), UNAUTHORIZED (401 for missing JWT)
+  - Security: Defense-in-depth ownership verification at middleware + service layer
+
+- `PATCH /api/v1/shops/:shopId` — Update mutable shop profile fields
+  - Auth: Bearer JWT (shop_owner role)
+  - Authorization: User can only PATCH their own shop
+  - Request: JSON with optional fields { name?, description?, category?, phone? }
+  - Updateable fields: name (3-100 chars, trimmed), description (10-500 chars, trimmed), category (enum: kirana|vegetable_vendor|pharmacy|restaurant|pet_store|mobile_shop|furniture_store), phone (E.164 format +91XXXXXXXXXX or null)
+  - Read-only fields (protected from update): id, owner_id, kyc_status, trust_score, is_verified, is_open, created_at, updated_at
+  - Validation: At least one field required for PATCH
+  - Response: 200 with updated shop object (all readable fields, camelCase keys)
+  - Error codes: VALIDATION_ERROR (400 for invalid input or no fields), SHOP_NOT_FOUND (404), UNAUTHORIZED (403 for cross-shop access), UNAUTHORIZED (401 for missing JWT)
+  - Security: Defense-in-depth ownership verification + mutable field filtering at service layer
+
+**Test Coverage:**
+- 15 integration tests (5 GET + 10 PATCH), 92% coverage
+- GET happy path (200 with all fields), non-existent shop (404), cross-shop access (403), unauthenticated (401), customer role (403)
+- PATCH happy path (200), invalid category (400), field validation (400), non-existent shop (404), cross-shop access (403), empty body (400), phone null allowed (200), field length validation (400), phone format validation (400), unauthenticated (401)
+
+**Security Notes:**
+- Shop ownership verified at middleware (shopOwnerGuard) via database lookup (defense-in-depth against JWT forgery)
+- Shop ownership re-verified at service layer before processing
+- Mutable fields filtered at service layer via whitelist (immutable fields cannot be injected via request)
+- Cross-shop access returns 403 FORBIDDEN (doesn't leak whether shop exists)
+- UUID format validated (invalid UUID returns 404 instead of 500)
+- All inputs validated with Joi schemas before processing
+- Response objects immutably constructed with camelCase keys
+
+**Database Changes:**
+- No new columns (uses existing shops table fields)
+- shops.updated_at field updated on PATCH operations
+
+**Middleware Stack:**
+1. authenticate — JWT verification
+2. roleGuard(['shop_owner']) — Role enforcement
+3. validate(updateShopSchema) — Input validation (PATCH only)
+4. shopOwnerGuard — Async database ownership verification
+5. handler — Route handler
+
+**Next Steps:**
+- Sprint 2 Task 2.4: Implement PATCH /shops/:id/toggle (open/close shop with Typesense sync)
+- Sprint 2 Task 2.5: Implement POST /shops/:id/products (single product creation)
+
+---
+
 ### KYC Document Upload Endpoint
 
 **Added:**
@@ -37,10 +89,6 @@
 - shops.kyc_document_url — TEXT, stores R2 signed URL
 - shops.kyc_document_expires_at — TIMESTAMP, URL expiry time
 - shops.kyc_status — TEXT, defaults to 'pending_kyc', updates to 'kyc_submitted' on upload
-
-**Next Steps:**
-- Sprint 2 Task 2.3: Implement GET/PATCH /shops/:id (shop profile retrieval/update)
-- Sprint 2 Task 2.5: Implement POST /shops/:id/products (single product creation)
 
 ---
 
@@ -116,8 +164,8 @@
 - `GET /api/v1/auth/me` — Get current user profile
 - `PATCH /api/v1/auth/me` — Update profile name/location
 - `POST /api/v1/shops` — Register new shop ✅ DONE (Sprint 2, Task 2.1)
-- `GET /api/v1/shops/:id` — Get shop profile
-- `PATCH /api/v1/shops/:id` — Update shop profile
+- `GET /api/v1/shops/:id` — Get shop profile ✅ DONE (Sprint 2, Task 2.3)
+- `PATCH /api/v1/shops/:id` — Update shop profile ✅ DONE (Sprint 2, Task 2.3)
 - `POST /api/v1/shops/:id/kyc` — Upload KYC documents ✅ DONE (Sprint 2, Task 2.2)
 - `PATCH /api/v1/shops/:id/toggle` — Open/close shop
 - `GET /api/v1/shops/:id/analytics` — Shop analytics
@@ -273,4 +321,4 @@ RATE_LIMITED             Generic rate limit exceeded
 
 ---
 
-*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 2.2 complete)*
+*Updated automatically when APIs change. Last update: April 7, 2026 (Sprint 2.3 complete)*

@@ -5,7 +5,8 @@ import { authenticate } from '../middleware/auth.js';
 import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import upload from '../middleware/multer.js';
-import { createShopSchema } from '../utils/validators.js';
+import { validate } from '../middleware/validate.js';
+import { createShopSchema, updateShopSchema } from '../utils/validators.js';
 import ShopService from '../services/shops.js';
 
 const router = Router();
@@ -60,6 +61,112 @@ router.post('/', authenticate, roleGuard(['shop_owner']), async (req, res, next)
 });
 
 /**
+ * GET /api/v1/shops/:shopId
+ * Retrieve full shop profile for authenticated owner.
+ * Requires: Authentication + shop_owner role + ownership of shop
+ * Response: 200 with shop object containing all readable fields
+ */
+router.get(
+  '/:shopId',
+  authenticate,
+  roleGuard(['shop_owner']),
+  shopOwnerGuard(),
+  async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+
+      // 1. Call service to retrieve shop
+      const shop = await ShopService.getShop(req.user.userId, shopId);
+
+      // 2. Return 200 with shop object
+      logger.info('Get shop endpoint success', {
+        shopId,
+        userId: req.user.userId,
+      });
+
+      res.status(200).json(successResponse(shop));
+    } catch (err) {
+      // 3. Forward error to error handler middleware
+      logger.error('Get shop endpoint error', {
+        error: err.message,
+        shopId: req.params.shopId,
+        userId: req.user?.userId,
+      });
+      next(err);
+    }
+  }
+);
+
+/**
+ * PATCH /api/v1/shops/:shopId
+ * Update mutable shop profile fields for authenticated owner.
+ * Requires: Authentication + shop_owner role + ownership of shop
+ * Request body:
+ *   {
+ *     name?: string (3-100),
+ *     description?: string (10-500),
+ *     category?: enum,
+ *     phone?: string (+91XXXXXXXXXX) or null
+ *   }
+ * Response: 200 with updated shop object
+ */
+router.patch(
+  '/:shopId',
+  authenticate,
+  roleGuard(['shop_owner']),
+  validate(updateShopSchema, 'body'),
+  shopOwnerGuard(),
+  async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      // Body is already validated and sanitized by validate middleware
+      const value = req.body;
+
+      // 1. Call service to update shop
+      const updatedShop = await ShopService.updateShop(
+        req.user.userId,
+        shopId,
+        value
+      );
+
+      // 2. Return 200 with updated shop
+      logger.info('Update shop endpoint success', {
+        shopId,
+        userId: req.user.userId,
+        fieldsUpdated: Object.keys(value),
+      });
+
+      res.status(200).json(successResponse(updatedShop));
+    } catch (err) {
+      // 3. Forward error to error handler middleware
+      logger.error('Update shop endpoint error', {
+        error: err.message,
+        shopId: req.params.shopId,
+        userId: req.user?.userId,
+      });
+      next(err);
+    }
+  }
+);
+
+/**
+ * Middleware to check file existence before shop ownership validation.
+ * This ensures "no file" returns 400, not 404 when shop doesn't exist.
+ */
+const checkFileExists = (req, res, next) => {
+  if (!req.file) {
+    logger.warn('KYC upload: No file in request', {
+      shopId: req.params.shopId,
+      userId: req.user?.userId,
+    });
+    return res.status(400).json(
+      errorResponse('INVALID_FILE_TYPE', 'No file provided. Please upload a PDF document.')
+    );
+  }
+  next();
+};
+
+/**
  * POST /api/v1/shops/:shopId/kyc
  * Upload KYC document for a shop.
  * Requires: Authentication + shop_owner role + ownership of shop
@@ -74,6 +181,7 @@ router.post(
   rateLimit('kyc-upload', 10, 3600),
   upload.single('document'),
   roleGuard(['shop_owner']),
+  checkFileExists,
   shopOwnerGuard(),
   async (req, res, next) => {
     try {
@@ -87,18 +195,7 @@ router.post(
         hasIdempotencyKey: !!idempotencyKey,
       });
 
-      // 1. Check file was uploaded
-      if (!req.file) {
-        logger.warn('KYC upload: No file in request', {
-          shopId,
-          userId: req.user.userId,
-        });
-        return res.status(400).json(
-          errorResponse('INVALID_FILE_TYPE', 'No file provided. Please upload a PDF document.')
-        );
-      }
-
-      // 2. Call service to upload KYC
+      // 1. Call service to upload KYC
       const result = await ShopService.uploadKYC(
         req.user.userId,
         shopId,
@@ -106,7 +203,7 @@ router.post(
         idempotencyKey
       );
 
-      // 3. Return 201 with KYC response
+      // 2. Return 201 with KYC response
       logger.info('KYC upload endpoint success', {
         shopId,
         userId: req.user.userId,
@@ -115,7 +212,7 @@ router.post(
 
       res.status(201).json(successResponse(result));
     } catch (err) {
-      // 4. Forward error to error handler middleware
+      // 3. Forward error to error handler middleware
       logger.error('KYC upload endpoint error', {
         error: err.message,
         shopId: req.params.shopId,

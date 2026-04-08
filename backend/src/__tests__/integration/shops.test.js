@@ -180,8 +180,8 @@ describe('Shops Routes', () => {
   };
 
   /**
-   * Mock helper: Setup supabase.from() for shop select (KYC upload)
-   * Returns: existing shop record
+   * Mock helper: Setup supabase.from() for shop select (retrieval/update)
+   * Returns: complete shop record
    */
   const mockShopSelect = (shopIdForSelect, ownerId = shopOwnerId) => {
     const chain = {
@@ -212,10 +212,10 @@ describe('Shops Routes', () => {
   };
 
   /**
-   * Mock helper: Setup supabase.from() for shop update (KYC submission)
-   * Returns: updated shop record with KYC info
+   * Mock helper: Setup supabase.from() for shop update
+   * Returns: updated shop record
    */
-  const mockShopUpdate = (shopIdForUpdate, kycUrl = 'https://example.r2.cloudflarestorage.com/signed-url?expires=123456789') => {
+  const mockShopUpdate = (shopIdForUpdate, updateData = {}) => {
     const chain = {
       update: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
@@ -223,18 +223,18 @@ describe('Shops Routes', () => {
       single: jest.fn().mockResolvedValue({
         data: {
           id: shopIdForUpdate,
-          name: 'Fresh Kirana Store',
-          category: 'kirana',
-          phone: '+919876543210',
+          owner_id: shopOwnerId,
+          name: updateData.name || 'Fresh Kirana Store',
+          category: updateData.category || 'kirana',
+          phone: updateData.phone || '+919876543210',
           latitude: 17.3850,
           longitude: 78.4867,
-          description: 'A quality kirana store offering fresh vegetables and groceries',
+          description: updateData.description || 'A quality kirana store offering fresh vegetables and groceries',
           is_open: true,
           is_verified: false,
           trust_score: 50.0,
-          kyc_document_url: kycUrl,
-          kyc_document_expires_at: new Date(Date.now() + 300000).toISOString(),
-          kyc_status: 'kyc_submitted',
+          kyc_document_url: updateData.kyc_document_url || null,
+          kyc_status: updateData.kyc_status || 'pending_kyc',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -450,6 +450,341 @@ describe('Shops Routes', () => {
     });
   });
 
+  describe('GET /api/v1/shops/:shopId', () => {
+    beforeEach(() => {
+      mockSupabase.from.mockClear();
+    });
+
+    // Test 1: Valid GET returns 200 with all readable fields
+    it('should successfully retrieve shop profile (200)', async () => {
+      // Mock: shopOwnerGuard shop ownership verification
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(shopId));
+
+      // Mock: getShop shop select
+      mockSupabase.from.mockReturnValueOnce(mockShopSelect(shopId));
+
+      const response = await request(app)
+        .get(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.id).toBe(shopId);
+      expect(response.body.data.ownerId).toBe(shopOwnerId);
+      expect(response.body.data.name).toBe('Fresh Kirana Store');
+      expect(response.body.data.category).toBe('kirana');
+      expect(response.body.data.description).toBeDefined();
+      expect(response.body.data.phone).toBe('+919876543210');
+      expect(response.body.data.latitude).toBe(17.3850);
+      expect(response.body.data.longitude).toBe(78.4867);
+      expect(response.body.data.isOpen).toBe(true);
+      expect(response.body.data.isVerified).toBe(false);
+      expect(response.body.data.trustScore).toBe(50.0);
+      expect(response.body.data.kycStatus).toBe('pending_kyc');
+      expect(response.body.data.createdAt).toBeDefined();
+      expect(response.body.data.updatedAt).toBeDefined();
+    });
+
+    // Test 2: GET non-existent shop returns 404 SHOP_NOT_FOUND
+    it('should return 404 when shop does not exist', async () => {
+      const nonExistentShopId = uuidv4();
+
+      // Mock: shopOwnerGuard shop ownership verification
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(nonExistentShopId));
+
+      // Mock: getShop returns not found
+      mockSupabase.from.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'No rows found' },
+        }),
+      });
+
+      const differentToken = generateToken({
+        userId: shopOwnerId,
+        phone: '+919999999999',
+        role: 'shop_owner',
+        shopId: nonExistentShopId,
+      });
+
+      const response = await request(app)
+        .get(`/api/v1/shops/${nonExistentShopId}`)
+        .set('Authorization', `Bearer ${differentToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('SHOP_NOT_FOUND');
+    });
+
+    // Test 3: GET other shop owner's shop returns 403 UNAUTHORIZED
+    it('should return 403 when user does not own the shop', async () => {
+      const otherShopId = uuidv4();
+      const differentOwnerId = '550e8400-e29b-41d4-a716-446655440003';
+
+      // Mock: shopOwnerGuard - cross-shop access attempt will be caught here
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(otherShopId, differentOwnerId));
+
+      const differentToken = generateToken({
+        userId: shopOwnerId,
+        phone: '+919999999999',
+        role: 'shop_owner',
+        shopId: otherShopId,
+      });
+
+      const response = await request(app)
+        .get(`/api/v1/shops/${otherShopId}`)
+        .set('Authorization', `Bearer ${differentToken}`)
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('FORBIDDEN');
+    });
+
+    // Test 4: GET without auth returns 401 UNAUTHORIZED
+    it('should return 401 when unauthenticated', async () => {
+      const response = await request(app)
+        .get(`/api/v1/shops/${shopId}`)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    // Test 5: Customer role attempting GET returns 403 FORBIDDEN
+    it('should return 403 when customer role attempts GET', async () => {
+      const response = await request(app)
+        .get(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('FORBIDDEN');
+    });
+  });
+
+  describe('PATCH /api/v1/shops/:shopId', () => {
+    beforeEach(() => {
+      mockSupabase.from.mockClear();
+    });
+
+    // Test 1: Valid PATCH updates fields and returns 200
+    it('should successfully update shop profile (200)', async () => {
+      const updateData = {
+        name: 'Updated Shop Name',
+        description: 'Updated shop description with more details',
+      };
+
+      // Mock: shopOwnerGuard shop ownership verification
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(shopId));
+
+      // Mock: updateShop shop select (verify shop exists and owner)
+      mockSupabase.from.mockReturnValueOnce(mockShopSelect(shopId));
+
+      // Mock: updateShop shop update
+      mockSupabase.from.mockReturnValueOnce(mockShopUpdate(shopId, updateData));
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.id).toBe(shopId);
+      expect(response.body.data.name).toBe(updateData.name);
+      expect(response.body.data.description).toBe(updateData.description);
+    });
+
+    // Test 2: PATCH with invalid category returns 400 VALIDATION_ERROR
+    it('should reject invalid category in update (400 VALIDATION_ERROR)', async () => {
+      const updateData = {
+        category: 'invalid_category',
+      };
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    // Test 3: PATCH with name too short returns 400 VALIDATION_ERROR
+    it('should reject name that is too short (400 VALIDATION_ERROR)', async () => {
+      const updateData = {
+        name: 'ab', // Too short (min 3 chars)
+      };
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('Validation failed');
+    });
+
+    // Test 4: PATCH non-existent shop returns 404 SHOP_NOT_FOUND
+    it('should return 404 when shop does not exist', async () => {
+      const nonExistentShopId = uuidv4();
+      const updateData = {
+        name: 'Updated Name',
+      };
+
+      // Mock: shopOwnerGuard shop ownership verification
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(nonExistentShopId));
+
+      // Mock: updateShop shop select (shop not found)
+      mockSupabase.from.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'No rows found' },
+        }),
+      });
+
+      const differentToken = generateToken({
+        userId: shopOwnerId,
+        phone: '+919999999999',
+        role: 'shop_owner',
+        shopId: nonExistentShopId,
+      });
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${nonExistentShopId}`)
+        .set('Authorization', `Bearer ${differentToken}`)
+        .send(updateData)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('SHOP_NOT_FOUND');
+    });
+
+    // Test 5: PATCH other shop owner's shop returns 403 UNAUTHORIZED
+    it('should return 403 when user does not own the shop', async () => {
+      const otherShopId = uuidv4();
+      const differentOwnerId = '550e8400-e29b-41d4-a716-446655440004';
+      const updateData = {
+        name: 'Attempted Update',
+      };
+
+      // Mock: shopOwnerGuard - cross-shop access attempt will be caught here
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(otherShopId, differentOwnerId));
+
+      const differentToken = generateToken({
+        userId: shopOwnerId,
+        phone: '+919999999999',
+        role: 'shop_owner',
+        shopId: otherShopId,
+      });
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${otherShopId}`)
+        .set('Authorization', `Bearer ${differentToken}`)
+        .send(updateData)
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('FORBIDDEN');
+    });
+
+    // Test 6: PATCH with no fields returns 400 VALIDATION_ERROR
+    it('should reject PATCH with no fields (400 VALIDATION_ERROR)', async () => {
+      const updateData = {}; // Empty object
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('At least one field');
+    });
+
+    // Test 7: PATCH with phone null is allowed
+    it('should allow setting phone to null (200)', async () => {
+      const updateData = {
+        phone: null,
+      };
+
+      // Mock: shopOwnerGuard shop ownership verification
+      mockSupabase.from.mockReturnValueOnce(mockShopOwnershipVerification(shopId));
+
+      // Mock: updateShop shop select
+      mockSupabase.from.mockReturnValueOnce(mockShopSelect(shopId));
+
+      // Mock: updateShop shop update
+      mockSupabase.from.mockReturnValueOnce(mockShopUpdate(shopId, { phone: null }));
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeDefined();
+    });
+
+    // Test 8: PATCH with description too short returns 400 VALIDATION_ERROR
+    it('should reject description that is too short (400 VALIDATION_ERROR)', async () => {
+      const updateData = {
+        description: 'short', // Too short (min 10 chars)
+      };
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    // Test 9: PATCH with invalid phone format returns 400 VALIDATION_ERROR
+    it('should reject invalid phone format (400 VALIDATION_ERROR)', async () => {
+      const updateData = {
+        phone: '+919999', // Invalid format
+      };
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .set('Authorization', `Bearer ${shopOwnerTokenWithShop}`)
+        .send(updateData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    // Test 10: PATCH without auth returns 401 UNAUTHORIZED
+    it('should return 401 when unauthenticated', async () => {
+      const updateData = {
+        name: 'Updated Shop Name',
+      };
+
+      const response = await request(app)
+        .patch(`/api/v1/shops/${shopId}`)
+        .send(updateData)
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('UNAUTHORIZED');
+    });
+  });
+
   describe('POST /api/v1/shops/:shopId/kyc', () => {
     // Reset mocks before each KYC test (only reset call counts, not implementations)
     beforeEach(() => {
@@ -483,7 +818,10 @@ describe('Shops Routes', () => {
       mockSupabase.from.mockReturnValueOnce(mockShopSelect(shopId));
 
       // Mock: shop update (KYC submission)
-      mockSupabase.from.mockReturnValueOnce(mockShopUpdate(shopId));
+      mockSupabase.from.mockReturnValueOnce(mockShopUpdate(shopId, {
+        kyc_status: 'kyc_submitted',
+        kyc_document_url: 'https://example.r2.cloudflarestorage.com/signed-url'
+      }));
 
       // Mock: Redis setex (cache result)
       mockRedis.setex.mockResolvedValueOnce('OK');

@@ -78,6 +78,50 @@ export const createShopSchema = Joi.object({
     }),
 });
 
+export const updateShopSchema = Joi.object({
+  name: Joi.string()
+    .trim()
+    .min(3)
+    .max(100)
+    .optional()
+    .messages({
+      'string.min': 'Shop name must be at least 3 characters',
+      'string.max': 'Shop name must not exceed 100 characters',
+    }),
+  description: Joi.string()
+    .trim()
+    .min(10)
+    .max(500)
+    .optional()
+    .messages({
+      'string.min': 'Description must be at least 10 characters',
+      'string.max': 'Description must not exceed 500 characters',
+    }),
+  category: Joi.string()
+    .valid(
+      'kirana',
+      'vegetable_vendor',
+      'pharmacy',
+      'restaurant',
+      'pet_store',
+      'mobile_shop',
+      'furniture_store'
+    )
+    .optional()
+    .messages({
+      'any.only': 'Category must be one of: kirana, vegetable_vendor, pharmacy, restaurant, pet_store, mobile_shop, furniture_store',
+    }),
+  phone: Joi.string()
+    .pattern(/^\+91\d{10}$/)
+    .optional()
+    .allow(null)
+    .messages({
+      'string.pattern.base': 'Phone must be in format +91XXXXXXXXXX',
+    }),
+}).min(1).messages({
+  'object.min': 'At least one field must be provided for update',
+});
+
 export const validate = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, { abortEarly: false });
   if (error) {

@@ -236,6 +236,265 @@ class ShopService {
   }
 
   /**
+   * Retrieve full shop profile for authenticated owner.
+   * Verifies that the requesting user owns the shop (defense-in-depth check).
+   * Returns all readable fields in camelCase.
+   *
+   * @param {string} userId - User ID (must be shop owner)
+   * @param {string} shopId - Shop ID to retrieve
+   * @returns {Promise<Object>} Shop object with all readable fields
+   * @throws {AppError} If shop not found, user doesn't own shop, or database error
+   */
+  static async getShop(userId, shopId) {
+    logger.info('Fetching shop profile', {
+      userId,
+      shopId,
+    });
+
+    try {
+      // 1. Validate shopId is a valid UUID
+      if (!shopId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shopId)) {
+        logger.warn('Invalid shopId format', {
+          userId,
+          shopId,
+        });
+        throw new AppError(
+          SHOP_NOT_FOUND,
+          'Shop does not exist.',
+          404
+        );
+      }
+
+      // 2. Fetch shop from database
+      const { data: shop, error: shopError } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', shopId)
+        .single();
+
+      if (shopError || !shop) {
+        logger.warn('Shop not found during retrieval', {
+          userId,
+          shopId,
+          error: shopError?.message,
+        });
+        throw new AppError(
+          SHOP_NOT_FOUND,
+          'Shop does not exist.',
+          404
+        );
+      }
+
+      // 3. Verify user owns this shop (defense-in-depth check)
+      if (shop.owner_id !== userId) {
+        logger.warn('Unauthorized shop access attempt', {
+          userId,
+          shopId,
+          shopOwnerId: shop.owner_id,
+        });
+        throw new AppError(
+          UNAUTHORIZED,
+          'You are not authorized to access this shop.',
+          403
+        );
+      }
+
+      logger.info('Shop profile retrieved successfully', {
+        shopId,
+        userId,
+      });
+
+      // 4. Return immutably constructed response with camelCase keys
+      return {
+        id: shop.id,
+        ownerId: shop.owner_id,
+        name: shop.name,
+        category: shop.category,
+        description: shop.description,
+        phone: shop.phone,
+        latitude: shop.latitude,
+        longitude: shop.longitude,
+        isOpen: shop.is_open,
+        isVerified: shop.is_verified,
+        trustScore: shop.trust_score,
+        kycStatus: shop.kyc_status,
+        kycDocumentUrl: shop.kyc_document_url,
+        createdAt: shop.created_at,
+        updatedAt: shop.updated_at,
+      };
+    } catch (err) {
+      // Re-throw AppError as-is
+      if (err.isOperational) {
+        throw err;
+      }
+
+      // Catch unexpected errors
+      logger.error('Unexpected error retrieving shop', {
+        error: err.message,
+        userId,
+        shopId,
+        stack: err.stack,
+      });
+      throw new AppError(
+        INTERNAL_ERROR,
+        'An unexpected error occurred while retrieving shop',
+        500
+      );
+    }
+  }
+
+  /**
+   * Update mutable shop profile fields for authenticated owner.
+   * Verifies that the requesting user owns the shop (defense-in-depth check).
+   * Only allows updates to: name, description, category, phone.
+   * Returns updated shop object with camelCase keys.
+   *
+   * @param {string} userId - User ID (must be shop owner)
+   * @param {string} shopId - Shop ID to update
+   * @param {Object} updateData - Fields to update (name, description, category, phone)
+   * @returns {Promise<Object>} Updated shop object
+   * @throws {AppError} If shop not found, user doesn't own shop, or database error
+   */
+  static async updateShop(userId, shopId, updateData) {
+    logger.info('Updating shop profile', {
+      userId,
+      shopId,
+      fieldsUpdated: Object.keys(updateData),
+    });
+
+    try {
+      // 1. Validate shopId is a valid UUID
+      if (!shopId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shopId)) {
+        logger.warn('Invalid shopId format', {
+          userId,
+          shopId,
+        });
+        throw new AppError(
+          SHOP_NOT_FOUND,
+          'Shop does not exist.',
+          404
+        );
+      }
+
+      // 2. Fetch shop from database to verify existence and ownership
+      const { data: shop, error: shopError } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', shopId)
+        .single();
+
+      if (shopError || !shop) {
+        logger.warn('Shop not found during update', {
+          userId,
+          shopId,
+          error: shopError?.message,
+        });
+        throw new AppError(
+          SHOP_NOT_FOUND,
+          'Shop does not exist.',
+          404
+        );
+      }
+
+      // 3. Verify user owns this shop (defense-in-depth check)
+      if (shop.owner_id !== userId) {
+        logger.warn('Unauthorized shop update attempt', {
+          userId,
+          shopId,
+          shopOwnerId: shop.owner_id,
+        });
+        throw new AppError(
+          UNAUTHORIZED,
+          'You are not authorized to update this shop.',
+          403
+        );
+      }
+
+      // 4. Filter updateData to only include mutable fields
+      // Immutable fields: id, owner_id, is_verified, trust_score, is_open, kyc_*
+      const mutableFields = ['name', 'description', 'category', 'phone'];
+      const filteredUpdate = {};
+
+      for (const field of mutableFields) {
+        if (field in updateData) {
+          if (field === 'name' || field === 'description') {
+            filteredUpdate[field] = updateData[field].trim();
+          } else {
+            filteredUpdate[field] = updateData[field];
+          }
+        }
+      }
+
+      // Add updated_at timestamp
+      filteredUpdate.updated_at = new Date().toISOString();
+
+      // 5. Perform PATCH update in database
+      const { data: updatedShop, error: updateError } = await supabase
+        .from('shops')
+        .update(filteredUpdate)
+        .eq('id', shopId)
+        .select()
+        .single();
+
+      if (updateError) {
+        logger.error('Error updating shop record', {
+          error: updateError.message,
+          userId,
+          shopId,
+        });
+        throw new AppError(
+          INTERNAL_ERROR,
+          'Failed to update shop',
+          500
+        );
+      }
+
+      logger.info('Shop updated successfully', {
+        shopId: updatedShop.id,
+        userId,
+        fieldsUpdated: Object.keys(filteredUpdate).filter(f => f !== 'updated_at'),
+      });
+
+      // 6. Return immutably constructed response with camelCase keys
+      return {
+        id: updatedShop.id,
+        ownerId: updatedShop.owner_id,
+        name: updatedShop.name,
+        category: updatedShop.category,
+        description: updatedShop.description,
+        phone: updatedShop.phone,
+        latitude: updatedShop.latitude,
+        longitude: updatedShop.longitude,
+        isOpen: updatedShop.is_open,
+        isVerified: updatedShop.is_verified,
+        trustScore: updatedShop.trust_score,
+        kycStatus: updatedShop.kyc_status,
+        kycDocumentUrl: updatedShop.kyc_document_url,
+        createdAt: updatedShop.created_at,
+        updatedAt: updatedShop.updated_at,
+      };
+    } catch (err) {
+      // Re-throw AppError as-is
+      if (err.isOperational) {
+        throw err;
+      }
+
+      // Catch unexpected errors
+      logger.error('Unexpected error updating shop', {
+        error: err.message,
+        userId,
+        shopId,
+        stack: err.stack,
+      });
+      throw new AppError(
+        INTERNAL_ERROR,
+        'An unexpected error occurred while updating shop',
+        500
+      );
+    }
+  }
+
+  /**
    * Upload KYC document for a shop.
    * Validates file type (PDF only) and size (1-10 MB).
    * Uses idempotency key to prevent duplicate uploads.

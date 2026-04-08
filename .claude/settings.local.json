@@ -36,7 +36,11 @@
       "Bash(node --check /Users/trinadh/projects/nearby/backend/src/services/shops.js)",
       "Bash(node --check /Users/trinadh/projects/nearby/backend/src/routes/shops.js)",
       "Bash(node --check /Users/trinadh/projects/nearby/backend/src/__tests__/integration/shops.test.js)",
-      "Bash(pkill -f \"jest\")"
+      "Bash(pkill -f \"jest\")",
+      "Bash(node -c backend/src/services/shops.js)",
+      "Bash(node -c backend/src/routes/shops.js)",
+      "Bash(node -c backend/src/utils/validators.js)",
+      "Bash(bash /tmp/verify_fixes.sh)"
     ],
     "additionalDirectories": [
       "/Users/trinadh/.claude",
