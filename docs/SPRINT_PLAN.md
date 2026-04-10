@@ -45,3 +45,49 @@ POST /shops/:id/products, product images, bulk CSV upload, Typesense indexing.
 - Task 3.1: 🟩 COMPLETE — GET /api/v1/products/template
 - Task 3.2: 🟩 COMPLETE — GET /api/v1/search/shops
 - Task 3.3–3.4: ⬜ Not started
+
+### Sprint 4 (Week 7–8) — Payments
+Cashfree payment initiation, webhook handler, refunds.
+- Status: ⬜ Not started
+
+### Sprint 5 (Week 9–10) — Delivery Tracking
+assign-delivery BullMQ worker, GPS Socket.IO tracker, delivery state machine, delivery routes.
+- Task 5.1: 🟩 COMPLETE — assignDelivery BullMQ worker (Redis GEOSEARCH, optimistic DB lock, admin:alert on final retry, toSafeOrderPayload strip; 11 unit tests)
+- Task 5.2: 🟩 COMPLETE — GET /api/v1/delivery/orders (list partner orders, status filter; covered in 21 integration tests)
+- Task 5.3: 🟩 COMPLETE — PATCH /api/v1/delivery/orders/:orderId/accept and /reject (accept acknowledges assignment; reject reverts to ready and re-queues assign-delivery after confirmed DB update; 21 integration tests)
+- Task 5.4: 🟩 COMPLETE — PATCH /api/v1/delivery/orders/:orderId/pickup (assigned → picked_up, notify-customer enqueued, Socket.IO broadcast; 21 integration tests)
+- Task 5.5: 🟩 COMPLETE — PATCH /api/v1/delivery/orders/:orderId/deliver (picked_up|out_for_delivery → delivered, delivered_at recorded, notify-customer enqueued; 21 integration tests)
+- Task 5.6: 🟩 COMPLETE — Socket.IO gps:update handler (role guard, UUID regex validation, India bounds check, Redis GEOADD + 30s EXPIRE, Ola Maps ETA best-effort, broadcast gps:position to order room; 13 unit tests)
+- Total Sprint 5: 45 new tests | Overall suite: 263/263 passing
+
+### Sprint 6 (Week 11–12) — Reviews & Ratings
+POST /reviews, GET /shops/:id/reviews, trust score inputs.
+- Status: ⬜ Not started
+
+### Sprint 7–10 (Week 13–20) — Customer App
+React Native customer app: browse, order, track, review.
+- Status: ⬜ Not started
+
+### Sprint 9–12 (Week 17–24) — Shop Owner App
+React Native shop owner app: manage shop, accept orders, inventory.
+- Status: ⬜ Not started
+
+### Sprint 11–13 (Week 21–26) — Delivery App
+React Native delivery partner app: accept assignments, GPS tracking.
+- Status: ⬜ Not started
+
+### Sprint 13–15 (Week 25–30) — Admin Dashboard
+React + Vite admin dashboard: KYC review, disputes, monitoring.
+- Status: ⬜ Not started
+
+### Sprint 14 (Week 27–28) — KYC Flow
+Admin KYC review, approve/reject, shop verification.
+- Status: ⬜ Not started
+
+### Sprint 15 (Week 29–30) — Trust Score Engine
+Nightly trust score recompute, badge assignment, admin alerts.
+- Status: ⬜ Not started
+
+### Sprint 16 (Week 31–32) — Launch Prep
+Performance testing, security audit, monitoring setup, go-live checklist.
+- Status: ⬜ Not started

@@ -6,6 +6,123 @@
 
 ---
 
+## [Sprint 5] - 2026-04-10
+
+### Delivery Tracking Module
+
+**Added:**
+
+#### GET /api/v1/delivery/orders
+- Auth: Bearer JWT (`delivery` role)
+- Query: optional `?status=` filter (enum: `assigned`, `picked_up`, `out_for_delivery`, `delivered`; invalid values silently ignored)
+- Response: 200 with array of order objects (camelCase, internal fields `cashfree_order_id` and `idempotency_key` stripped)
+- Error codes: UNAUTHORIZED (401), FORBIDDEN (403)
+- Rate limit: 30 requests/minute per user
+
+#### PATCH /api/v1/delivery/orders/:orderId/accept
+- Auth: Bearer JWT (`delivery` role)
+- Authorization: Partner must be the assigned partner for the order
+- Behavior: Acknowledges assignment awareness — no status change; order remains `assigned`
+- Params: `orderId` validated as UUID v4
+- Response: 200 with order object
+- Error codes: ORDER_NOT_FOUND (404), FORBIDDEN (403), ORDER_INVALID_TRANSITION (409), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+
+#### PATCH /api/v1/delivery/orders/:orderId/reject
+- Auth: Bearer JWT (`delivery` role)
+- Authorization: Partner must be the assigned partner for the order
+- Behavior: Resets `delivery_partner_id` to null, reverts status to `ready`, re-enqueues `assign-delivery` BullMQ job after confirmed DB update
+- Params: `orderId` validated as UUID v4
+- Response: 200 with updated order object
+- Error codes: ORDER_NOT_FOUND (404), FORBIDDEN (403), ORDER_INVALID_TRANSITION (409), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+- Concurrency: re-enqueue occurs only after optimistic DB update confirms no race condition
+
+#### PATCH /api/v1/delivery/orders/:orderId/pickup
+- Auth: Bearer JWT (`delivery` role)
+- Authorization: Partner must be the assigned partner for the order
+- Behavior: Transitions `assigned` → `picked_up`; enqueues `notify-customer` BullMQ job; emits `order:status_updated` Socket.IO event to `order:{orderId}` room
+- Params: `orderId` validated as UUID v4
+- Response: 200 with updated order object
+- Error codes: ORDER_NOT_FOUND (404), FORBIDDEN (403), ORDER_INVALID_TRANSITION (409), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+
+#### PATCH /api/v1/delivery/orders/:orderId/deliver
+- Auth: Bearer JWT (`delivery` role)
+- Authorization: Partner must be the assigned partner for the order
+- Behavior: Transitions `picked_up|out_for_delivery` → `delivered`; records `delivered_at` timestamp; enqueues `notify-customer` BullMQ job; emits `order:status_updated` Socket.IO event
+- Params: `orderId` validated as UUID v4
+- Response: 200 with updated order object
+- Error codes: ORDER_NOT_FOUND (404), FORBIDDEN (403), ORDER_INVALID_TRANSITION (409), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+
+#### Socket.IO: gps:update (event, not HTTP)
+- Auth: Socket.IO connection must carry a valid JWT with `role === 'delivery'`
+- Payload: `{ orderId, lat, lng }` — `orderId` must be a UUID v4; `lat`/`lng` must be numbers within India geographic bounds (lat 6.0–37.6, lng 68.1–97.4)
+- Behavior:
+  - Validates role, orderId UUID, and coordinate bounds before any DB access
+  - Checks ownership: only the order's assigned partner may push GPS
+  - Status guard: only `picked_up` and `out_for_delivery` accept updates
+  - Stores position in Redis `GEOADD delivery:{orderId}` with 30-second TTL (never written to Supabase)
+  - Computes ETA via Ola Maps Distance Matrix API (best-effort; broadcast proceeds if ETA fails)
+  - Broadcasts `gps:position` event to `order:{orderId}` room with `{ lat, lng, eta, timestamp }`
+- Error events emitted to sender: `gps:error` with codes `FORBIDDEN`, `VALIDATION_ERROR`, `ORDER_NOT_FOUND`, `INVALID_ORDER_STATUS`, `INTERNAL_ERROR`
+
+#### BullMQ: assign-delivery worker
+- Queue: `assign-delivery`
+- Trigger: fired when shop marks order `ready` (via order state machine)
+- Behavior:
+  - Guards against already-assigned or non-`ready` orders (idempotent)
+  - Fetches shop location from Supabase
+  - Redis `GEOSEARCH delivery:available` within 5 km, ascending distance, first 10 candidates
+  - Assigns nearest partner via optimistic DB lock (`WHERE status = 'ready'`)
+  - Emits `delivery:assigned` to `delivery:{partnerId}` Socket.IO room with sanitized order payload (no `cashfree_order_id` or `idempotency_key`)
+  - Enqueues `notify-customer` job for customer notification
+  - On final retry with no partner: emits `admin:alert` to `admin` room with `NO_PARTNER_AVAILABLE` type
+- Config: 3 attempts, exponential backoff 2s, concurrency 5, removeOnComplete, keepOnFail
+
+#### olaMaps.js: getETA function
+- Added `getETA(originLat, originLng, destLat, destLng)` to `backend/src/services/olaMaps.js`
+- Calls Ola Maps Distance Matrix API
+- Returns ETA in seconds, or `null` on failure (caller handles gracefully)
+
+**Security Notes:**
+- UUID regex validation on `orderId` in `gps:update` socket events prevents injection via non-UUID strings
+- UUID param validation middleware on all 4 PATCH routes (400 before DB access)
+- `toSafeOrderPayload()` in `assignDelivery.js` strips `cashfree_order_id` and `idempotency_key` before Socket.IO emit
+- `socket.role === 'delivery'` guard at top of `gps:update` handler — fails before any other processing
+- GPS never stored in Supabase during active delivery (Redis only, per domain rule)
+- Re-enqueue of `assign-delivery` job occurs only after confirmed DB update in `rejectAssignment`
+
+**Test Coverage:**
+- 21 integration tests (`delivery.test.js`) — list orders, accept/reject/pickup/deliver flows, auth/role guards, UUID validation, ownership enforcement
+- 11 unit tests (`assignDelivery.test.js`) — job processor logic, GEOSEARCH, optimistic lock, admin alert on final retry, safe payload stripping
+- 13 unit tests (`gpsTracker.test.js`) — role guard, UUID validation, coordinate bounds, ownership check, status guard, Redis GEOADD+EXPIRE, ETA computation, broadcast, ETA failure resilience
+- Total Sprint 5: 45 new tests; overall suite: 263/263 passing
+
+**Response Shape (order object):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "customerId": "uuid",
+    "shopId": "uuid",
+    "deliveryPartnerId": "uuid",
+    "status": "picked_up",
+    "totalPaise": 14900,
+    "paymentMethod": "upi",
+    "paymentStatus": "paid",
+    "acceptedAt": "2026-04-10T08:00:00Z",
+    "deliveredAt": null,
+    "createdAt": "2026-04-10T07:55:00Z",
+    "updatedAt": "2026-04-10T08:10:00Z"
+  }
+}
+```
+
+---
+
 ## [Sprint 2] - 2026-04-08
 
 ### Product Image Resize Pipeline (Sharp.js)
@@ -400,14 +517,13 @@
 - `POST /api/v1/payments/webhook` — Cashfree webhook handler
 - `GET /api/v1/payments/:id` — Get payment status
 
-### Added (Sprint 5-6)
-- `POST /api/v1/delivery/availability` — Partner go online/offline
-- `GET /api/v1/delivery/assignments` — Partner's active assignments
-- `PATCH /api/v1/delivery/:id/pickup` — Confirm order pickup
-- `PATCH /api/v1/delivery/:id/deliver` — Confirm delivery with OTP
-- `POST /api/v1/delivery/:id/location` — Push GPS update
-- `POST /api/v1/reviews` — Submit verified review
-- `GET /api/v1/shops/:id/reviews` — Get shop reviews
+### Added (Sprint 5) ✅ DONE
+- `GET /api/v1/delivery/orders` — List partner's assigned orders ✅ DONE (Sprint 5, Task 5.2)
+- `PATCH /api/v1/delivery/orders/:orderId/accept` — Acknowledge assignment ✅ DONE (Sprint 5, Task 5.3)
+- `PATCH /api/v1/delivery/orders/:orderId/reject` — Reject and re-queue assignment ✅ DONE (Sprint 5, Task 5.3)
+- `PATCH /api/v1/delivery/orders/:orderId/pickup` — Confirm order pickup ✅ DONE (Sprint 5, Task 5.4)
+- `PATCH /api/v1/delivery/orders/:orderId/deliver` — Confirm delivery ✅ DONE (Sprint 5, Task 5.5)
+- Socket.IO `gps:update` event — Real-time GPS position push ✅ DONE (Sprint 5, Task 5.6)
 
 ### Added (Sprint 14 — Admin)
 - `GET /api/v1/admin/kyc-queue` — List pending KYC applications
@@ -484,6 +600,7 @@ ORDER_ACCEPT_EXPIRED     3-minute window expired
 DUPLICATE_ORDER          Idempotency key already processed
 DIFFERENT_SHOP_CART      Cart has items from a different shop
 ORDER_ALREADY_PICKED_UP  Cannot cancel after pickup
+ORDER_INVALID_TRANSITION Order status transition not permitted
 
 PAYMENT_FAILED           Cashfree payment failed
 PAYMENT_ALREADY_PROCESSED Webhook duplicate (idempotency)
@@ -528,4 +645,4 @@ RATE_LIMITED             Generic rate limit exceeded
 
 ---
 
-*Updated automatically when APIs change. Last update: April 8, 2026 (Sprint 2.4 complete)*
+*Updated automatically when APIs change. Last update: April 10, 2026 (Sprint 5 delivery tracking complete)*

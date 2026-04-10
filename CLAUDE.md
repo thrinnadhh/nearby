@@ -242,7 +242,7 @@ Critical variables that break everything if missing:
 | Product CRUD | 🟩 Complete | Create, bulk upload, update, and soft delete complete (Sprint 2, Tasks 2.5-2.8) |
 | Order flow | 🟩 Complete | Sprint 3 order creation, notifications, auto-cancel, and order state machine complete |
 | Payment (Cashfree) | ⬜ Not started | Block 2, Sprint 4 |
-| Delivery tracking | ⬜ Not started | Block 3, Sprint 5–6 |
+| Delivery tracking | 🟩 Complete | Sprint 5 Tasks 5.1–5.6: assign-delivery BullMQ worker, GPS tracker (Socket.IO), DeliveryService (5 methods), delivery routes (5 endpoints), olaMaps.getETA — 263/263 tests passing |
 | Search (Typesense) | 🟩 Complete | Shop/product search endpoints plus schema bootstrap complete (Sprint 2, Tasks 2.9-2.11) |
 | Customer app | ⬜ Not started | Block 4, Sprint 7–10 |
 | Shop owner app | ⬜ Not started | Block 4, Sprint 9–12 |
@@ -252,7 +252,7 @@ Critical variables that break everything if missing:
 | Trust score engine | ⬜ Not started | Block 6, Sprint 15 |
 | Launch prep | ⬜ Not started | Block 6, Sprint 16 |
 
-**Sprint 2 backend core, public search, Typesense schema bootstrap, Sharp image pipeline, and Sprint 3 order engine are complete:** Shop registration (POST /shops), KYC document upload (POST /shops/:id/kyc), shop profile management (GET/PATCH /shops/:id), shop toggle (PATCH /shops/:id/toggle), single product creation (POST /shops/:id/products), bulk product CSV upload (POST /shops/:id/products/bulk), product update (PATCH /products/:id), product soft delete (DELETE /products/:id), public shop geo search (GET /api/v1/search/shops), public product search (GET /api/v1/search/products), canonical Typesense collection setup, and Sharp-based product image resizing are implemented and tested. Sprint 3 now includes POST /orders with server-side pricing and stock locking, Redis-backed idempotency, BullMQ notify-shop and auto-cancel jobs, Socket.IO order rooms, GET /orders and GET /orders/:id, accept/reject/ready/cancel transitions, partial item cancellation, and focused order job/state-machine coverage. Shop owners can create shops with name, description, location (validated to India bounds), and category. Shops initialize with `pending_kyc`, `trust_score=50.0`, and `is_open=true`. KYC documents (PDF, 1-10 MB) upload to Cloudflare R2 private bucket with signed URLs (5-min TTL). Products can be created individually with optional image upload, inserted in bulk from CSV with row validation and partial-success handling, updated for price/stock, soft deleted through `deleted_at`, and discovered through Typesense-backed search endpoints. Product images are resized via Sharp to `600x600` full and `150x150` thumbnail JPEGs before upload, with focused failure coverage. Typesense now has explicit `shops` and `products` collection schemas plus a reproducible `npm run seed:typesense` bootstrap path for local/dev setup. Defense-in-depth ownership verification at middleware + service layers prevents JWT forgery on protected endpoints. Verified with focused route, job, and state-machine coverage across shop, product, search, Typesense schema, image pipeline, and order flows. Next: Sprint 4 payment initiation and reconciliation.
+**Sprint 2 backend core, public search, Typesense schema bootstrap, Sharp image pipeline, Sprint 3 order engine, and Sprint 5 delivery tracking are complete:** Shop registration (POST /shops), KYC document upload (POST /shops/:id/kyc), shop profile management (GET/PATCH /shops/:id), shop toggle (PATCH /shops/:id/toggle), single product creation (POST /shops/:id/products), bulk product CSV upload (POST /shops/:id/products/bulk), product update (PATCH /products/:id), product soft delete (DELETE /products/:id), public shop geo search (GET /api/v1/search/shops), public product search (GET /api/v1/search/products), canonical Typesense collection setup, and Sharp-based product image resizing are implemented and tested. Sprint 3 includes POST /orders with server-side pricing and stock locking, Redis-backed idempotency, BullMQ notify-shop and auto-cancel jobs, Socket.IO order rooms, GET /orders and GET /orders/:id, accept/reject/ready/cancel transitions, partial item cancellation, and focused order job/state-machine coverage. Sprint 5 delivery tracking includes: the assign-delivery BullMQ worker (Redis GEOSEARCH within 5 km, optimistic DB lock, admin:alert on final retry), the GPS tracker Socket.IO handler (role guard, UUID validation, India bounds check, Redis GEOADD+EXPIRE 30s, Ola Maps ETA, broadcast to order room), DeliveryService (listOrders, acceptAssignment, rejectAssignment, markPickedUp, markDelivered), five delivery routes with authenticate/roleGuard/rate-limiting/UUID-param-validation, and olaMaps.getETA. Security hardening: toSafeOrderPayload() strips cashfree_order_id and idempotency_key before Socket.IO emit; re-enqueue of assign-delivery job is gated on confirmed DB update to prevent duplicate jobs. Verified with 21 integration tests, 11 unit tests (assignDelivery), 13 unit tests (gpsTracker) — 263/263 total tests passing. Next: Sprint 4 payment initiation and reconciliation.
 
 ---
 
@@ -355,7 +355,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 8, 2026 | Sprint 2 Tasks 2.1–2.4 complete*
+*Last updated: April 10, 2026 | Sprint 5 Tasks 5.1–5.6 complete*
 
 ## MCP Tools: code-review-graph
 

@@ -31,7 +31,7 @@
 | 1.6 | Set up Redis on DO droplet via Coolify | [DV] | ⬜ | With persistence enabled |
 | 1.7 | Set up Typesense on DO droplet via Coolify | [DV] | ⬜ | Create shops + products indexes |
 | 1.8 | Set up Cloudflare R2 (public + private buckets) | [DV] | ⬜ | nearby-products, nearby-kyc |
-| 1.9 | Bootstrap Node.js + Express project | [BE] | ✅ | Implemented in `backend/` with middleware stack, error handling, logging, Socket.IO bootstrapping. |
+| 1.9 | Bootstrap Node.js + Express project | [BE] | ✅ | Implemented in `backend/` with middleware stack, error handling, logging, Socket.IO bootstrapping. 57 tests passing. |
 | 1.10 | Set up docker-compose.yml for local dev | [BE] | ✅ | `docker-compose.yml` present for local Redis + Typesense + API workflow. |
 | 1.11 | Register MSG91 account + DLT template approval | [PM] | ⬜ | Takes 2–3 days — start immediately |
 | 1.12 | Create Firebase project + FCM config | [DV] | ⬜ | Download google-services.json |
@@ -51,19 +51,19 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 2.1 | Implement POST /shops (create shop) | [BE] | ✅ | Implemented and integration-tested. |
-| 2.2 | Implement POST /shops/:id/kyc | [BE] | ✅ | Multipart KYC upload to R2 private bucket with signed URL flow. |
-| 2.3 | Implement GET/PATCH /shops/:id | [BE] | ✅ | Shop profile read/update implemented and tested. |
-| 2.4 | Implement PATCH /shops/:id/toggle | [BE] | ✅ | Open/close flow implemented with async Typesense sync. |
-| 2.5 | Implement POST /shops/:id/products | [BE] | ✅ | Single product create with optional image upload, R2 URL mapping, Typesense queue. |
-| 2.6 | Implement POST /shops/:id/products/bulk | [BE] | ✅ | CSV parse/validate with partial success handling and non-blocking Typesense sync. |
-| 2.7 | Implement PATCH /products/:id | [BE] | ✅ | Product price/stock update implemented with ownership checks and Typesense sync. |
-| 2.8 | Implement DELETE /products/:id | [BE] | ✅ | Soft delete via `deleted_at` implemented with Typesense removal queue. |
-| 2.9 | Implement GET /search/shops | [BE] | ✅ | Public Typesense geo search implemented with category/open filters and validation. |
-| 2.10 | Implement GET /search/products | [BE] | ✅ | Public Typesense product search with `q`, optional category/shop filters, typo tolerance, and validation. |
-| 2.11 | Set up Typesense shop + product schemas | [BE] | ✅ | Canonical `shops` + `products` schemas added with geo/trust/open/search fields and `npm run seed:typesense` bootstrap. |
-| 2.12 | Implement Sharp.js image resize pipeline | [BE] | ✅ | Sharp-based 600×600 full + 150×150 thumbnail pipeline implemented and now unit-verified for resize + failure handling. |
-| 2.13 | GET /products/template (CSV download) | [BE] | ✅ | CSV template download implemented with optional category-prefilled sample row. |
+| 2.1 | Implement POST /shops (create shop) | [BE] | ✅ | Basic profile, status: pending_kyc. 8 tests pass, 92% coverage. |
+| 2.2 | Implement POST /shops/:id/kyc | [BE] | ✅ | Multipart upload → R2 private bucket, signed URLs, idempotency. 8 tests pass, 92% coverage. |
+| 2.3 | Implement GET/PATCH /shops/:id | [BE] | ✅ | Get shop, update profile. 5 GET + 10 PATCH tests pass, 92% coverage. |
+| 2.4 | Implement PATCH /shops/:id/toggle | [BE] | ✅ | Open/close + Typesense sync. 13 tests pass, 100% coverage. BullMQ async job, fire-and-forget. |
+| 2.5 | Implement POST /shops/:id/products | [BE] | ✅ | Single product + optional image (Sharp 600×600 + 150×150) → R2 public CDN + Typesense queue. 10 tests pass. |
+| 2.6 | Implement POST /shops/:id/products/bulk | [BE] | ✅ | CSV parse (csv-parse), validate rows, partial success (207), batch insert, Typesense queue per product. 8 tests pass. |
+| 2.7 | Implement PATCH /products/:id | [BE] | ✅ | Product price/stock update with ownership checks and Typesense sync. Tests pass. |
+| 2.8 | Implement DELETE /products/:id | [BE] | ✅ | Soft delete via `deleted_at`, Typesense remove queue. Tests pass. |
+| 2.9 | Implement GET /search/shops | [BE] | ✅ | Public Typesense geo search with category/open filters and validation. |
+| 2.10 | Implement GET /search/products | [BE] | ✅ | Public Typesense product search with `q`, category/shop filters, typo tolerance. |
+| 2.11 | Set up Typesense shop + product schemas | [BE] | ✅ | `shops` + `products` schemas with geo/trust/open fields + `npm run seed:typesense`. |
+| 2.12 | Implement Sharp.js image resize pipeline | [BE] | ✅ | 600×600 full + 150×150 thumbnail, always JPEG output, unit-tested. |
+| 2.13 | GET /products/template (CSV download) | [BE] | ✅ | CSV template download with optional category-prefilled sample row. |
 | 2.14 | Design: shop owner app wireframes | [DS] | ⬜ | Registration, dashboard, product list |
 | 2.15 | Design: customer app wireframes | [DS] | ⬜ | Home, search, shop profile |
 
@@ -79,16 +79,16 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 3.1 | Implement POST /orders | [BE] | ✅ | Validates stock, locks qty, creates order |
-| 3.2 | Idempotency key handling | [BE] | ✅ | Redis-backed duplicate prevention with 10 minute TTL |
+| 3.1 | Implement POST /orders | [BE] | ✅ | Validates stock, locks qty, creates order, server-side price calculation |
+| 3.2 | Idempotency key handling | [BE] | ✅ | Redis-backed duplicate prevention with 10 min TTL |
 | 3.3 | Server-side price calculation | [BE] | ✅ | DB prices are authoritative; client price ignored |
 | 3.4 | Implement BullMQ notifyShop job | [BE] | ✅ | FCM first, MSG91 SMS fallback |
-| 3.5 | Implement BullMQ autoCancel job | [BE] | ✅ | Delayed 3 minute cancel, stock restore, refund path, customer notify |
+| 3.5 | Implement BullMQ autoCancel job | [BE] | ✅ | Delayed 3 min cancel, stock restore, refund path, customer notify |
 | 3.6 | Implement Socket.IO order room | [BE] | ✅ | Customer + shop join order:{orderId} |
-| 3.7 | Implement PATCH /orders/:id/accept | [BE] | ✅ | Updates status, notifies customer, cancels delayed auto-cancel, triggers delivery assign |
+| 3.7 | Implement PATCH /orders/:id/accept | [BE] | ✅ | Status update, notifies customer, cancels auto-cancel job, triggers delivery assign |
 | 3.8 | Implement PATCH /orders/:id/reject | [BE] | ✅ | Status update, stock restore, refund path |
 | 3.9 | Implement PATCH /orders/:id/ready | [BE] | ✅ | Status update with downstream delivery notification hook |
-| 3.10 | Implement PATCH /orders/:id/cancel | [BE] | ✅ | Eligibility checks, stock restore, refund path |
+| 3.10 | Implement PATCH /orders/:id/cancel | [BE] | ✅ | Eligibility checks (pending/accepted only), stock restore, refund path |
 | 3.11 | Implement GET /orders + GET /orders/:id | [BE] | ✅ | Own-order access enforced for customer/shop owner views |
 | 3.12 | Partial order cancel (item unavailable) | [BE] | ✅ | Item removal plus partial refund path |
 | 3.13 | Set up Socket.IO server | [BE] | ✅ | Dedicated Socket.IO server on separate port |
@@ -353,9 +353,9 @@
 
 | Sprint | Planned | Completed | Velocity | Notes |
 |--------|---------|-----------|----------|-------|
-| 1 | 17 | — | — | |
-| 2 | 15 | — | — | |
-| 3 | 14 | — | — | |
+| 1 | 17 | 9 | 53% | BE tasks complete; DV/PM/infra tasks pending |
+| 2 | 15 | 13 | 87% | All BE tasks 2.1–2.13 complete; design tasks pending |
+| 3 | 14 | 14 | 100% | All order flow tasks complete |
 | 4 | 10 | — | — | |
 | 5 | 12 | — | — | |
 | 6 | 12 | — | — | |
@@ -372,4 +372,4 @@
 
 ---
 
-*Last updated: March 2026 | Update STATUS column every Friday*
+*Last updated: April 10, 2026 | Sprints 1–3 BE complete. 201 tests passing. Next: Sprint 4 (Cashfree payments).*

@@ -186,9 +186,32 @@ async function getRoute(origin, destination, options = {}) {
   }
 }
 
+/**
+ * Get ETA in seconds between two coordinates using the distance matrix API.
+ * Returns null on any failure — callers treat ETA as best-effort.
+ * @param {number} originLat
+ * @param {number} originLng
+ * @param {number} destLat
+ * @param {number} destLng
+ * @returns {Promise<number|null>} Duration in seconds, or null if unavailable
+ */
+async function getETA(originLat, originLng, destLat, destLng) {
+  try {
+    const result = await getDistanceMatrix(
+      [{ lat: originLat, lng: originLng }],
+      [{ lat: destLat, lng: destLng }]
+    );
+    return result?.rows?.[0]?.elements?.[0]?.duration?.value ?? null;
+  } catch (err) {
+    logger.warn('getETA failed', { error: err.message });
+    return null;
+  }
+}
+
 export {
   geocode,
   reverseGeocode,
   getDistanceMatrix,
   getRoute,
+  getETA,
 };

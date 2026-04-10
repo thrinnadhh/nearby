@@ -41,6 +41,7 @@ export const INSUFFICIENT_STOCK        = 'INSUFFICIENT_STOCK';
 export const ORDER_NOT_FOUND           = 'ORDER_NOT_FOUND';
 export const ORDER_NOT_CANCELLABLE     = 'ORDER_NOT_CANCELLABLE';
 export const ORDER_ACCEPT_EXPIRED      = 'ORDER_ACCEPT_EXPIRED';
+export const ORDER_INVALID_TRANSITION  = 'ORDER_INVALID_TRANSITION';
 export const DUPLICATE_ORDER           = 'DUPLICATE_ORDER';
 
 // ─── PAYMENT ──────────────────────────────────────────────────────────────────

@@ -261,7 +261,7 @@ router.post('/webhook', strictLimiter, async (req, res) => {
       .update(body)
       .digest('base64');
 
-    if (hash !== signature) {
+    if (!crypto.timingSafeEqual(Buffer.from(hash, 'base64'), Buffer.from(signature, 'base64'))) {
       logger.warn('Cashfree webhook: signature mismatch', { ip: req.ip });
       return res.status(400).json(
         errorResponse(INVALID_WEBHOOK_SIGNATURE, 'Signature verification failed')
