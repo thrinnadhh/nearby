@@ -79,20 +79,20 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 3.1 | Implement POST /orders | [BE] | ⬜ | Validate stock, lock qty, create order |
-| 3.2 | Idempotency key handling | [BE] | ⬜ | Redis check, prevent duplicates |
-| 3.3 | Server-side price calculation | [BE] | ⬜ | NEVER trust client price |
-| 3.4 | Implement BullMQ notifyShop job | [BE] | ⬜ | FCM + MSG91 SMS to shop |
-| 3.5 | Implement BullMQ autoCancel job | [BE] | ⬜ | Delayed 3 min, cancel + refund |
-| 3.6 | Implement Socket.IO order room | [BE] | ⬜ | Customer + shop join order:{orderId} |
-| 3.7 | Implement PATCH /orders/:id/accept | [BE] | ⬜ | Update status, notify customer, trigger delivery assign |
-| 3.8 | Implement PATCH /orders/:id/reject | [BE] | ⬜ | Status update + auto refund |
-| 3.9 | Implement PATCH /orders/:id/ready | [BE] | ⬜ | Notify delivery partner to pickup |
-| 3.10 | Implement PATCH /orders/:id/cancel | [BE] | ⬜ | Eligibility check + refund |
-| 3.11 | Implement GET /orders + GET /orders/:id | [BE] | ⬜ | With RLS (own orders only) |
-| 3.12 | Partial order cancel (item unavailable) | [BE] | ⬜ | Remove item + partial refund |
-| 3.13 | Set up Socket.IO server | [BE] | ⬜ | Separate port 3001, room management |
-| 3.14 | Write tests for order state machine | [BE] | ⬜ | All status transitions |
+| 3.1 | Implement POST /orders | [BE] | ✅ | Validates stock, locks qty, creates order |
+| 3.2 | Idempotency key handling | [BE] | ✅ | Redis-backed duplicate prevention with 10 minute TTL |
+| 3.3 | Server-side price calculation | [BE] | ✅ | DB prices are authoritative; client price ignored |
+| 3.4 | Implement BullMQ notifyShop job | [BE] | ✅ | FCM first, MSG91 SMS fallback |
+| 3.5 | Implement BullMQ autoCancel job | [BE] | ✅ | Delayed 3 minute cancel, stock restore, refund path, customer notify |
+| 3.6 | Implement Socket.IO order room | [BE] | ✅ | Customer + shop join order:{orderId} |
+| 3.7 | Implement PATCH /orders/:id/accept | [BE] | ✅ | Updates status, notifies customer, cancels delayed auto-cancel, triggers delivery assign |
+| 3.8 | Implement PATCH /orders/:id/reject | [BE] | ✅ | Status update, stock restore, refund path |
+| 3.9 | Implement PATCH /orders/:id/ready | [BE] | ✅ | Status update with downstream delivery notification hook |
+| 3.10 | Implement PATCH /orders/:id/cancel | [BE] | ✅ | Eligibility checks, stock restore, refund path |
+| 3.11 | Implement GET /orders + GET /orders/:id | [BE] | ✅ | Own-order access enforced for customer/shop owner views |
+| 3.12 | Partial order cancel (item unavailable) | [BE] | ✅ | Item removal plus partial refund path |
+| 3.13 | Set up Socket.IO server | [BE] | ✅ | Dedicated Socket.IO server on separate port |
+| 3.14 | Write tests for order state machine | [BE] | ✅ | Route, state-machine, and job coverage added |
 
 **Sprint 3 DoD:** Via Postman, place order → shop gets FCM → shop accepts → customer gets update via Socket.IO.
 

@@ -18,7 +18,13 @@ import { notifyCustomerQueue } from '../jobs/notifyCustomer.js';
 import { assignDeliveryQueue } from '../jobs/assignDelivery.js';
 import { emitOrderEvent } from '../socket/ioRegistry.js';
 
+const AUTO_CANCEL_JOB_PREFIX = 'auto-cancel:';
+
 class OrderService {
+  static _getAutoCancelJobId(orderId) {
+    return `${AUTO_CANCEL_JOB_PREFIX}${orderId}`;
+  }
+
   static async _fetchOrderItems(orderId) {
     const { data: orderItems, error } = await supabase
       .from('order_items')
@@ -107,7 +113,7 @@ class OrderService {
   static async _fetchOrder(orderId) {
     const { data: order, error } = await supabase
       .from('orders')
-      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at, accepted_at, delivered_at')
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, payment_id, created_at, updated_at, accepted_at, delivered_at')
       .eq('id', orderId)
       .single();
 
@@ -136,6 +142,40 @@ class OrderService {
         orderId,
         error: error.message,
       });
+    }
+  }
+
+  static async _cancelAutoCancelJob(orderId) {
+    if (typeof autoCancelQueue.remove !== 'function') {
+      return;
+    }
+
+    try {
+      await autoCancelQueue.remove(this._getAutoCancelJobId(orderId));
+    } catch (error) {
+      logger.warn('OrderService: failed to remove auto-cancel job', {
+        orderId,
+        error: error.message,
+      });
+    }
+  }
+
+  static async _refundOrderIfNeeded(order, reason) {
+    if (order.payment_method === 'cod' || !order.payment_id || order.total_paise <= 0) {
+      return false;
+    }
+
+    try {
+      const { refundPayment } = await import('./cashfree.js');
+      await refundPayment(order.payment_id, order.total_paise, reason);
+      return true;
+    } catch (error) {
+      logger.error('OrderService: refund failed', {
+        orderId: order.id,
+        paymentId: order.payment_id,
+        error: error.message,
+      });
+      return false;
     }
   }
 
@@ -232,7 +272,10 @@ class OrderService {
       await autoCancelQueue.add(
         'auto-cancel',
         { orderId: order.id, shopId: order.shop_id },
-        { delay: 3 * 60 * 1000 }
+        {
+          delay: 3 * 60 * 1000,
+          jobId: this._getAutoCancelJobId(order.id),
+        }
       );
     } catch (error) {
       logger.warn('OrderService: failed to queue auto-cancel job', {
@@ -432,6 +475,8 @@ class OrderService {
       throw new AppError(INTERNAL_ERROR, 'Failed to accept order.', 500);
     }
 
+    await this._cancelAutoCancelJob(orderId);
+
     try {
       await assignDeliveryQueue.add('assign-delivery', {
         orderId,
@@ -464,6 +509,8 @@ class OrderService {
 
     const orderItems = await this._fetchOrderItems(orderId);
     await this._restoreActiveOrderItemStock(orderItems);
+    await this._cancelAutoCancelJob(orderId);
+    await this._refundOrderIfNeeded(order, 'shop_rejected');
 
     const updatedAt = new Date().toISOString();
     const { data: updatedOrder, error } = await supabase
@@ -524,6 +571,8 @@ class OrderService {
 
     const orderItems = await this._fetchOrderItems(orderId);
     await this._restoreActiveOrderItemStock(orderItems);
+    await this._cancelAutoCancelJob(orderId);
+    await this._refundOrderIfNeeded(order, 'customer_cancelled');
 
     const updatedAt = new Date().toISOString();
     const { data: updatedOrder, error } = await supabase
@@ -626,6 +675,14 @@ class OrderService {
     }
 
     const updatedItems = Array.from(itemMap.values());
+    await this._cancelAutoCancelJob(orderId);
+    await this._refundOrderIfNeeded(
+      {
+        ...order,
+        total_paise: totalReduction,
+      },
+      nextStatus === 'cancelled' ? 'partial_cancel_full_order' : 'partial_cancel_items'
+    );
     await this._queueCustomerNotification(
       orderId,
       updatedOrder.customer_id,

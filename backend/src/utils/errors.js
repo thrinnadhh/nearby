@@ -47,6 +47,7 @@ export const DUPLICATE_ORDER           = 'DUPLICATE_ORDER';
 export const PAYMENT_FAILED            = 'PAYMENT_FAILED';
 export const PAYMENT_ALREADY_PROCESSED = 'PAYMENT_ALREADY_PROCESSED';
 export const INVALID_WEBHOOK_SIGNATURE = 'INVALID_WEBHOOK_SIGNATURE';
+export const PAYMENT_NOT_FOUND         = 'PAYMENT_NOT_FOUND';
 
 // ─── DELIVERY ─────────────────────────────────────────────────────────────────
 export const NO_PARTNER_AVAILABLE      = 'NO_PARTNER_AVAILABLE';

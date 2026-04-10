@@ -6,7 +6,7 @@ import { errorResponse, successResponse } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import { createOrderSchema, partialCancelOrderSchema } from '../utils/validators.js';
 import OrderService from '../services/orders.js';
-import { redis } from '../services/redis.js';
+import { checkIdempotencyKey, setIdempotencyKey } from '../utils/idempotency.js';
 
 const router = Router();
 
@@ -29,10 +29,10 @@ router.post(
         }
 
         const cacheKey = `orders:idempotency:${customerId}:${idempotencyKey}`;
-        const cachedOrder = await redis.get(cacheKey);
+        const cachedOrder = await checkIdempotencyKey(cacheKey);
         if (cachedOrder) {
           logger.info('Order idempotency hit', { customerId, idempotencyKey });
-          return res.status(200).json(successResponse(JSON.parse(cachedOrder)));
+          return res.status(200).json(successResponse(cachedOrder));
         }
       }
 
@@ -42,7 +42,7 @@ router.post(
 
       if (idempotencyKey) {
         const cacheKey = `orders:idempotency:${customerId}:${idempotencyKey}`;
-        await redis.setex(cacheKey, 600, JSON.stringify(order));
+        await setIdempotencyKey(cacheKey, order);
       }
 
       logger.info('Order created', {

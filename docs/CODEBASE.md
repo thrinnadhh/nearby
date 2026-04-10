@@ -35,9 +35,9 @@
 | **Auth System** | ⬜ Not Started | 0% | OTP + JWT logic pending (Sprint 1) |
 | **Shop CRUD** | ⬜ Not Started | 0% | Pending (Sprint 2) |
 | **Product CRUD** | ⬜ Not Started | 0% | Pending (Sprint 2) |
-| **Order Flow** | ⬜ Not Started | 0% | Pending (Sprint 3-4) |
+| **Order Flow** | ✅ Done | 100% | Sprint 3 order creation, notifications, auto-cancel, and order state machine complete |
 | **Payment Integration** | ⬜ Not Started | 0% | Pending (Sprint 4) |
-| **Real-time (Socket.IO)** | ⬜ Not Started | 0% | Handler stubs created, logic pending |
+| **Real-time (Socket.IO)** | 🟨 Partial | 65% | Socket server and order rooms complete; later sprints still need delivery/live tracking polish |
 | **Search (Typesense)** | ⬜ Not Started | 0% | Service client created, queries pending |
 | **Delivery Tracking** | ⬜ Not Started | 0% | Pending (Sprint 5-6) |
 | **Mobile Apps** | ⬜ Not Started | 0% | Pending (Sprint 7-13) |

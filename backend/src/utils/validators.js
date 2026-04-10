@@ -439,6 +439,15 @@ export const partialCancelOrderSchema = Joi.object({
     }),
 });
 
+export const initiatePaymentSchema = Joi.object({
+  order_id: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .required()
+    .messages({
+      'string.guid': 'order_id must be a valid UUID',
+    }),
+});
+
 export const validate = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, { abortEarly: false });
   if (error) {

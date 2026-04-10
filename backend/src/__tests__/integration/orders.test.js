@@ -53,6 +53,7 @@ jest.mock('../../jobs/notifyShop.js', () => ({
 jest.mock('../../jobs/autoCancel.js', () => ({
   autoCancelQueue: {
     add: jest.fn().mockResolvedValue({ id: 'auto-cancel-job' }),
+    remove: jest.fn().mockResolvedValue(1),
   },
   autoCancelWorker: {},
 }));
@@ -69,6 +70,10 @@ jest.mock('../../jobs/assignDelivery.js', () => ({
     add: jest.fn().mockResolvedValue({ id: 'assign-delivery-job' }),
   },
   assignDeliveryWorker: {},
+}));
+
+jest.mock('../../services/cashfree.js', () => ({
+  refundPayment: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
 }));
 
 jest.mock('../../socket/ioRegistry.js', () => ({
@@ -92,6 +97,7 @@ describe('Orders Routes', () => {
   let mockNotifyCustomerQueue;
   let mockAssignDeliveryQueue;
   let mockEmitOrderEvent;
+  let mockRefundPayment;
   const ORDER_ID = '550e8400-e29b-41d4-a716-446655440106';
   const ORDER_ITEM_ID = '550e8400-e29b-41d4-a716-446655440107';
 
@@ -115,6 +121,7 @@ describe('Orders Routes', () => {
     ({ notifyCustomerQueue: mockNotifyCustomerQueue } = await import('../../jobs/notifyCustomer.js'));
     ({ assignDeliveryQueue: mockAssignDeliveryQueue } = await import('../../jobs/assignDelivery.js'));
     ({ emitOrderEvent: mockEmitOrderEvent } = await import('../../socket/ioRegistry.js'));
+    ({ refundPayment: mockRefundPayment } = await import('../../services/cashfree.js'));
   });
 
   beforeEach(() => {
@@ -511,6 +518,7 @@ describe('Orders Routes', () => {
 
     expect(response.body.data.status).toBe('accepted');
     expect(mockAssignDeliveryQueue.add).toHaveBeenCalled();
+    expect(mockAutoCancelQueue.remove).toHaveBeenCalledWith(`auto-cancel:${ORDER_ID}`);
     expect(mockNotifyCustomerQueue.add).toHaveBeenCalledWith(
       'notify-customer',
       expect.objectContaining({ orderId: ORDER_ID, status: 'accepted' })
@@ -541,6 +549,22 @@ describe('Orders Routes', () => {
       'order:status_updated',
       expect.objectContaining({ order: expect.objectContaining({ status: 'cancelled' }) })
     );
+  });
+
+  it('refunds non-cod orders when the shop rejects them', async () => {
+    mockOrderLifecycleFlow({
+      orderOverrides: {
+        payment_method: 'upi',
+        payment_id: 'pay_123',
+      },
+    });
+
+    await request(app)
+      .patch(`/api/v1/orders/${ORDER_ID}/reject`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    expect(mockRefundPayment).toHaveBeenCalledWith('pay_123', 13000, 'shop_rejected');
   });
 
   it('allows the shop owner to mark an accepted order ready', async () => {
@@ -581,6 +605,22 @@ describe('Orders Routes', () => {
     );
   });
 
+  it('refunds non-cod orders when the customer cancels them', async () => {
+    mockOrderLifecycleFlow({
+      orderOverrides: {
+        payment_method: 'upi',
+        payment_id: 'pay_456',
+      },
+    });
+
+    await request(app)
+      .patch(`/api/v1/orders/${ORDER_ID}/cancel`)
+      .set('Authorization', `Bearer ${customerToken}`)
+      .expect(200);
+
+    expect(mockRefundPayment).toHaveBeenCalledWith('pay_456', 13000, 'customer_cancelled');
+  });
+
   it('allows the shop owner to partially cancel unavailable items', async () => {
     mockOrderLifecycleFlow({ orderOverrides: { total_paise: 13000, status: 'accepted' } });
 
@@ -610,6 +650,28 @@ describe('Orders Routes', () => {
         totalReductionPaise: 6500,
       })
     );
+  });
+
+  it('refunds the removed amount for partial cancellation on prepaid orders', async () => {
+    mockOrderLifecycleFlow({
+      orderOverrides: {
+        total_paise: 13000,
+        status: 'accepted',
+        payment_method: 'upi',
+        payment_id: 'pay_partial',
+      },
+    });
+
+    await request(app)
+      .patch(`/api/v1/orders/${ORDER_ID}/partial-cancel`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        reason: 'One item unavailable',
+        items: [{ item_id: ORDER_ITEM_ID, cancel_quantity: 1 }],
+      })
+      .expect(200);
+
+    expect(mockRefundPayment).toHaveBeenCalledWith('pay_partial', 6500, 'partial_cancel_items');
   });
 
   it('cancels the full order when partial cancellation removes all remaining items', async () => {
