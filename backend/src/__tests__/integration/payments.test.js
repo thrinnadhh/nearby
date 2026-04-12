@@ -150,8 +150,7 @@ describe('Payments Routes', () => {
       if (table === 'orders') {
         return {
           select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: order, error: null }),
+          eq: jest.fn().mockResolvedValue({ data: [order], error: null }),
           update: jest.fn(() => ({
             eq: jest.fn().mockResolvedValue({ data: null, error: null }),
           })),
@@ -161,9 +160,8 @@ describe('Payments Routes', () => {
       if (table === 'profiles') {
         return {
           select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: CUSTOMER_ID, phone: '+919000001010' },
+          eq: jest.fn().mockResolvedValue({
+            data: [{ id: CUSTOMER_ID, phone: '+919000001010' }],
             error: null,
           }),
         };
@@ -196,8 +194,7 @@ describe('Payments Routes', () => {
       if (table === 'orders') {
         return {
           select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: order, error: null }),
+          eq: jest.fn().mockResolvedValue({ data: [order], error: null }),
           update: jest.fn(() => ({
             eq: jest.fn().mockResolvedValue({ data: null, error: null }),
           })),
@@ -228,8 +225,7 @@ describe('Payments Routes', () => {
       if (table === 'orders') {
         return {
           select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: order, error: null }),
+          eq: jest.fn().mockResolvedValue({ data: [order], error: null }),
         };
       }
 

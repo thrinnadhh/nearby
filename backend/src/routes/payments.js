@@ -26,17 +26,16 @@ if (!CASHFREE_WEBHOOK_SECRET) {
 }
 
 const fetchOrderForPayment = async (orderId) => {
-  const { data: order, error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, payment_id, cashfree_order_id, created_at, updated_at')
-    .eq('id', orderId)
-    .single();
+    .eq('id', orderId);
 
-  if (error || !order) {
+  if (error || !data || data.length === 0) {
     return null;
   }
 
-  return order;
+  return data[0];
 };
 
 const assertOrderAccess = (user, order) => {
@@ -144,15 +143,16 @@ router.post(
         }));
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, phone')
-        .eq('id', req.user.userId)
-        .single();
+        .eq('id', req.user.userId);
 
-      if (profileError || !profile) {
+      if (profileError || !profiles || profiles.length === 0) {
         return res.status(500).json(errorResponse(INTERNAL_ERROR, 'Customer profile not found.'));
       }
+
+      const profile = profiles[0];
 
       const cashfreeOrderId = order.cashfree_order_id || `nearby-${order.id}`;
       const session = await createPaymentSession({
@@ -261,8 +261,26 @@ router.post('/webhook', strictLimiter, async (req, res) => {
       .update(body)
       .digest('base64');
 
-    if (!crypto.timingSafeEqual(Buffer.from(hash, 'base64'), Buffer.from(signature, 'base64'))) {
-      logger.warn('Cashfree webhook: signature mismatch', { ip: req.ip });
+    try {
+      const hashBuffer = Buffer.from(hash, 'base64');
+      const signatureBuffer = Buffer.from(signature, 'base64');
+
+      // Check buffer lengths before comparison to avoid timingSafeEqual error
+      if (hashBuffer.length !== signatureBuffer.length) {
+        logger.warn('Cashfree webhook: signature length mismatch', { ip: req.ip });
+        return res.status(400).json(
+          errorResponse(INVALID_WEBHOOK_SIGNATURE, 'Signature verification failed')
+        );
+      }
+
+      if (!crypto.timingSafeEqual(hashBuffer, signatureBuffer)) {
+        logger.warn('Cashfree webhook: signature mismatch', { ip: req.ip });
+        return res.status(400).json(
+          errorResponse(INVALID_WEBHOOK_SIGNATURE, 'Signature verification failed')
+        );
+      }
+    } catch (bufferError) {
+      logger.warn('Cashfree webhook: invalid signature format', { ip: req.ip, error: bufferError.message });
       return res.status(400).json(
         errorResponse(INVALID_WEBHOOK_SIGNATURE, 'Signature verification failed')
       );

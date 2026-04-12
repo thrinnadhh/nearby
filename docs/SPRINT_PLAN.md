@@ -48,7 +48,10 @@ POST /shops/:id/products, product images, bulk CSV upload, Typesense indexing.
 
 ### Sprint 4 (Week 7–8) — Payments
 Cashfree payment initiation, webhook handler, refunds.
-- Status: ⬜ Not started
+- Task 4.1: 🟩 COMPLETE — POST /payments/initiate (create payment session or mark COD complete; 68/68 tests; 83-96% coverage)
+- Task 4.2: 🟩 COMPLETE — GET /payments/:id (retrieve payment status; covered in 68 total tests)
+- Task 4.3: 🟩 COMPLETE — POST /webhook (HMAC-SHA256 signature verification, idempotent processing, stock restoration on failure; covered in 68 total tests)
+- Status: 🟩 COMPLETE
 
 ### Sprint 5 (Week 9–10) — Delivery Tracking
 assign-delivery BullMQ worker, GPS Socket.IO tracker, delivery state machine, delivery routes.
@@ -58,7 +61,7 @@ assign-delivery BullMQ worker, GPS Socket.IO tracker, delivery state machine, de
 - Task 5.4: 🟩 COMPLETE — PATCH /api/v1/delivery/orders/:orderId/pickup (assigned → picked_up, notify-customer enqueued, Socket.IO broadcast; 21 integration tests)
 - Task 5.5: 🟩 COMPLETE — PATCH /api/v1/delivery/orders/:orderId/deliver (picked_up|out_for_delivery → delivered, delivered_at recorded, notify-customer enqueued; 21 integration tests)
 - Task 5.6: 🟩 COMPLETE — Socket.IO gps:update handler (role guard, UUID regex validation, India bounds check, Redis GEOADD + 30s EXPIRE, Ola Maps ETA best-effort, broadcast gps:position to order room; 13 unit tests)
-- Total Sprint 5: 45 new tests | Overall suite: 263/263 passing
+- Total Sprint 5: 45 new tests | Overall suite: 331/331 passing
 
 ### Sprint 6 (Week 11–12) — Reviews & Ratings
 POST /reviews, GET /shops/:id/reviews, trust score inputs.

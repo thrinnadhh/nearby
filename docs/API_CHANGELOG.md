@@ -6,6 +6,88 @@
 
 ---
 
+## [Sprint 4] - 2026-04-12
+
+### Payment Initiation Module (Cashfree)
+
+**Added:**
+
+#### POST /api/v1/payments/initiate
+- Auth: Bearer JWT (`customer` role)
+- Request: `{ order_id: uuid }`
+- Validation: `order_id` required, valid UUID v4
+- Authorization: Customer can only initiate payments for their own orders; shop owners cannot initiate (role guard)
+- Behavior:
+  - If order payment already completed: returns 200 with `alreadyPaid: true` and null payment fields
+  - If order payment method is `cod` (cash-on-delivery): marks order payment_status as completed, returns 200 with `mode: 'cod'`
+  - Otherwise (card/upi prepaid): creates Cashfree payment session via createPaymentSession API, stores cashfree_order_id in orders table, returns 200 with payment_session_id and payment_link
+- Response: 200 with `{ orderId, paymentStatus, paymentMethod, cashfreeOrderId, paymentSessionId, paymentLink }`
+- Error codes: PAYMENT_NOT_FOUND (404), FORBIDDEN (403 for cross-customer access), UNAUTHORIZED (401), INTERNAL_ERROR (500 on profile lookup failure)
+- Rate limit: 30 requests/minute per user
+
+#### GET /api/v1/payments/:id
+- Auth: Bearer JWT (`customer` or `shop_owner` role)
+- Authorization: Customer can only view payments for their own orders; shop owners can only view payments for their shop's orders
+- Params: `:id` is order ID, validated as UUID v4
+- Behavior:
+  - Fetches order record (order must exist)
+  - If order has cashfree_order_id and payment_method is not `cod`: queries Cashfree gateway for live payment status (best-effort; failure is logged as warning, endpoint continues)
+  - Returns order and gateway status (gateway status nullable)
+- Response: 200 with `{ orderId, orderStatus, paymentMethod, paymentStatus, paymentId, cashfreeOrderId, gatewayStatus, updatedAt }`
+- Error codes: PAYMENT_NOT_FOUND (404), FORBIDDEN (403 for cross-customer/shop access), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+
+#### POST /api/v1/payments/webhook
+- Auth: Public (no JWT required)
+- Rate limit: 10 requests/minute (strict limiter)
+- Headers: `x-webhook-signature` required (HMAC-SHA256 base64-encoded)
+- Request body: Cashfree webhook payload with `{ event, data: { order, payment, ... } }`
+- Behavior:
+  - Verifies HMAC-SHA256 signature using `CASHFREE_WEBHOOK_SECRET` (timing-safe comparison with buffer length check)
+  - Extracts paymentId, cashfreeOrderId, orderId from nested payload
+  - Checks Redis cache for idempotent duplicate (key: `payment:{paymentId}:processed`, TTL 86400 seconds)
+  - If already processed: returns 200 with `{ status: 'already_processed' }`
+  - Sets processing lock in Redis (key: `payment:{paymentId}:processing`, TTL 30s) to prevent concurrent processing
+  - Handles two event types:
+    - `PAYMENT_SUCCESS`: updates order payment_status to `completed`, stores payment_id and cashfree_order_id, marks as processed
+    - `PAYMENT_FAILED`: calls restoreOrderStock (restores stock for all non-cancelled items), updates order status to `payment_failed` and payment_status to `failed`, marks as processed
+  - Unknown event types: logged, marked as processed (idempotent), returns 200
+  - On completion: deletes processing lock, returns 200 with `{ status: 'processed' }`
+- Error codes: INVALID_WEBHOOK_SIGNATURE (400 on signature mismatch or format error), INTERNAL_ERROR (500 on DB/processing failure)
+- Response: 200 on success, 400 on invalid signature, 500 on processing error
+- Idempotency: Redis-backed, 24-hour deduplication window prevents duplicate order updates from webhook retries
+
+**Security Notes:**
+- HMAC-SHA256 signature verification mandatory before any processing
+- Timing-safe comparison prevents timing-based attacks
+- Buffer length check before comparison prevents InvalidOperationError on mismatched lengths
+- Invalid base64 in signature header caught and rejected (400 error)
+- Idempotent webhook processing prevents duplicate stock restoration and order status updates
+- PaymentId and orderId validation prevents injection of invalid identifiers
+- Stock restoration only on PAYMENT_FAILED event (not on other events)
+- Stock restoration is selective: only active items (quantity - cancelled_quantity > 0) are restored
+
+**Fixes:**
+- Supabase `.single()` incompatibility fixed: replaced with explicit length check `data.length === 0`
+- Webhook signature validation fixed: added buffer length check before timing-safe comparison to handle invalid base64
+- Signature format error handling: try-catch around Buffer.from() prevents unhandled errors on malformed base64
+
+**Test Coverage:**
+- 68 new integration + unit tests (100% pass rate)
+- payments.js: 83% coverage — happy path payment session creation, COD handling, cross-customer access prevention, payment status lookup, Cashfree failure resilience, profile lookup edge cases
+- cashfree.js: 96% coverage — API request formatting, error handling, logging, secret validation
+- Webhook tests: signature verification (valid/invalid/mismatched), idempotency (duplicate skipping), PAYMENT_SUCCESS flow, PAYMENT_FAILED with stock restoration, unknown events, processing locks, Redis integration
+
+**Database Changes:**
+- orders.cashfree_order_id: TEXT field stores Cashfree order ID (initially null, set on payment initiation)
+- orders.payment_id: TEXT field stores Cashfree payment ID (initially null, set on webhook PAYMENT_SUCCESS)
+
+**Next Steps:**
+- Sprint 5: Delivery tracking and GPS integration (assign-delivery worker, delivery routes, Socket.IO gps:update)
+- Sprint 6: Reviews and ratings endpoints
+
+---
+
 ## [Sprint 5] - 2026-04-10
 
 ### Delivery Tracking Module
@@ -98,7 +180,7 @@
 - 21 integration tests (`delivery.test.js`) — list orders, accept/reject/pickup/deliver flows, auth/role guards, UUID validation, ownership enforcement
 - 11 unit tests (`assignDelivery.test.js`) — job processor logic, GEOSEARCH, optimistic lock, admin alert on final retry, safe payload stripping
 - 13 unit tests (`gpsTracker.test.js`) — role guard, UUID validation, coordinate bounds, ownership check, status guard, Redis GEOADD+EXPIRE, ETA computation, broadcast, ETA failure resilience
-- Total Sprint 5: 45 new tests; overall suite: 263/263 passing
+- Total Sprint 5: 45 new tests; overall suite: 331/331 passing
 
 **Response Shape (order object):**
 ```json
@@ -513,9 +595,9 @@
 - `PATCH /api/v1/orders/:id/ready` — Mark order ready for pickup
 - `PATCH /api/v1/orders/:id/cancel` — Customer cancels order
 - `PATCH /api/v1/orders/:id/item-unavailable` — Remove item from active order
-- `POST /api/v1/payments/initiate` — Create Cashfree payment
-- `POST /api/v1/payments/webhook` — Cashfree webhook handler
-- `GET /api/v1/payments/:id` — Get payment status
+- `POST /api/v1/payments/initiate` — Create Cashfree payment ✅ DONE (Sprint 4, Task 4.1)
+- `POST /api/v1/payments/webhook` — Cashfree webhook handler ✅ DONE (Sprint 4, Task 4.3)
+- `GET /api/v1/payments/:id` — Get payment status ✅ DONE (Sprint 4, Task 4.2)
 
 ### Added (Sprint 5) ✅ DONE
 - `GET /api/v1/delivery/orders` — List partner's assigned orders ✅ DONE (Sprint 5, Task 5.2)
@@ -603,6 +685,7 @@ ORDER_ALREADY_PICKED_UP  Cannot cancel after pickup
 ORDER_INVALID_TRANSITION Order status transition not permitted
 
 PAYMENT_FAILED           Cashfree payment failed
+PAYMENT_NOT_FOUND        Payment/order doesn't exist
 PAYMENT_ALREADY_PROCESSED Webhook duplicate (idempotency)
 INVALID_WEBHOOK_SIGNATURE Cashfree HMAC mismatch
 REFUND_FAILED            Cashfree refund API error
@@ -645,4 +728,4 @@ RATE_LIMITED             Generic rate limit exceeded
 
 ---
 
-*Updated automatically when APIs change. Last update: April 10, 2026 (Sprint 5 delivery tracking complete)*
+*Updated automatically when APIs change. Last update: April 12, 2026 (Sprint 4 payment initiation complete)*
