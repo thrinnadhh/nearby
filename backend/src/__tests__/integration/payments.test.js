@@ -24,6 +24,7 @@ jest.mock('../../services/redis.js', () => ({
 jest.mock('../../services/supabase.js', () => ({
   supabase: {
     from: jest.fn(),
+    rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
     auth: {
       getSession: jest.fn().mockResolvedValue({ data: {}, error: null }),
     },
@@ -277,46 +278,17 @@ describe('Payments Routes', () => {
   });
 
   it('restores stock and marks payment failed when the webhook says payment failed', async () => {
-    const updates = [];
+    // restoreOrderStock now calls supabase.rpc('restore_stock_for_order') atomically
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
 
     mockSupabase.from.mockImplementation((table) => {
       if (table === 'orders') {
         return {
-          update: jest.fn((patch) => ({
-            eq: jest.fn().mockImplementation(async () => {
-              updates.push({ table, patch });
-              return { data: null, error: null };
-            }),
+          update: jest.fn(() => ({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
           })),
         };
       }
-
-      if (table === 'order_items') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({
-            data: [{ product_id: PRODUCT_ID, quantity: 2, cancelled_quantity: 0 }],
-            error: null,
-          }),
-        };
-      }
-
-      if (table === 'products') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          in: jest.fn().mockResolvedValue({
-            data: [{ id: PRODUCT_ID, stock_quantity: 5 }],
-            error: null,
-          }),
-          update: jest.fn((patch) => ({
-            eq: jest.fn().mockImplementation(async () => {
-              updates.push({ table, patch });
-              return { data: null, error: null };
-            }),
-          })),
-        };
-      }
-
       throw new Error(`Unexpected table ${table}`);
     });
 
@@ -338,17 +310,10 @@ describe('Payments Routes', () => {
       .send(payload)
       .expect(200);
 
-    expect(updates).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          table: 'products',
-          patch: { stock_quantity: 7, is_available: true },
-        }),
-        expect.objectContaining({
-          table: 'orders',
-          patch: expect.objectContaining({ status: 'payment_failed', payment_status: 'failed' }),
-        }),
-      ])
+    // Verify atomic stock restoration RPC was called
+    expect(mockSupabase.rpc).toHaveBeenCalledWith(
+      'restore_stock_for_order',
+      { p_order_id: ORDER_ID }
     );
   });
 });

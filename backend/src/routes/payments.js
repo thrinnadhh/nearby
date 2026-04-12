@@ -52,46 +52,18 @@ const assertOrderAccess = (user, order) => {
   }
 };
 
+/**
+ * Atomically restore stock for all items in an order.
+ * Uses a DB-side stored function (migration 014) to avoid the read-modify-write
+ * race condition that can occur when concurrent webhook retries run simultaneously.
+ */
 const restoreOrderStock = async (orderId) => {
-  const { data: items, error: itemsError } = await supabase
-    .from('order_items')
-    .select('product_id, quantity, cancelled_quantity')
-    .eq('order_id', orderId);
+  const { error } = await supabase.rpc('restore_stock_for_order', {
+    p_order_id: orderId,
+  });
 
-  if (itemsError) {
-    throw new Error(`Failed to load order items for payment rollback: ${itemsError.message}`);
-  }
-
-  const productIds = (items || []).map((item) => item.product_id);
-  if (productIds.length === 0) {
-    return;
-  }
-
-  const { data: products, error: productsError } = await supabase
-    .from('products')
-    .select('id, stock_quantity')
-    .in('id', productIds);
-
-  if (productsError) {
-    throw new Error(`Failed to load products for payment rollback: ${productsError.message}`);
-  }
-
-  const stockMap = new Map((products || []).map((product) => [product.id, product.stock_quantity]));
-
-  for (const item of items) {
-    const activeQuantity = Math.max(item.quantity - (item.cancelled_quantity || 0), 0);
-    if (activeQuantity <= 0) {
-      continue;
-    }
-
-    const nextStock = (stockMap.get(item.product_id) || 0) + activeQuantity;
-    await supabase
-      .from('products')
-      .update({
-        stock_quantity: nextStock,
-        is_available: nextStock > 0,
-      })
-      .eq('id', item.product_id);
+  if (error) {
+    throw new Error(`Failed to restore stock for order ${orderId}: ${error.message}`);
   }
 };
 

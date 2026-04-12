@@ -6,6 +6,7 @@ import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import upload from '../middleware/multer.js';
 import { validate } from '../middleware/validate.js';
+import ReviewService from '../services/reviews.js';
 import {
   createShopSchema,
   updateShopSchema,
@@ -270,5 +271,38 @@ router.post(
     }
   }
 );
+
+/**
+ * GET /api/v1/shops/:shopId/reviews
+ * List reviews for a shop (paginated). Public endpoint.
+ */
+router.get('/:shopId/reviews', async (req, res, next) => {
+  try {
+    const { shopId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10) || 20));
+    const result = await ReviewService.getReviewsByShop(shopId, { page: pageNum, limit: limitNum });
+    return res.status(200).json(successResponse(result.reviews, result.meta));
+  } catch (err) {
+    logger.error('Get shop reviews endpoint error', { shopId: req.params?.shopId, error: err.message });
+    return next(err);
+  }
+});
+
+/**
+ * GET /api/v1/shops/:shopId/review-stats
+ * Get aggregated review statistics for a shop. Public endpoint.
+ */
+router.get('/:shopId/review-stats', async (req, res, next) => {
+  try {
+    const { shopId } = req.params;
+    const stats = await ReviewService.getReviewStats(shopId);
+    return res.status(200).json(successResponse(stats));
+  } catch (err) {
+    logger.error('Get review stats endpoint error', { shopId: req.params?.shopId, error: err.message });
+    return next(err);
+  }
+});
 
 export default router;

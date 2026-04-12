@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js';
 import logger from '../utils/logger.js';
 import { AppError, INTERNAL_ERROR } from '../utils/errors.js';
+import { NEARBY_COMMISSION_RATE } from '../config/business.js';
 
 /**
  * Analytics Service
@@ -27,7 +28,7 @@ class AnalyticsService {
 
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('id, status, total_paise, accepted_at, delivered_at, customer_id')
+      .select('id, status, total_paise, accepted_at, delivered_at, customer_id, created_at')
       .eq('shop_id', shopId)
       .gte('created_at', dayStart)
       .lte('created_at', dayEnd);
@@ -46,17 +47,10 @@ class AnalyticsService {
       unique_customers: new Set(orders?.map((o) => o.customer_id) || []).size,
     };
 
-    // 3. Calculate revenue
-    const { data: completedOrders } = await supabase
-      .from('orders')
-      .select('total_paise')
-      .eq('shop_id', shopId)
-      .eq('status', 'delivered')
-      .gte('created_at', dayStart)
-      .lte('created_at', dayEnd);
-
-    const grossRevenue = completedOrders?.reduce((sum, o) => sum + o.total_paise, 0) || 0;
-    const nearbyCommission = Math.floor(grossRevenue * 0.08); // 8% commission
+    // 3. Calculate revenue — derive from already-loaded orders, no second DB query
+    const completedOrders = orders?.filter((o) => o.status === 'delivered') || [];
+    const grossRevenue = completedOrders.reduce((sum, o) => sum + o.total_paise, 0);
+    const nearbyCommission = Math.floor(grossRevenue * NEARBY_COMMISSION_RATE);
     const netRevenue = grossRevenue - nearbyCommission;
 
     // 4. Calculate completion rate

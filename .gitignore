@@ -13,3 +13,5 @@ android/
 ios/
 *.jks
 *.keystore
+# Dev scratch files
+backend/advisor.js

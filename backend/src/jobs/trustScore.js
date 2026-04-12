@@ -1,7 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import logger from '../utils/logger.js';
 import { supabase } from '../services/supabase.js';
-import { typesenceSync } from '../jobs/typesenseSync.js';
+import { typesenseSync } from '../jobs/typesenseSync.js';
 import {
   calculateTrustScore,
   getTrustBadge,
@@ -52,15 +52,20 @@ export const processTrustScoreJob = async (job) => {
         ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
         : 0;
 
-      // Get completion rate from today's analytics or compute manually
-      const { data: todayAnalytics } = await supabase
+      // Get completion rate from yesterday's analytics
+      // (analytics-aggregate job runs at 3 AM; trust score at 2 AM reads the previous day)
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      const { data: latestAnalytics } = await supabase
         .from('shop_analytics')
-        .select('completion_rate, avg_rating')
+        .select('completion_rate')
         .eq('shop_id', shop.id)
-        .gte('date', new Date().toISOString().split('T')[0])
+        .eq('date', yesterdayStr)
         .single();
 
-      const completionRate = todayAnalytics?.completion_rate || 0;
+      const completionRate = latestAnalytics?.completion_rate || 0;
 
       // Response score: inverse of avg acceptance time (100 = instant, 0 = very slow)
       const { data: latestOrder } = await supabase
@@ -115,7 +120,7 @@ export const processTrustScoreJob = async (job) => {
 
       // 4. Sync to Typesense
       try {
-        await typesenceSync.add('sync', {
+        await typesenseSync.add('sync', {
           type: 'shop',
           shopId: shop.id,
         });

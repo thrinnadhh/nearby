@@ -144,4 +144,3 @@ export function formatTrustScore(rawScore) {
   };
 }
 
-logger.info('trustScoreFormula loaded with weights', { WEIGHTS, BADGE_THRESHOLDS });

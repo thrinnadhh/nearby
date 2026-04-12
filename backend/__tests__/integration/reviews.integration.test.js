@@ -389,7 +389,7 @@ describe('Reviews API', () => {
       });
 
       const res = await request(app)
-        .get(`/api/v1/reviews/${shopId}/reviews`)
+        .get(`/api/v1/shops/${shopId}/reviews`)
         .query({ page: 1, limit: 20 });
 
       expect(res.status).toBe(200);
@@ -433,7 +433,7 @@ describe('Reviews API', () => {
       });
 
       const res = await request(app)
-        .get(`/api/v1/reviews/${shopId}/reviews`)
+        .get(`/api/v1/shops/${shopId}/reviews`)
         .query({ page: 1, limit: 2 });
 
       expect(res.status).toBe(200);
@@ -444,18 +444,18 @@ describe('Reviews API', () => {
 
   describe('GET /api/v1/reviews/:shopId/review-stats', () => {
     it('should return review statistics', async () => {
+      // The new implementation uses DB aggregation: select('rating.avg(), rating.count()')
+      // Chain: .from('reviews').select(...).eq(...).eq(...).single()
       mockSupabase.from.mockImplementation((table) => {
         if (table === 'reviews') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                eq: jest.fn().mockResolvedValue({
-                  data: [
-                    { rating: 5 },
-                    { rating: 4 },
-                    { rating: 4 },
-                  ],
-                  error: null,
+                eq: jest.fn().mockReturnValue({
+                  single: jest.fn().mockResolvedValue({
+                    data: { 'rating.avg()': 4.33, 'rating.count()': 3 },
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -470,7 +470,7 @@ describe('Reviews API', () => {
       });
 
       const res = await request(app)
-        .get(`/api/v1/reviews/${shopId}/review-stats`);
+        .get(`/api/v1/shops/${shopId}/review-stats`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

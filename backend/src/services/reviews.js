@@ -122,25 +122,21 @@ class ReviewService {
   }
 
   static async getReviewStats(shopId) {
-    const { data: reviews, error } = await supabase
+    // Use DB-side aggregation to avoid loading every review into memory
+    const { data, error } = await supabase
       .from('reviews')
-      .select('rating')
+      .select('rating.avg(), rating.count()', { count: 'exact' })
       .eq('shop_id', shopId)
-      .eq('is_visible', true);
+      .eq('is_visible', true)
+      .single();
 
-    if (error || !reviews || reviews.length === 0) {
-      return {
-        avgRating: 0,
-        reviewCount: 0,
-      };
+    if (error || !data) {
+      return { avgRating: 0, reviewCount: 0 };
     }
 
-    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-    const avgRating = sum / reviews.length;
-
     return {
-      avgRating: parseFloat(avgRating.toFixed(2)),
-      reviewCount: reviews.length,
+      avgRating: parseFloat((data['rating.avg()'] ?? 0).toFixed(2)),
+      reviewCount: data['rating.count()'] ?? 0,
     };
   }
 

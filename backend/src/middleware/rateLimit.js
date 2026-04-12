@@ -54,6 +54,7 @@ export const rateLimit = (name, max, windowSeconds) => {
       return req.user?.userId || req.ip;
     },
     standardHeaders: false,
+    legacyHeaders: false,
     handler: (req, res) => {
       logger.warn(`${name} rate limit exceeded`, {
         userId: req.user?.userId || 'anonymous',

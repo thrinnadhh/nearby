@@ -1,6 +1,8 @@
 import logger from '../utils/logger.js';
 import { supabase } from '../services/supabase.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Socket.IO Chat Handler
  * Enables real-time pre-order and post-order chat between customers and shops
@@ -37,6 +39,23 @@ export function registerChat(io, socket) {
         socket.emit('message-error', {
           code: 'VALIDATION_ERROR',
           message: 'shopId and body are required',
+        });
+        return;
+      }
+
+      if (!UUID_REGEX.test(shopId)) {
+        socket.emit('message-error', {
+          code: 'VALIDATION_ERROR',
+          message: 'shopId must be a valid UUID',
+        });
+        return;
+      }
+
+      // Shop owners can only send messages on behalf of their own shop
+      if (role === 'shop_owner' && socket.data.user.shopId !== shopId) {
+        socket.emit('message-error', {
+          code: 'FORBIDDEN',
+          message: 'Cannot send messages on behalf of another shop',
         });
         return;
       }
@@ -135,6 +154,23 @@ export function registerChat(io, socket) {
         socket.emit('chat-error', {
           code: 'VALIDATION_ERROR',
           message: 'shopId is required',
+        });
+        return;
+      }
+
+      if (!UUID_REGEX.test(shopId)) {
+        socket.emit('chat-error', {
+          code: 'VALIDATION_ERROR',
+          message: 'shopId must be a valid UUID',
+        });
+        return;
+      }
+
+      // Shop owners can only join their own shop's chat room
+      if (role === 'shop_owner' && socket.data.user.shopId !== shopId) {
+        socket.emit('chat-error', {
+          code: 'FORBIDDEN',
+          message: 'Cannot join another shop\'s chat room',
         });
         return;
       }

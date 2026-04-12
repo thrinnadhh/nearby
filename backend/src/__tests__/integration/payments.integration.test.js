@@ -25,6 +25,7 @@ jest.mock('../../services/redis.js', () => ({
 jest.mock('../../services/supabase.js', () => ({
   supabase: {
     from: jest.fn(),
+    rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
     auth: {
       getSession: jest.fn().mockResolvedValue({ data: {}, error: null }),
     },
@@ -185,30 +186,15 @@ describe('Payments Integration Tests', () => {
         };
       }
 
-      if (table === 'order_items') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({
-            data: [{ product_id: PRODUCT_ID, quantity: 2, cancelled_quantity: 0 }],
-            error: null,
-          }),
-        };
-      }
-
-      if (table === 'products') {
-        return {
-          select: jest.fn().mockReturnThis(),
-          in: jest.fn().mockResolvedValue({
-            data: [{ id: PRODUCT_ID, stock_quantity: 5 }],
-            error: null,
-          }),
-          update: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }),
-        };
-      }
-
-      throw new Error(`Unexpected table ${table}`);
+      // Note: order_items and products are no longer queried directly by restoreOrderStock.
+      // Stock restoration now uses supabase.rpc('restore_stock_for_order') atomically.
+      return {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      };
     });
   };
 
@@ -613,6 +599,8 @@ describe('Payments Integration Tests', () => {
     });
 
     it('should handle orders with no items during payment failure', async () => {
+      // restoreOrderStock now uses supabase.rpc — order_items no longer fetched directly
+      mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
       mockSupabase.from.mockImplementation((table) => {
         if (table === 'orders') {
           return {
@@ -621,13 +609,10 @@ describe('Payments Integration Tests', () => {
             }),
           };
         }
-        if (table === 'order_items') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: [], error: null }),
-          };
-        }
-        throw new Error(`Unexpected table ${table}`);
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+        };
       });
 
       const payload = {
