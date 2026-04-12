@@ -153,10 +153,33 @@ export const searchLimiter = rateLimitLib({
   },
 });
 
+/**
+ * Slow rate limiter: 5 requests per minute per user for content creation (reviews, messages).
+ * Prevents review spam and malicious content creation.
+ */
+export const slowLimiter = rateLimitLib({
+  store: createStore('rl:slow:'),
+  windowMs: 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => {
+    return req.user?.userId || req.ip;
+  },
+  handler: (req, res) => {
+    logger.warn('Slow rate limit exceeded', {
+      userId: req.user?.userId || 'anonymous',
+      ip: req.ip,
+    });
+    res.status(429).json(
+      errorResponse(RATE_LIMITED, 'Too many requests. Please try again in a moment.')
+    );
+  },
+});
+
 export default {
   rateLimit,
   globalLimiter,
   otpLimiter,
   strictLimiter,
   searchLimiter,
+  slowLimiter,
 };
