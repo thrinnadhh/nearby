@@ -447,14 +447,17 @@ describe('Reviews API', () => {
       mockSupabase.from.mockImplementation((table) => {
         if (table === 'reviews') {
           return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({
-              data: [
-                { rating: 5 },
-                { rating: 4 },
-                { rating: 4 },
-              ],
-              error: null,
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockResolvedValue({
+                  data: [
+                    { rating: 5 },
+                    { rating: 4 },
+                    { rating: 4 },
+                  ],
+                  error: null,
+                }),
+              }),
             }),
           };
         }
