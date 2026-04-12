@@ -7,6 +7,7 @@ let redis;
 
 try {
   redis = new Redis(REDIS_URL, {
+    maxRetriesPerRequest: null,
     retryStrategy: (times) => {
       const delay = Math.min(times * 50, 2000);
       logger.warn(`Redis connection failed, retrying in ${delay}ms`, { attempt: times });

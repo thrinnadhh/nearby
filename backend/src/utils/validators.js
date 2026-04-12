@@ -448,6 +448,107 @@ export const initiatePaymentSchema = Joi.object({
     }),
 });
 
+// ─── REVIEW SCHEMAS ───────────────────────────────────────────────────────────
+
+export const createReviewSchema = Joi.object({
+  order_id: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .required()
+    .messages({
+      'string.guid': 'order_id must be a valid UUID',
+    }),
+  rating: Joi.number()
+    .integer()
+    .min(1)
+    .max(5)
+    .required()
+    .messages({
+      'number.base': 'rating must be a number',
+      'number.integer': 'rating must be an integer',
+      'number.min': 'rating must be at least 1',
+      'number.max': 'rating must not exceed 5',
+    }),
+  comment: Joi.string()
+    .trim()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'comment must not exceed 500 characters',
+    }),
+});
+
+// ─── DELIVERY OTP SCHEMAS ─────────────────────────────────────────────────────
+
+export const deliveryOtpSchema = Joi.object({
+  otp: Joi.string()
+    .length(4)
+    .pattern(/^\d+$/)
+    .required()
+    .messages({
+      'string.length': 'delivery otp must be 4 digits',
+      'string.pattern.base': 'delivery otp must contain only digits',
+    }),
+});
+
+// ─── DELIVERY RATING SCHEMAS ──────────────────────────────────────────────────
+
+export const deliveryPartnerRatingSchema = Joi.object({
+  order_id: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .required()
+    .messages({
+      'string.guid': 'order_id must be a valid UUID',
+    }),
+  rating: Joi.number()
+    .integer()
+    .min(1)
+    .max(5)
+    .required()
+    .messages({
+      'number.base': 'rating must be a number',
+      'number.integer': 'rating must be an integer',
+      'number.min': 'rating must be at least 1',
+      'number.max': 'rating must not exceed 5',
+    }),
+  comment: Joi.string()
+    .trim()
+    .max(500)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'comment must not exceed 500 characters',
+    }),
+});
+
+// ─── MESSAGE SCHEMAS ──────────────────────────────────────────────────────────
+
+export const createMessageSchema = Joi.object({
+  shop_id: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .required()
+    .messages({
+      'string.guid': 'shop_id must be a valid UUID',
+    }),
+  order_id: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .optional()
+    .allow(null)
+    .messages({
+      'string.guid': 'order_id must be a valid UUID if provided',
+    }),
+  body: Joi.string()
+    .trim()
+    .min(1)
+    .max(2000)
+    .required()
+    .messages({
+      'string.empty': 'message body is required',
+      'string.min': 'message body must be at least 1 character',
+      'string.max': 'message body must not exceed 2000 characters',
+    }),
+});
+
 export const validate = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, { abortEarly: false });
   if (error) {
