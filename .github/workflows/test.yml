@@ -1,0 +1,81 @@
+name: Test & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      typesense:
+        image: typesense/typesense:0.25.2
+        options: >-
+          --health-cmd "curl -f http://localhost:8108/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 8108:8108
+        env:
+          TYPESENSE_API_KEY: nearby_test_key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install dependencies
+        run: cd backend && npm ci
+
+      - name: Lint code
+        run: cd backend && npm run lint
+        continue-on-error: true
+
+      - name: Run tests with coverage
+        run: cd backend && npm test -- --coverage --forceExit
+        env:
+          NODE_ENV: test
+          SUPABASE_URL: http://localhost:5432
+          SUPABASE_SERVICE_ROLE_KEY: test_key_123456789
+          REDIS_URL: redis://localhost:6379
+          TYPESENSE_HOST: localhost
+          TYPESENSE_PORT: 8108
+          TYPESENSE_API_KEY: nearby_test_key
+          JWT_SECRET: test_secret_key_123456789
+          CLOUDFLARE_R2_ACCESS_KEY_ID: test_key
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: test_secret
+          CLOUDFLARE_ACCOUNT_ID: test_account
+          CASHFREE_APP_ID: test_app_id
+          CASHFREE_SECRET_KEY: test_secret
+          CASHFREE_WEBHOOK_SECRET: test_webhook_secret
+          MSG91_AUTH_KEY: test_auth_key
+          FIREBASE_PROJECT_ID: test_project
+          OLA_MAPS_API_KEY: test_api_key
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
