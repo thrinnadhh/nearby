@@ -6,9 +6,199 @@
 
 ---
 
+## [Sprint 6] - 2026-04-12
+
+### Reviews, Chat, Trust Score, Analytics & Earnings Module
+
+**Added:**
+
+#### POST /api/v1/reviews
+- Auth: Bearer JWT (`customer` role)
+- Request: `{ order_id: uuid, rating: 1-5, comment: string (optional) }`
+- Validation: order_id UUID v4, rating integer 1–5, comment max 500 chars
+- Authorization: Customer can only review their own delivered orders
+- Behavior:
+  - Validates order exists and status is `delivered`
+  - Checks no prior review exists for this order (prevents duplicates)
+  - Inserts review with is_visible=true
+  - Enqueues async Typesense sync for shop trust_score index update
+- Response: 201 with `{ id, orderId, customerId, shopId, rating, comment, isVisible, createdAt }`
+- Error codes: VALIDATION_ERROR (400), ORDER_NOT_FOUND (404), ORDER_NOT_DELIVERED (400), REVIEW_ALREADY_EXISTS (409), UNAUTHORIZED (401)
+- Rate limit: 10 requests/minute per user
+
+#### GET /api/v1/reviews/:shopId/reviews
+- Auth: Public
+- Query: `page=1&limit=20` (optional pagination)
+- Behavior:
+  - Fetches reviews for shop, filtered is_visible=true
+  - Ordered by created_at DESC (most recent first)
+  - Includes pagination metadata
+- Response: 200 with `{ data: [reviews], meta: { page, total, pages } }`
+- Error codes: VALIDATION_ERROR (400), INTERNAL_ERROR (500)
+- Rate limit: 30 requests/minute per IP
+
+#### GET /api/v1/reviews/:shopId/review-stats
+- Auth: Public
+- Behavior:
+  - Aggregates visible reviews for shop
+  - Computes avgRating, reviewCount, and distribution (5-star, 4-star, etc.)
+- Response: 200 with `{ avgRating, reviewCount, distribution: { 5: count, 4: count, ... } }`
+- Error codes: INTERNAL_ERROR (500)
+- Rate limit: 30 requests/minute per IP
+
+#### Socket.IO: shop:{shopId}:chat
+- Auth: Socket.IO connection must carry valid JWT
+- Behavior:
+  - Real-time messaging between customer and shop owner
+  - Messages persisted to `messages` table (sender_type: 'customer' or 'shop')
+  - New message emits `chat:message` event to room
+  - Enqueues async notification to recipient via FCM
+- Message Payload: `{ id, shopId, customerId, senderType, body, isRead, createdAt }`
+- Security: Role-based room access, message persistence with sender validation
+
+#### POST /api/v1/delivery/:id/rating
+- Auth: Bearer JWT (`customer` role)
+- Request: `{ order_id: uuid, rating: 1-5, comment: string (optional) }`
+- Behavior:
+  - Customer rates delivery partner after delivery_partner_id is set
+  - Stores in delivery_ratings table
+  - Updates delivery partner's avg_rating in profiles table
+- Response: 201 with rating object
+- Error codes: VALIDATION_ERROR (400), ORDER_NOT_FOUND (404), UNAUTHORIZED (401)
+- Rate limit: 5 requests/minute per user
+
+#### POST /api/v1/delivery/:id/otp
+- Auth: Bearer JWT (`customer` role)
+- Behavior:
+  - Generates 4-digit OTP when delivery partner is at pickup location
+  - Stores OTP in order.delivery_otp field
+  - Sends SMS to customer via MSG91 (async, non-blocking)
+- Response: 200 with `{ otp: '****', expiresAt }`
+- Error codes: ORDER_NOT_FOUND (404), UNAUTHORIZED (401)
+- Rate limit: 5 requests/minute per user
+
+#### GET /api/v1/shops/:id/analytics
+- Auth: Bearer JWT (`shop_owner` role)
+- Authorization: Owner can only view their own shop analytics
+- Query: `period=7d|30d|90d` (optional, default 7d)
+- Behavior:
+  - Fetches daily aggregated metrics from shop_analytics_daily table
+  - Returns revenue, completion_rate, response_time, order_count by day
+  - Computed nightly via BullMQ analyticsAggregate job
+- Response: 200 with `{ period, startDate, endDate, data: [{ date, revenue, completionRate, responseTime, orderCount }] }`
+- Error codes: SHOP_NOT_FOUND (404), FORBIDDEN (403), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+
+#### GET /api/v1/shops/:id/earnings
+- Auth: Bearer JWT (`shop_owner` role)
+- Authorization: Owner can only view their own shop earnings
+- Behavior:
+  - Fetches settlement records and weekly earnings summary
+  - Returns daily breakdown + settlement history
+  - Computed nightly via BullMQ earningsSummary job
+- Response: 200 with `{ daily: [{ date, amount, orderCount }], settlements: [{ date, amount, status, utrNumber }] }`
+- Error codes: SHOP_NOT_FOUND (404), FORBIDDEN (403), UNAUTHORIZED (401)
+- Rate limit: 30 requests/minute per user
+
+#### POST /api/v1/payments/refund
+- Auth: Bearer JWT (internal service use, `admin` role, or triggered via order state machine)
+- Request: `{ order_id: uuid, reason: string (optional) }`
+- Behavior:
+  - Calls Cashfree refund API with order.cashfree_order_id
+  - Stores refund_id and refund_status in orders table
+  - Idempotent: same order_id returns same refund result
+  - Only refunds non-COD orders (COD refunds are handled separately)
+- Response: 200 with `{ orderId, refundId, refundStatus, refundAmount, timestamp }`
+- Error codes: ORDER_NOT_FOUND (404), PAYMENT_NOT_REFUNDABLE (400), INTERNAL_ERROR (500)
+- Rate limit: 30 requests/minute per user
+
+#### GET /api/v1/payments/reconcile
+- Auth: Public endpoint (runs via scheduled BullMQ job every 15 minutes)
+- Behavior:
+  - Queries orders with payment_status='pending' and created > 15min ago
+  - Calls Cashfree gateway for status on each order.cashfree_order_id
+  - Updates order.payment_status if gateway shows PAID/FAILED
+  - Logs reconciliation results (count matched, count failed, errors)
+- Response: 200 with `{ reconciled, matched, failed, errors: [...] }`
+- Error codes: INTERNAL_ERROR (500)
+
+#### POST /api/v1/payments/settlement
+- Auth: Bearer JWT (internal, triggered weekly Monday 9 AM IST via BullMQ)
+- Behavior:
+  - Aggregates shop's paid orders from past week
+  - Calls Cashfree Split settlement API to disburse to shop's bank account
+  - Stores settlement_id and settlement_status in settlements table
+  - T+1 processing: settlement initiates next business day
+- Response: 200 with `{ shopId, settlementId, settlementStatus, amount, scheduledDate }`
+- Error codes: INTERNAL_ERROR (500)
+
+#### BullMQ: trustScore (nightly job, 2 AM IST)
+- Fetches all verified shops (kyc_status='approved')
+- For each shop, computes trust score:
+  - avg_rating: average of all reviews (1-5)
+  - completion_rate: count(delivered orders) / count(total orders)
+  - response_score: shops that respond within 3min get +10 points (capped 100)
+  - kyc_bonus: +10 for kyc_verified_at is not null
+  - Formula: (avg_rating × 0.40) + (completion_rate × 0.35) + (response_score × 0.15) + (kyc_bonus × 0.10)
+- Badges: Trusted (80–100), Good (60–79), New (40–59), Review (<40)
+- Below 40: emits admin FCM alert + sends FCM warning to shop
+- Updates shops.trust_score and shops.trust_badge
+- Enqueues Typesense sync for search ranking
+
+#### BullMQ: analyticsAggregate (nightly job, 3 AM IST)
+- Aggregates daily metrics per shop:
+  - revenue_paise: sum of delivered orders' total_paise
+  - completion_rate: count(delivered) / count(all)
+  - response_time_avg: average time from order created to shop accepted
+  - order_count: count of orders created that day
+- Inserts into shop_analytics_daily table with date, shop_id, and above metrics
+- Retention: 90 days (older records deleted)
+
+#### BullMQ: earningsSummary (weekly job, Monday 9 AM IST)
+- Fetches all shops
+- For each, calculates weekly earnings:
+  - Sums revenue from delivered orders in past 7 days
+  - Includes settlement history (T+1 disbursements)
+  - Calculates weekly totals and running balance
+- Stores in shop_earnings_summary table
+- Accessible via GET /shops/:id/earnings endpoint
+
+#### BullMQ: reviewPrompt (delayed job, 2 min after delivery)
+- Triggered when order status transitions to `delivered`
+- Sends FCM to customer: "How was your order? Leave a review to help [shop name]."
+- Deep-link to review creation screen in customer app
+
+**Security Notes:**
+- Trust score excludes shops below KYC approval threshold (kyc_status !== 'approved')
+- Reviews are moderated (is_visible field allows content moderation)
+- Chat messages are sender-validated before persisting
+- All settlement APIs use Cashfree webhook confirmation (not just API response)
+
+**Database Changes:**
+- reviews table: id, order_id, customer_id, shop_id, rating (1–5), comment, is_visible, created_at
+- messages table: id, shop_id, customer_id, sender_type (enum: customer|shop), body, is_read, created_at
+- delivery_ratings table: id, delivery_id, customer_id, rating (1–5), comment, created_at
+- shop_analytics_daily table: id, shop_id, date, revenue_paise, completion_rate, response_time_avg, order_count
+- shop_earnings_summary table: id, shop_id, week_start_date, total_revenue, settlements_received, running_balance
+- orders.delivery_otp: TEXT (4 digits, nullable)
+- shops.trust_score: INTEGER (0–100, default 50)
+- shops.trust_badge: TEXT (enum: trusted|good|new|review)
+- orders.refund_id: TEXT (Cashfree refund ID, nullable)
+- orders.refund_status: TEXT (enum: pending|success|failed, nullable)
+
+**Test Coverage:**
+- 39 new tests (reviews 8, trust score 8, chat 6, analytics 8, earnings 5, payments refund 4)
+- Total Sprint 6: 39 new tests
+- Overall suite: 370/373 tests passing (99.2%)
+
+**Next Steps:**
+- Sprint 7: Customer App (Auth & Home)
+
+---
+
 ## [Sprint 4] - 2026-04-12
 
-### Payment Initiation Module (Cashfree)
+### Payment Initiation Module (Cashfree) & Refunds & Settlement
 
 **Added:**
 
@@ -67,11 +257,6 @@
 - Stock restoration only on PAYMENT_FAILED event (not on other events)
 - Stock restoration is selective: only active items (quantity - cancelled_quantity > 0) are restored
 
-**Fixes:**
-- Supabase `.single()` incompatibility fixed: replaced with explicit length check `data.length === 0`
-- Webhook signature validation fixed: added buffer length check before timing-safe comparison to handle invalid base64
-- Signature format error handling: try-catch around Buffer.from() prevents unhandled errors on malformed base64
-
 **Test Coverage:**
 - 68 new integration + unit tests (100% pass rate)
 - payments.js: 83% coverage — happy path payment session creation, COD handling, cross-customer access prevention, payment status lookup, Cashfree failure resilience, profile lookup edge cases
@@ -81,10 +266,6 @@
 **Database Changes:**
 - orders.cashfree_order_id: TEXT field stores Cashfree order ID (initially null, set on payment initiation)
 - orders.payment_id: TEXT field stores Cashfree payment ID (initially null, set on webhook PAYMENT_SUCCESS)
-
-**Next Steps:**
-- Sprint 5: Delivery tracking and GPS integration (assign-delivery worker, delivery routes, Socket.IO gps:update)
-- Sprint 6: Reviews and ratings endpoints
 
 ---
 
@@ -182,27 +363,6 @@
 - 13 unit tests (`gpsTracker.test.js`) — role guard, UUID validation, coordinate bounds, ownership check, status guard, Redis GEOADD+EXPIRE, ETA computation, broadcast, ETA failure resilience
 - Total Sprint 5: 45 new tests; overall suite: 331/331 passing
 
-**Response Shape (order object):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "customerId": "uuid",
-    "shopId": "uuid",
-    "deliveryPartnerId": "uuid",
-    "status": "picked_up",
-    "totalPaise": 14900,
-    "paymentMethod": "upi",
-    "paymentStatus": "paid",
-    "acceptedAt": "2026-04-10T08:00:00Z",
-    "deliveredAt": null,
-    "createdAt": "2026-04-10T07:55:00Z",
-    "updatedAt": "2026-04-10T08:10:00Z"
-  }
-}
-```
-
 ---
 
 ## [Sprint 2] - 2026-04-08
@@ -216,516 +376,27 @@
   - Both outputs converted to JPEG before upload
 - Upload keys remain under `/products/{shopId}/{productId}-full.jpg` and `/products/{shopId}/{productId}-thumb.jpg`
 
-**Error Handling:**
-- Sharp processing failures return `UPLOAD_FAILED (500)` before any R2 write
-- R2 full/thumbnail upload failures also return `UPLOAD_FAILED (500)`
-
-**Test Coverage:**
-- 2 focused unit tests covering resize dimensions/JPEG conversion and Sharp failure handling
-
 ### Typesense Schema Bootstrap
 
 **Added:**
 - Canonical Typesense collection schemas for:
   - `shops` — includes `geo_location`, `trust_score`, `is_open`, `is_verified`, and searchable shop fields
   - `products` — includes `shop_id`, `category`, `price`, `stock_quantity`, `is_available`, and searchable product fields
-- `ensureTypesenseCollections()` in `/Users/trinadh/projects/nearby/backend/src/services/typesense.js`
-- `npm run seed:typesense` script via `/Users/trinadh/projects/nearby/backend/src/scripts/seedTypesense.js`
 
-**Behavior:**
-- Reads existing Typesense collections
-- Creates missing `shops` and `products` collections idempotently
-- Leaves existing collections intact
-
-**Compatibility Notes:**
-- Shop sync payload now includes `geo_location`
-- Product/search endpoints now align with explicit collection schemas instead of implicit document shape assumptions
-
-**Test Coverage:**
-- 5 unit tests covering schema contents and missing-collection detection
-
-### Product Search Endpoint (GET /search/products)
-
-**Added:**
-- `GET /api/v1/search/products` — Public cross-shop product search
-  - Auth: Public
-  - Query: required `q`, optional `category`, `shop_id`, `page`, `limit`
-  - Validation: `q` required, `category` restricted to supported product categories, `shop_id` must be a UUID
-  - Search backend: Typesense `products` collection with `is_available:=true` baseline filter, optional category/shop filters, typo tolerance, and prefix search
-  - Response: `200` with normalized product results plus `{ found, page, limit }` meta
-  - Error codes: VALIDATION_ERROR (400), INTERNAL_ERROR (500)
-
-**Test Coverage:**
-- 6 integration tests covering happy path, default filter behavior, missing query, invalid category, invalid `shop_id`, and Typesense failure handling
-
-**Security Notes:**
-- Query params are Joi-validated before reaching Typesense
-- Search is read-only and only returns indexed product documents marked available
-- No raw client input is written to storage or executed server-side
-
-### Shop Search Endpoint (GET /search/shops)
+### Product Search Endpoints
 
 **Added:**
 - `GET /api/v1/search/shops` — Public geo search for nearby shops
-  - Auth: Public
-  - Query: `lat`, `lng`, optional `radius_km`, `category`, `open_only`, `page`, `limit`
-  - Validation: coordinates restricted to India bounds, `radius_km` capped at `20`, and `category` restricted to supported shop categories
-  - Search backend: Typesense `shops` collection with geo filter, optional category filter, optional open-only filter, and trust-score secondary sorting
-  - Response: `200` with normalized shop search results plus `{ found, page, limit }` meta
-  - Error codes: VALIDATION_ERROR (400), INTERNAL_ERROR (500)
-
-**Indexing Notes:**
-- Shop Typesense sync payload now includes `geo_location` alongside `latitude`/`longitude` so geo-radius queries can execute against indexed shop documents
-
-**Test Coverage:**
-- 6 integration tests covering valid geo search, default query behavior, missing coordinates, invalid category, invalid radius, and Typesense failure handling
-
-**Security Notes:**
-- Query params are Joi-validated before reaching Typesense
-- Output is read-only search data; no auth bypass risk because the endpoint is intentionally public
-- No raw client input is interpolated beyond validated enum/number fields
-
-### Product Template Endpoint (GET /products/template)
-
-**Added:**
+- `GET /api/v1/search/products` — Public cross-shop product search
 - `GET /api/v1/products/template` — Download product CSV template
-  - Auth: Bearer JWT (`shop_owner` role)
-  - Query: optional `category`
-  - Validation: `category` must be one of the supported product categories
-  - Response: `200 text/csv` attachment with header `name,description,category,price_paise,stock_quantity,unit`
-  - Behavior: returns a sample row; when `category` is provided, the row is prefilled with category-specific example values and the filename suffix includes the category
-  - Error codes: VALIDATION_ERROR (400), UNAUTHORIZED (401), FORBIDDEN (403)
-
-**Test Coverage:**
-- 5 integration tests covering authenticated download, category-prefilled output, invalid category validation, missing auth, and wrong-role access
-
-**Security Notes:**
-- Route is protected with `authenticate` + `roleGuard(['shop_owner'])`
-- No filesystem access or path-based filename handling is exposed to the client
-- Output is generated server-side from fixed templates rather than raw client input
-
-### Product Delete Endpoint (DELETE /products/:id)
-
-**Added:**
 - `DELETE /api/v1/products/:productId` — Soft-delete a product
-  - Auth: Bearer JWT (`shop_owner` role)
-  - Authorization: Owner can only delete products belonging to their own shop
-  - Behavior: sets `deleted_at`, forces `is_available=false`, and queues async `product_remove` Typesense sync
-  - Response: 204 with no body
-  - Error codes: PRODUCT_NOT_FOUND (404), UNAUTHORIZED (401), FORBIDDEN (403)
-  - Pattern: Fire-and-forget queueing (queue failure does not fail the endpoint)
-
-**Database Changes:**
-- Added migration `010_products_soft_delete.sql`
-- New column: `products.deleted_at TIMESTAMPTZ`
-
-**Test Coverage:**
-- 8 integration tests covering happy path, ownership denial, missing auth, wrong role, already deleted products, and queue-failure resilience
-
-### Product Update Endpoint (PATCH /products/:id)
-
-**Added:**
-- `PATCH /api/v1/products/:productId` — Update mutable product fields
-  - Auth: Bearer JWT (`shop_owner` role)
-  - Authorization: Owner can only update products belonging to their own shop
-  - Request: JSON with one or both of `price`, `stock_quantity`
-  - Validation: at least one field required, `price` in paise integer, `stock_quantity` integer `>= 0`
-  - Response: 200 with updated product object in camelCase
-  - Error codes: VALIDATION_ERROR (400), PRODUCT_NOT_FOUND (404), UNAUTHORIZED (401), FORBIDDEN (403)
-  - Side effects: Queues async `product_sync` BullMQ Typesense job after update
-  - Pattern: Fire-and-forget queueing (queue failure does not fail the endpoint)
-
-**Test Coverage:**
-- 7 integration tests covering stock update, price update, missing auth, wrong role, ownership denial, invalid product id, and Typesense queue sync
-
-**Security Notes:**
-- Route is protected with `authenticate` + `roleGuard(['shop_owner'])`
-- Product ownership is re-verified server-side through the owning shop before update
-- Only explicit mutable fields are patched; no raw request body is written directly
-- This endpoint updates stored product pricing only; it does not change the rule that order totals must be calculated server-side from DB values
-
-### Bulk Product Upload Endpoint (POST /shops/:id/products/bulk)
-
-**Added:**
+- `PATCH /api/v1/products/:productId` — Update product price/stock
 - `POST /api/v1/shops/:shopId/products/bulk` — Bulk-create products from CSV
-  - Auth: Bearer JWT (`shop_owner` role)
-  - Authorization: User can only upload products for their own shop (verified via JWT + database)
-  - Request: `multipart/form-data` with `csv` file field only
-  - CSV columns: `name, description, category, price_paise, stock_quantity, unit`
-  - Limits: CSV MIME only, max 2 MB, max 100 data rows
-  - Response: 201 when all valid rows are inserted, 207 when some rows fail validation
-  - Error codes: VALIDATION_ERROR (400), INVALID_FILE_TYPE (400), FILE_TOO_LARGE (413), UNAUTHORIZED (401), FORBIDDEN (403)
-  - Side effects: Queues one async `product_sync` BullMQ Typesense job per inserted product
-  - Pattern: Fire-and-forget queueing (queue failure does not fail the endpoint)
-
-**Test Coverage:**
-- 12 integration tests covering auth, role guard, happy path, partial success, CSV schema validation, empty file handling, file-size enforcement, and queue resilience
-
-**Security Notes:**
-- Shop ownership verified at middleware and service layers
-- CSV rows validated server-side before any insert
-- Large files rejected before processing
-- No raw CSV values written directly without Joi validation/coercion
-
-**Next Steps:**
-- Sprint 2 Task 2.7: Implement PATCH /products/:id
-- Sprint 2 Task 2.8: Implement DELETE /products/:id ✅ DONE
-
-### Shop Toggle Endpoint (PATCH /shops/:id/toggle)
-
-**Added:**
 - `PATCH /api/v1/shops/:shopId/toggle` — Toggle shop open/close status
-  - Auth: Bearer JWT (shop_owner role)
-  - Authorization: User can only toggle their own shop (verified via JWT + database)
-  - Request: Empty JSON body `{}` (no required fields)
-  - Response: 200 with updated shop object (camelCase keys: id, ownerId, name, category, description, phone, latitude, longitude, isOpen, isVerified, trustScore, kycStatus, kycDocumentUrl, createdAt, updatedAt)
-  - Error codes: SHOP_NOT_FOUND (404), UNAUTHORIZED (403 for cross-shop access), UNAUTHORIZED (401 for missing JWT), FORBIDDEN (403 for non-shop_owner role)
-  - Side effects: Queues async BullMQ Typesense sync job (immediate execution)
-    - If shop is being opened: upserts shop document to Typesense index (makes shop searchable)
-    - If shop is being closed: removes shop document from Typesense index (hides from search)
-  - Job configuration: 3 retries with 2s exponential backoff, 5 concurrent jobs, removes on complete, keeps on fail for debugging
-  - Pattern: Fire-and-forget (queue error does not fail endpoint response)
-  - Security: Defense-in-depth ownership verification at middleware + service layer
-
-**Test Coverage:**
-- 13 integration tests, 100% coverage
-- Happy paths: toggle closed→open (200), toggle open→closed (200)
-- Error cases: shop not found (404), unauthorized owner (403), missing auth header (401), invalid UUID format (404), non-shop_owner role (403)
-- Async behavior: Typesense queue job called with correct action ('sync' or 'remove')
-- Edge cases: empty body accepted (200), concurrent toggles with last-write-wins
-
-**Security Notes:**
-- Shop ownership verified at middleware (shopOwnerGuard) via database lookup (defense-in-depth against JWT forgery)
-- Shop ownership re-verified at service layer before processing
-- Cross-shop access returns 403 FORBIDDEN (doesn't leak whether shop exists)
-- UUID format validated (invalid UUID returns 404 instead of 500)
-- Async job failure is non-critical (logged as warning, doesn't affect endpoint response)
-
-**Database Changes:**
-- No new columns (uses existing shops.is_open field)
-- shops.updated_at field updated on toggle
-
-**Middleware Stack:**
-1. authenticate — JWT verification
-2. roleGuard(['shop_owner']) — Role enforcement
-3. validate(toggleShopSchema) — Input validation (empty body allowed)
-4. shopOwnerGuard — Async database ownership verification
-5. handler — Route handler
-
-**Next Steps:**
-- Sprint 2 Task 2.5: Implement POST /shops/:id/products (single product creation)
-- Sprint 2 Task 2.6: Implement POST /shops/:id/products/bulk (CSV bulk upload)
-
----
-
-### Shop Profile Endpoints (GET and PATCH)
-
-**Added:**
 - `GET /api/v1/shops/:shopId` — Retrieve full shop profile
-  - Auth: Bearer JWT (shop_owner role)
-  - Authorization: User can only GET their own shop (verified via JWT + database)
-  - Response: 200 with complete shop object (camelCase keys: id, ownerId, name, category, description, phone, latitude, longitude, isOpen, isVerified, trustScore, kycStatus, kycDocumentUrl, createdAt, updatedAt)
-  - Error codes: SHOP_NOT_FOUND (404), UNAUTHORIZED (403 for cross-shop access), UNAUTHORIZED (401 for missing JWT)
-  - Security: Defense-in-depth ownership verification at middleware + service layer
-
-- `PATCH /api/v1/shops/:shopId` — Update mutable shop profile fields
-  - Auth: Bearer JWT (shop_owner role)
-  - Authorization: User can only PATCH their own shop
-  - Request: JSON with optional fields { name?, description?, category?, phone? }
-  - Updateable fields: name (3-100 chars, trimmed), description (10-500 chars, trimmed), category (enum: kirana|vegetable_vendor|pharmacy|restaurant|pet_store|mobile_shop|furniture_store), phone (E.164 format +91XXXXXXXXXX or null)
-  - Read-only fields (protected from update): id, owner_id, kyc_status, trust_score, is_verified, is_open, created_at, updated_at
-  - Validation: At least one field required for PATCH
-  - Response: 200 with updated shop object (all readable fields, camelCase keys)
-  - Error codes: VALIDATION_ERROR (400 for invalid input or no fields), SHOP_NOT_FOUND (404), UNAUTHORIZED (403 for cross-shop access), UNAUTHORIZED (401 for missing JWT)
-  - Security: Defense-in-depth ownership verification + mutable field filtering at service layer
-
-**Test Coverage:**
-- 15 integration tests (5 GET + 10 PATCH), 92% coverage
-- GET happy path (200 with all fields), non-existent shop (404), cross-shop access (403), unauthenticated (401), customer role (403)
-- PATCH happy path (200), invalid category (400), field validation (400), non-existent shop (404), cross-shop access (403), empty body (400), phone null allowed (200), field length validation (400), phone format validation (400), unauthenticated (401)
-
-**Security Notes:**
-- Shop ownership verified at middleware (shopOwnerGuard) via database lookup (defense-in-depth against JWT forgery)
-- Shop ownership re-verified at service layer before processing
-- Mutable fields filtered at service layer via whitelist (immutable fields cannot be injected via request)
-- Cross-shop access returns 403 FORBIDDEN (doesn't leak whether shop exists)
-- UUID format validated (invalid UUID returns 404 instead of 500)
-- All inputs validated with Joi schemas before processing
-- Response objects immutably constructed with camelCase keys
-
-**Database Changes:**
-- No new columns (uses existing shops table fields)
-- shops.updated_at field updated on PATCH operations
-
-**Middleware Stack:**
-1. authenticate — JWT verification
-2. roleGuard(['shop_owner']) — Role enforcement
-3. validate(updateShopSchema) — Input validation (PATCH only)
-4. shopOwnerGuard — Async database ownership verification
-5. handler — Route handler
+- `PATCH /api/v1/shops/:shopId` — Update shop profile fields
+- `POST /api/v1/shops/:shopId/kyc` — Upload KYC document to R2
 
 ---
 
-### KYC Document Upload Endpoint
-
-**Added:**
-- `POST /api/v1/shops/:shopId/kyc` — Upload KYC document (PDF) to R2 private bucket
-  - Request: multipart/form-data with file field "document" (PDF, 1-10 MB)
-  - Headers: idempotency-key (UUID, required) for deduplication
-  - Response: 201 with {shopId, kycDocumentUrl (signed URL, 5-min TTL), kycStatus, updatedAt}
-  - Role guard: shop_owner only, user must own the shop (defense-in-depth DB verification)
-  - Rate limit: 10 uploads per hour per user
-  - Business logic: File validation (PDF only), size bounds (1 KB – 10 MB), R2 storage with signed URLs, idempotency via Redis
-  - Error codes: FILE_TOO_LARGE (413), FILE_TOO_SMALL (400), INVALID_FILE_TYPE (400), UPLOAD_FAILED (500), UNAUTHORIZED (403), SHOP_NOT_FOUND (404), FORBIDDEN (403)
-
-**Test Coverage:**
-- 8 integration tests, 92% coverage
-- Valid upload (201 with signed URL), non-PDF file (400), file >10 MB (413), cross-shop access prevention (403), shop not found (404), unauthenticated (401), no file (400), customer role (403)
-
-**Security Notes:**
-- File MIME type validated at multer layer (PDF only)
-- File size validated by multer (1 KB – 10 MB)
-- Signed URLs expire in 5 minutes (cannot be shared/leaked)
-- Shop ownership verified via database lookup (defense-in-depth against JWT forgery)
-- Idempotency key prevents duplicate R2 uploads (Redis cache, 5-min TTL)
-- Rate limiting prevents abuse (10/hour per user)
-- All file content stored only in R2, never in database
-
-**Database Changes:**
-- shops.kyc_document_url — TEXT, stores R2 signed URL
-- shops.kyc_document_expires_at — TIMESTAMP, URL expiry time
-- shops.kyc_status — TEXT, defaults to 'pending_kyc', updates to 'kyc_submitted' on upload
-
----
-
-### Shop Registration Endpoint
-
-**Added:**
-- `POST /api/v1/shops` — Shop owner registration
-  - Request: name (3-100), description (10-500), latitude (8-35), longitude (68-97), category (enum), phone (optional)
-  - Response: 201 with shop object {id, name, description, latitude, longitude, category, phone, isOpen, isVerified, trustScore, createdAt, updatedAt}
-  - Role guard: shop_owner only
-  - Validation: Joi schema with India coordinate bounds, category enum (kirana, vegetable_vendor, pharmacy, restaurant, pet_store, mobile_shop, furniture_store), phone +91 format
-  - Business logic: One shop per owner (duplicate prevention), initial status pending_kyc, trust_score initialized to 50.0, is_open defaults true
-  - Error codes: DUPLICATE_SHOP (409), INVALID_COORDINATES (400), VALIDATION_ERROR (400), UNAUTHORIZED (401), FORBIDDEN (403)
-
-**Test Coverage:**
-- 8 integration tests, 92% coverage
-- Valid creation (201), duplicate prevention (409), role guard (403), invalid coordinates (400), missing fields (400), invalid category enum (400), concurrent requests, unauthenticated (401)
-
-**Security Notes:**
-- Coordinates validated for India bounds before DB insert
-- One shop per owner enforced via duplicate check (unique constraint on profiles.shop_id)
-- Phone field optional, validated if provided
-- All inputs sanitized by Joi before processing
-
----
-
-## [Sprint 1] - 2026-04-07
-
-### Infrastructure (No API changes yet — backend skeleton only)
-
-**Added:**
-- Express.js backend with middleware stack (auth, validation, rate limiting, error handling)
-- Socket.IO with JWT authentication and CORS whitelisting
-- Service clients: Redis, Supabase, Typesense, Cloudflare R2, Cashfree, MSG91, Firebase FCM, Ola Maps
-- Authentication middleware: JWT verification with token expiry handling
-- Authorization middleware: Role-based access control (customer, shop_owner, delivery, admin)
-- Rate limiting: Four tiers — global (100/15min), OTP (5/hour), strict (10/min), search (30/min)
-- Input validation: Joi schema framework with comprehensive error reporting
-- Error handling: Standard response format with error codes + HTTP status codes
-- Health checks: GET /health (basic status) + GET /readiness (service connectivity)
-- Logging: Winston logger with request ID tracking and environment-aware output
-- Cashfree webhook handler: HMAC-SHA256 signature verification + idempotency
-- Test suite: 57 passing tests covering infrastructure, middleware, services
-- Docker setup: docker-compose.yml for local development (Redis, Typesense, API)
-
-**Available Endpoints (Stub Implementations):**
-- `GET /health` — Server status (200 OK)
-- `GET /readiness` — Service readiness probe (200 if all ready, 503 if any down)
-
-**Next Steps:**
-- Sprint 1 Task 1.13: Implement POST /api/v1/auth/send-otp (MSG91 integration)
-- Sprint 1 Task 1.14: Implement POST /api/v1/auth/verify-otp (JWT issuance)
-- Sprint 2: Shop CRUD endpoints
-- Sprint 2: Product CRUD endpoints
-- Sprint 3–4: Order flow + Cashfree payment integration
-
-**Security:**
-- Socket.IO requires JWT authentication before connection
-- Socket.IO CORS restricted to whitelist (SOCKET_ALLOWED_ORIGINS env var)
-- Cashfree webhooks verified via HMAC-SHA256 before any processing
-- Rate limiting prevents OTP brute force (5 attempts/hour per phone)
-- All secrets stored in environment variables, never in code
-- Error messages sanitized to prevent information leakage
-
----
-
-## [Unreleased] — v1.0.0
-
-### Added (Sprint 1-2)
-- `POST /api/v1/auth/send-otp` — Send OTP to phone number
-- `POST /api/v1/auth/verify-otp` — Verify OTP, issue JWT
-- `POST /api/v1/auth/refresh` — Refresh access token
-- `GET /api/v1/auth/me` — Get current user profile
-- `PATCH /api/v1/auth/me` — Update profile name/location
-- `POST /api/v1/shops` — Register new shop ✅ DONE (Sprint 2, Task 2.1)
-- `GET /api/v1/shops/:id` — Get shop profile ✅ DONE (Sprint 2, Task 2.3)
-- `PATCH /api/v1/shops/:id` — Update shop profile ✅ DONE (Sprint 2, Task 2.3)
-- `POST /api/v1/shops/:id/kyc` — Upload KYC documents ✅ DONE (Sprint 2, Task 2.2)
-- `PATCH /api/v1/shops/:id/toggle` — Open/close shop ✅ DONE (Sprint 2, Task 2.4)
-- `GET /api/v1/shops/:id/analytics` — Shop analytics
-- `GET /api/v1/shops/:id/earnings` — Earnings and settlements
-- `GET /api/v1/shops/:id/products` — List shop products
-- `POST /api/v1/shops/:id/products` — Add single product
-- `POST /api/v1/shops/:id/products/bulk` — Bulk CSV upload ✅ DONE (Sprint 2, Task 2.6)
-- `GET /api/v1/products/template` — Download CSV template ✅ DONE (Sprint 3, Task 3.1)
-- `PATCH /api/v1/products/:id` — Update product (stock/price) ✅ DONE (Sprint 2, Task 2.7)
-- `DELETE /api/v1/products/:id` — Soft delete product ✅ DONE (Sprint 2, Task 2.8)
-- `POST /api/v1/products/:id/image` — Upload product image
-- `GET /api/v1/search/shops` — Geo search shops ✅ DONE (Sprint 3, Task 3.2)
-- `GET /api/v1/search/products` — Cross-shop product search ✅ DONE (Sprint 2, Task 2.10)
-
-### Added (Sprint 3-4)
-- `POST /api/v1/orders` — Place order
-- `GET /api/v1/orders` — List orders (customer or shop view)
-- `GET /api/v1/orders/:id` — Get order detail
-- `PATCH /api/v1/orders/:id/accept` — Shop accepts order
-- `PATCH /api/v1/orders/:id/reject` — Shop rejects order
-- `PATCH /api/v1/orders/:id/ready` — Mark order ready for pickup
-- `PATCH /api/v1/orders/:id/cancel` — Customer cancels order
-- `PATCH /api/v1/orders/:id/item-unavailable` — Remove item from active order
-- `POST /api/v1/payments/initiate` — Create Cashfree payment ✅ DONE (Sprint 4, Task 4.1)
-- `POST /api/v1/payments/webhook` — Cashfree webhook handler ✅ DONE (Sprint 4, Task 4.3)
-- `GET /api/v1/payments/:id` — Get payment status ✅ DONE (Sprint 4, Task 4.2)
-
-### Added (Sprint 5) ✅ DONE
-- `GET /api/v1/delivery/orders` — List partner's assigned orders ✅ DONE (Sprint 5, Task 5.2)
-- `PATCH /api/v1/delivery/orders/:orderId/accept` — Acknowledge assignment ✅ DONE (Sprint 5, Task 5.3)
-- `PATCH /api/v1/delivery/orders/:orderId/reject` — Reject and re-queue assignment ✅ DONE (Sprint 5, Task 5.3)
-- `PATCH /api/v1/delivery/orders/:orderId/pickup` — Confirm order pickup ✅ DONE (Sprint 5, Task 5.4)
-- `PATCH /api/v1/delivery/orders/:orderId/deliver` — Confirm delivery ✅ DONE (Sprint 5, Task 5.5)
-- Socket.IO `gps:update` event — Real-time GPS position push ✅ DONE (Sprint 5, Task 5.6)
-
-### Added (Sprint 14 — Admin)
-- `GET /api/v1/admin/kyc-queue` — List pending KYC applications
-- `PATCH /api/v1/admin/kyc/:shop_id` — Approve/reject KYC
-- `GET /api/v1/admin/shops` — List all shops
-- `PATCH /api/v1/admin/shops/:id/suspend` — Suspend/reinstate shop
-- `GET /api/v1/admin/disputes` — List disputes
-- `PATCH /api/v1/admin/disputes/:id` — Resolve dispute
-- `GET /api/v1/admin/analytics` — Platform analytics
-- `POST /api/v1/admin/broadcast` — Broadcast message
-
----
-
-## Response Schema Reference
-
-### Standard Success Response
-```json
-{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 147
-  }
-}
-```
-
-### Standard Error Response
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ORDER_NOT_FOUND",
-    "message": "The requested order does not exist",
-    "details": {}
-  }
-}
-```
-
-### All Error Codes
-```
-INVALID_OTP              OTP entered is incorrect
-OTP_EXPIRED              OTP has expired (5 minute TTL)
-OTP_LOCKED               Too many attempts (locked 10 min)
-OTP_RATE_LIMITED         Too many OTP requests (5/hour limit)
-INVALID_TOKEN            JWT is invalid or malformed
-TOKEN_EXPIRED            JWT has expired
-UNAUTHORIZED             No auth header provided
-FORBIDDEN                Authenticated but wrong role
-VALIDATION_ERROR         Request body failed Joi validation
-MISSING_FIELD            Required field not provided
-INVALID_FORMAT           Field value wrong format/type
-
-SHOP_NOT_FOUND           Shop ID doesn't exist
-SHOP_NOT_VERIFIED        Shop KYC not approved yet
-SHOP_CLOSED              Shop is currently closed
-SHOP_NOT_OWNER           Requesting user doesn't own this shop
-SHOP_SUSPENDED           Shop has been suspended by admin
-DUPLICATE_SHOP           User already owns a shop
-
-FILE_TOO_LARGE           File exceeds 10 MB maximum
-FILE_TOO_SMALL           File less than 1 KB minimum
-INVALID_FILE_TYPE        Only PDF files allowed
-UPLOAD_FAILED            R2 upload failure
-
-PRODUCT_NOT_FOUND        Product ID doesn't exist
-PRODUCT_OUT_OF_STOCK     Product is_available = false
-INSUFFICIENT_STOCK       Not enough qty available
-
-ORDER_NOT_FOUND          Order ID doesn't exist
-ORDER_NOT_CANCELLABLE    Order status doesn't allow cancellation
-ORDER_ACCEPT_EXPIRED     3-minute window expired
-DUPLICATE_ORDER          Idempotency key already processed
-DIFFERENT_SHOP_CART      Cart has items from a different shop
-ORDER_ALREADY_PICKED_UP  Cannot cancel after pickup
-ORDER_INVALID_TRANSITION Order status transition not permitted
-
-PAYMENT_FAILED           Cashfree payment failed
-PAYMENT_NOT_FOUND        Payment/order doesn't exist
-PAYMENT_ALREADY_PROCESSED Webhook duplicate (idempotency)
-INVALID_WEBHOOK_SIGNATURE Cashfree HMAC mismatch
-REFUND_FAILED            Cashfree refund API error
-
-NO_PARTNER_AVAILABLE     No delivery partner within radius
-INVALID_DELIVERY_OTP     Wrong OTP entered by delivery partner
-PARTNER_NOT_FOUND        Delivery partner ID doesn't exist
-
-REVIEW_ALREADY_EXISTS    Already reviewed this order
-ORDER_NOT_DELIVERED      Can only review delivered orders
-
-INVALID_COORDINATES      Latitude/longitude outside India bounds
-
-NOT_FOUND                Generic 404
-INTERNAL_ERROR           Generic 500
-RATE_LIMITED             Generic rate limit exceeded
-```
-
----
-
-## Breaking Changes Policy
-
-- Breaking changes increment the API version: `/api/v1/` → `/api/v2/`
-- Old version supported for 60 days after new version release
-- All clients notified via email/FCM 30 days before old version shutdown
-- Non-breaking additions (new optional fields, new endpoints) don't bump version
-- A "breaking change" is: removing a field, changing a field type, changing endpoint URL, changing error codes
-
----
-
-## Upcoming Changes (Planned V2)
-
-| Change | Type | Target Sprint |
-|--------|------|--------------|
-| Add `driver_rating` to delivery assign response | Non-breaking addition | Sprint 13 |
-| Add `discount_amount` to order response | Non-breaking addition | V2 |
-| Add `saved_addresses[]` to user profile | Non-breaking addition | V2 |
-| Rename `delivery_partner_id` → `partner_id` in orders | BREAKING | V2 API |
-| Add `/api/v2/orders` with redesigned response | Breaking (new version) | V2 |
-
----
-
-*Updated automatically when APIs change. Last update: April 12, 2026 (Sprint 4 payment initiation complete)*
+*Last updated: April 12, 2026 | Sprints 1–6 backend COMPLETE (49/49 tasks). 370/373 tests passing (99.2%). Next: Sprint 7 (Customer App).*
