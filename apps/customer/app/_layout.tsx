@@ -3,34 +3,37 @@ import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useAuthStore } from '@/store/auth';
 
 // Must be called at module level — before any render cycle — so the splash
-// screen stays visible while fonts are fetched from the bundle.
+// screen stays visible while fonts and the auth store both hydrate.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
+
+  const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
     'Inter-Medium': require('../assets/fonts/Inter-Medium.ttf'),
     'Inter-SemiBold': require('../assets/fonts/Inter-SemiBold.ttf'),
     'Inter-Bold': require('../assets/fonts/Inter-Bold.ttf'),
   });
 
+  const ready = (fontsLoaded || fontError != null) && hasHydrated;
+
   useEffect(() => {
-    if (error) {
-      // Font loading failure is fatal in development (fonts are bundled in
-      // production builds so this branch should never run in a release APK/IPA).
-      console.error('Font loading error:', error);
+    if (fontError) {
+      // Font failure is fatal in dev (fonts are bundled in release builds).
+      console.error('Font loading error:', fontError);
     }
-    if (loaded || error) {
+    if (ready) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [ready, fontError]);
 
-  // Keep the splash visible until fonts are ready (or an error forces us to continue).
-  if (!loaded && !error) {
-    return null;
-  }
+  // Hold the splash until both fonts and auth store are ready — prevents the
+  // login screen from flashing before persisted auth state is restored.
+  if (!ready) return null;
 
   return (
     <>

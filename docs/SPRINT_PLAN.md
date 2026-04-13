@@ -172,11 +172,11 @@
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
 | 7.1 | Set up Expo project (customer app) | [RN1] | ✅ | Expo SDK 53, TypeScript, Expo Router v4, Zustand v5, monorepo metro config. TypeScript: 0 errors. Security: 0 CRITICAL/HIGH. |
-| 7.2 | Set up Zustand state store | [RN1] | ⬜ | auth, cart, orders slices |
-| 7.3 | Login screen — phone number entry | [RN1] | ⬜ | 10-digit validation |
-| 7.4 | OTP screen — 6-box input + auto-read | [RN1] | ⬜ | SMS auto-read on Android |
-| 7.5 | Location permission + Ola Maps geocoding | [RN1] | ⬜ | GPS or manual address |
-| 7.6 | Home screen — shop category grid | [RN1] | ⬜ | Typesense results |
+| 7.2 | Set up Zustand state store | [RN1] | ✅ | auth (persist+hydration flag), cart (AsyncStorage, same-shop rule, selectors), orders, location stores. Barrel export at src/store/index.ts. |
+| 7.3 | Login screen — phone number entry | [RN1] | ✅ | +91 prefix, 10-digit validation regex, sendOtp API call, navigates to OTP screen. Reusable Button component. |
+| 7.4 | OTP screen — 6-box input + auto-read | [RN1] | ✅ | 6 TextInput boxes, auto-advance, backspace handling, 60s resend timer, auto-submit on fill, verifyOtp → login → replace to home. textContentType="oneTimeCode" for iOS auto-fill. |
+| 7.5 | Location permission + Ola Maps geocoding | [RN1] | ✅ | expo-location ~18.1.0, useLocation hook (requestForegroundPermissionsAsync → getCurrentPositionAsync → reverseGeocode via backend proxy), location store persisted to AsyncStorage. |
+| 7.6 | Home screen — shop category grid | [RN1] | ✅ | Category chips (All + 8 categories, horizontal scroll), ShopCard (thumbnail, trust badge, distance, open/closed, rating), Typesense geo-search via /search/shops, location-gate prompt, empty/error states, retry. |
 | 7.7 | Shop card component | [RN1] | ⬜ | Trust badge, distance, rating, hours |
 | 7.8 | Nearby shops list (geo-filtered) | [RN1] | ⬜ | Typesense geo query |
 | 7.9 | Category filter chips | [RN1] | ⬜ | Kirana, Veg, Pharmacy, etc. |
@@ -355,7 +355,7 @@
 | 4 | 10 | 10 | 100% | ✅ All payment/refund/settlement complete (370+ tests) |
 | 5 | 12 | 12 | 100% | ✅ All delivery/OTP/ratings complete (370+ tests) |
 | 6 | 12 | 12 | 100% | ✅ Chat/reviews/trust score/analytics/earnings complete (370+ tests) |
-| 7 | 11 | — | — | 🔵 In progress — Task 7.1 scaffold complete |
+| 7 | 11 | 6 | 55% | 🔵 In progress — Tasks 7.1–7.6 complete |
 | 8 | 9 | — | — | ⬜ Not started (Customer app shop/cart) |
 | 9 | 10 | — | — | ⬜ Not started (Customer app checkout) |
 | 10 | 10 | — | — | ⬜ Not started (Customer app history) |
@@ -384,4 +384,4 @@
 
 ---
 
-*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 7 (Customer App) in progress — Task 7.1 scaffold complete.*
+*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 7 (Customer App) in progress — Tasks 7.1–7.6 complete (auth flow, stores, login, OTP, location, home screen).*

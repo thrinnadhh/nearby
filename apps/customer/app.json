@@ -25,7 +25,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "NearBy needs your location to show shops near you.",
+          "locationWhenInUsePermission": "NearBy needs your location to show shops near you."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
