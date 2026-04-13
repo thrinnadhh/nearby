@@ -4,10 +4,15 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '@/store/auth';
+import { configureForegroundNotifications } from '@/services/notifications';
 
 // Must be called at module level — before any render cycle — so the splash
 // screen stays visible while fonts and the auth store both hydrate.
 SplashScreen.preventAutoHideAsync();
+
+// Configure how notifications look when the app is in the foreground.
+// Must run at module level so it is set before the first notification arrives.
+configureForegroundNotifications();
 
 export default function RootLayout() {
   const hasHydrated = useAuthStore((s) => s._hasHydrated);

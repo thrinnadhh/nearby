@@ -32,6 +32,15 @@
           "locationAlwaysAndWhenInUsePermission": "NearBy needs your location to show shops near you.",
           "locationWhenInUsePermission": "NearBy needs your location to show shops near you."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#2563EB",
+          "androidMode": "default",
+          "androidCollapsedTitle": "NearBy"
+        }
       ]
     ],
     "experiments": {

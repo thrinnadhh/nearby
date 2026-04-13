@@ -18,6 +18,7 @@ import {
 } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import { verifyOtp, sendOtp } from '@/services/auth';
+import { registerPushToken } from '@/services/notifications';
 import { useAuthStore } from '@/store/auth';
 
 const OTP_LENGTH = 6;
@@ -72,6 +73,9 @@ export default function OtpScreen() {
     try {
       const data = await verifyOtp(phone, otpValue);
       login({ userId: data.userId, phone: data.phone, token: data.token });
+      // Fire-and-forget — never block navigation on push token registration.
+      // Errors (denied permission, no Firebase config in dev) are silently swallowed.
+      registerPushToken(data.token).catch(() => undefined);
       router.replace('/(tabs)/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed.');
