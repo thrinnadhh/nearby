@@ -15,3 +15,7 @@ ios/
 *.keystore
 # Dev scratch files
 backend/advisor.js
+
+# Customer app
+apps/customer/node_modules/
+apps/customer/.expo/

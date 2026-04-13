@@ -171,7 +171,7 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 7.1 | Set up Expo project (customer app) | [RN1] | ⬜ | TypeScript, Expo Router |
+| 7.1 | Set up Expo project (customer app) | [RN1] | ✅ | Expo SDK 53, TypeScript, Expo Router v4, Zustand v5, monorepo metro config. TypeScript: 0 errors. Security: 0 CRITICAL/HIGH. |
 | 7.2 | Set up Zustand state store | [RN1] | ⬜ | auth, cart, orders slices |
 | 7.3 | Login screen — phone number entry | [RN1] | ⬜ | 10-digit validation |
 | 7.4 | OTP screen — 6-box input + auto-read | [RN1] | ⬜ | SMS auto-read on Android |
@@ -355,7 +355,7 @@
 | 4 | 10 | 10 | 100% | ✅ All payment/refund/settlement complete (370+ tests) |
 | 5 | 12 | 12 | 100% | ✅ All delivery/OTP/ratings complete (370+ tests) |
 | 6 | 12 | 12 | 100% | ✅ Chat/reviews/trust score/analytics/earnings complete (370+ tests) |
-| 7 | 11 | — | — | ⬜ Not started (Customer app auth) |
+| 7 | 11 | — | — | 🔵 In progress — Task 7.1 scaffold complete |
 | 8 | 9 | — | — | ⬜ Not started (Customer app shop/cart) |
 | 9 | 10 | — | — | ⬜ Not started (Customer app checkout) |
 | 10 | 10 | — | — | ⬜ Not started (Customer app history) |
@@ -384,4 +384,4 @@
 
 ---
 
-*Last updated: April 12, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Next: Sprint 7 (Customer App).*
+*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 7 (Customer App) in progress — Task 7.1 scaffold complete.*
