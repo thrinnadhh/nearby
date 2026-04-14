@@ -245,7 +245,7 @@ Critical variables that break everything if missing:
 | Delivery tracking | 🟩 Complete | Sprint 5 Tasks 5.1–5.12: assign-delivery worker, OTP verification, partner ratings, GPS tracking, escalation, route optimization — 370+ tests passing |
 | Search (Typesense) | 🟩 Complete | Shop/product search endpoints plus schema bootstrap complete (Sprint 2, Tasks 2.9-2.11) |
 | Reviews & Trust Score | 🟩 Complete | Sprint 6 Tasks 6.1–6.12: POST /reviews, reviews listing, trust score nightly job, chat, analytics, earnings — 370+ tests passing |
-| Customer app | 🔵 In progress | Sprint 7 underway — Task 7.1 scaffold complete (Expo SDK 53, Expo Router v4, TypeScript, Zustand v5) |
+| Customer app | 🔵 In progress | Sprint 8 Tasks 8.1–8.3 complete: shop profile screen, product grid with category tabs, same-shop cart enforcement. Review carousel built. Services: getShop, getShopReviews. Cart tab badge added. |
 | Shop owner app | ⬜ Not started | Block 4, Sprint 9–12 |
 | Delivery app | ⬜ Not started | Block 5, Sprint 11–13 |
 | Admin dashboard | ⬜ Not started | Block 5, Sprint 13–15 |
@@ -362,7 +362,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 7 (Customer App) in progress — Task 7.1 scaffold complete.*
+*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 8 (Customer App) in progress — Tasks 8.1–8.3 complete: shop profile screen, product grid with category tabs, same-shop cart enforcement.*
 
 ## MCP Tools: code-review-graph
 

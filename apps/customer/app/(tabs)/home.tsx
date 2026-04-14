@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { router } from 'expo-router';
 import {
   colors,
   fontFamily,
@@ -161,10 +162,7 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <ShopCard
               shop={item}
-              onPress={(shop) => {
-                // Navigate to shop profile — implemented in Sprint 8
-                void shop;
-              }}
+              onPress={(shop) => router.push(`/(tabs)/shop/${shop.id}`)}
             />
           )}
           contentContainerStyle={styles.list}

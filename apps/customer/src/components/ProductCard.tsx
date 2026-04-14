@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   colors,
   fontFamily,
@@ -31,14 +31,34 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, shopId, onPress }: ProductCardProps) {
-  const { items, addItem } = useCartStore((s) => ({
+  const { items, addItem, cartShopId } = useCartStore((s) => ({
     items: s.items,
     addItem: s.addItem,
+    cartShopId: s.shopId,
   }));
 
   const cartItem = items.find((i) => i.product.id === product.id);
   const priceRupees = (product.price / 100).toFixed(2);
   const emoji = CATEGORY_EMOJI[product.category] ?? '📦';
+
+  function handleAddToCart() {
+    if (cartShopId !== null && cartShopId !== shopId) {
+      Alert.alert(
+        'Replace cart?',
+        'Your cart has items from another shop. Start a new cart?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Start new cart',
+            style: 'destructive',
+            onPress: () => addItem(product, shopId),
+          },
+        ]
+      );
+      return;
+    }
+    addItem(product, shopId);
+  }
 
   return (
     <TouchableOpacity
@@ -80,7 +100,7 @@ export function ProductCard({ product, shopId, onPress }: ProductCardProps) {
           {product.is_available ? (
             <TouchableOpacity
               style={[styles.addBtn, cartItem && styles.addBtnActive]}
-              onPress={() => addItem(product, shopId)}
+              onPress={handleAddToCart}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text style={[styles.addBtnText, cartItem && styles.addBtnTextActive]}>

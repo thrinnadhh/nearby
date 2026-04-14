@@ -76,3 +76,43 @@ export interface Coords {
   lat: number;
   lng: number;
 }
+
+// ─── Shop detail (full profile screen) ──────────────────────────────────────
+
+export interface ShopDetail {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  is_open: boolean;
+  is_verified: boolean;
+  trust_score: number;
+  avg_rating: number | null;
+  image_url: string | null;
+  thumbnail_url: string | null;
+  open_time: string | null;
+  close_time: string | null;
+  address: string | null;
+  city: string | null;
+  review_count: number;
+}
+
+export interface Review {
+  id: string;
+  customer_name: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  order_id: string | null;
+}
+
+export interface GetShopReviewsParams {
+  limit?: number;
+  sort?: 'recent' | 'rating';
+  page?: number;
+}
+
+export interface GetShopReviewsResponse {
+  data: Review[];
+  meta: { total: number; page: number; pages: number };
+}

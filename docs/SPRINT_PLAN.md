@@ -189,15 +189,17 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 8.1 | Shop profile screen | [RN1] | ⬜ | Owner photo, trust badge, reviews, hours |
-| 8.2 | Product grid/list with categories | [RN1] | ⬜ | Out-of-stock greyed out |
-| 8.3 | Add to cart interaction | [RN1] | ⬜ | Same-shop enforcement |
+| 8.1 | Shop profile screen | [RN1] | ✅ | Banner image/placeholder, trust badge (Trusted/Good/New/Review), open/closed pill, hours, avg_rating, description, review carousel (up to 5, horizontal FlatList). UUID guard on route param. |
+| 8.2 | Product grid/list with categories | [RN1] | ✅ | Category tab bar (All + unique product categories), 2-column FlatList (numColumns=2), out-of-stock overlay, empty state per category. Products via searchProducts({shopId, q:'', limit:50}). |
+| 8.3 | Add to cart interaction | [RN1] | ✅ | Alert.alert when cartShopId !== shopId (same-shop enforcement), direct addItem when same shop or empty cart. Cart tab badge (red dot, 99+ cap). Cart stub screen added. |
 | 8.4 | Cart screen | [RN1] | ⬜ | Items, qty, subtotal, delivery fee, total |
 | 8.5 | Address picker (Ola Maps) | [RN1] | ⬜ | GPS or search, map pin drag |
 | 8.6 | Cart persistence (survive app close) | [RN1] | ⬜ | AsyncStorage |
-| 8.7 | Review carousel on shop screen | [RN1] | ⬜ | Stars, comment, verified badge |
+| 8.7 | Review carousel on shop screen | [RN1] | ✅ | Built as part of 8.1 — stars, comment, verified badge, horizontal FlatList. |
 | 8.8 | Chat screen (pre-order) | [RN1] | ⬜ | Socket.IO, message bubbles |
 | 8.9 | Shop "open now" status indicator | [RN1] | ⬜ | Real-time via Socket.IO |
+
+**Sprint 8 Status:** 🔵 In progress — 4/9 tasks complete (8.1, 8.2, 8.3, 8.7)
 
 ---
 
@@ -356,7 +358,7 @@
 | 5 | 12 | 12 | 100% | ✅ All delivery/OTP/ratings complete (370+ tests) |
 | 6 | 12 | 12 | 100% | ✅ Chat/reviews/trust score/analytics/earnings complete (370+ tests) |
 | 7 | 11 | 11 | 100% | ✅ All tasks complete — Auth, Home, Search, FCM push token |
-| 8 | 9 | — | — | ⬜ Not started (Customer app shop/cart) |
+| 8 | 9 | 4 | 44% | 🔵 In progress — Tasks 8.1, 8.2, 8.3, 8.7 complete (shop profile, product grid, cart interaction, review carousel) |
 | 9 | 10 | — | — | ⬜ Not started (Customer app checkout) |
 | 10 | 10 | — | — | ⬜ Not started (Customer app history) |
 | 11 | 9 | — | — | ⬜ Not started (Shop owner app) |
@@ -384,4 +386,4 @@
 
 ---
 
-*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 7 (Customer App) in progress — Tasks 7.1–7.6 complete (auth flow, stores, login, OTP, location, home screen).*
+*Last updated: April 13, 2026 | Sprints 1–7 backend + customer auth/home COMPLETE. Sprint 8 in progress — Tasks 8.1–8.3 complete (shop profile screen, product grid with category tabs, same-shop cart enforcement, review carousel).*
