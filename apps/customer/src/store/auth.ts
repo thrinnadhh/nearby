@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+
+// ─── Secure storage adapter for Zustand ─────────────────────────────────────
+// Wraps expo-secure-store so Zustand's persist middleware can use it.
+// Tokens never touch AsyncStorage.
+const secureStorage = {
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+};
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -37,7 +46,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     }),
     {
       name: 'nearby-auth',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => secureStorage),
       // Only persist auth fields — never persist transient flags
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,

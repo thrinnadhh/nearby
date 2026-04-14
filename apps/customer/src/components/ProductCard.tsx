@@ -31,13 +31,13 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, shopId, onPress }: ProductCardProps) {
-  const { items, addItem, cartShopId } = useCartStore((s) => ({
-    items: s.items,
+  const { entries, addItem, cartShopId } = useCartStore((s) => ({
+    entries: s.entries,
     addItem: s.addItem,
     cartShopId: s.shopId,
   }));
 
-  const cartItem = items.find((i) => i.product.id === product.id);
+  const cartEntry = entries.find((e) => e.productId === product.id);
   const priceRupees = (product.price / 100).toFixed(2);
   const emoji = CATEGORY_EMOJI[product.category] ?? '📦';
 
@@ -99,12 +99,12 @@ export function ProductCard({ product, shopId, onPress }: ProductCardProps) {
           <Text style={styles.price}>₹{priceRupees}</Text>
           {product.is_available ? (
             <TouchableOpacity
-              style={[styles.addBtn, cartItem && styles.addBtnActive]}
+              style={[styles.addBtn, cartEntry && styles.addBtnActive]}
               onPress={handleAddToCart}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={[styles.addBtnText, cartItem && styles.addBtnTextActive]}>
-                {cartItem ? `In cart (${cartItem.qty})` : '+ Add'}
+              <Text style={[styles.addBtnText, cartEntry && styles.addBtnTextActive]}>
+                {cartEntry ? `In cart (${cartEntry.qty})` : '+ Add'}
               </Text>
             </TouchableOpacity>
           ) : (

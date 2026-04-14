@@ -74,7 +74,9 @@
       "Bash(sed -i 's#/api/v1/shops/\\\\${shopId}/review-stats#/api/v1/reviews/${shopId}/review-stats#g' /Users/trinadh/projects/nearby/backend/__tests__/integration/reviews.integration.test.js)",
       "Bash(git reset:*)",
       "Bash(npx tsc:*)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(npx expo:*)",
+      "mcp__code-review-graph__get_architecture_overview_tool"
     ],
     "additionalDirectories": [
       "/Users/trinadh/.claude",

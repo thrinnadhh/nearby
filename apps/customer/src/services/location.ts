@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL, API_TIMEOUT } from '@/constants/api';
-import type { Coords } from '@/types';
+import type { AddressSuggestion, Coords } from '@/types';
 
 // Ola Maps reverse geocode is proxied through our backend to keep the API key
 // server-side. The backend endpoint calls Ola Maps and returns a formatted address.
@@ -13,6 +13,29 @@ export interface ReverseGeocodeResult {
   address: string;
   locality: string;
   city: string;
+}
+
+/**
+ * Address autocomplete via backend proxy → Ola Maps Places API.
+ * Returns empty array on any error (backend not yet live, network failure, etc.).
+ */
+export async function autocompleteAddress(
+  q: string,
+  token?: string
+): Promise<AddressSuggestion[]> {
+  if (!q.trim()) return [];
+  try {
+    const { data } = await client.get<{
+      success: boolean;
+      data: AddressSuggestion[];
+    }>('/location/autocomplete', {
+      params: { q },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    return data.data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 /**

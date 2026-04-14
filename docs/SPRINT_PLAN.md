@@ -192,14 +192,14 @@
 | 8.1 | Shop profile screen | [RN1] | ✅ | Banner image/placeholder, trust badge (Trusted/Good/New/Review), open/closed pill, hours, avg_rating, description, review carousel (up to 5, horizontal FlatList). UUID guard on route param. |
 | 8.2 | Product grid/list with categories | [RN1] | ✅ | Category tab bar (All + unique product categories), 2-column FlatList (numColumns=2), out-of-stock overlay, empty state per category. Products via searchProducts({shopId, q:'', limit:50}). |
 | 8.3 | Add to cart interaction | [RN1] | ✅ | Alert.alert when cartShopId !== shopId (same-shop enforcement), direct addItem when same shop or empty cart. Cart tab badge (red dot, 99+ cap). Cart stub screen added. |
-| 8.4 | Cart screen | [RN1] | ⬜ | Items, qty, subtotal, delivery fee, total |
-| 8.5 | Address picker (Ola Maps) | [RN1] | ⬜ | GPS or search, map pin drag |
-| 8.6 | Cart persistence (survive app close) | [RN1] | ⬜ | AsyncStorage |
+| 8.4 | Cart screen | [RN1] | ✅ | CartRow with qty stepper (remove on decrement-to-0 via Alert), re-enrichment on app restart via searchProducts({shopId,q:'',limit:50}), ₹25 flat delivery fee, address preview row → address-picker, "Proceed to checkout" CTA. |
+| 8.5 | Address picker (Ola Maps) | [RN1] | ✅ | Root stack screen (app/address-picker.tsx). GPS via useLocation hook, debounced autocomplete via GET /location/autocomplete → Ola Maps (graceful empty on 404). deliveryAddress + deliveryCoords added to location store. Auto-seeds from first GPS fix. |
+| 8.6 | Cart persistence (survive app close) | [RN1] | ✅ | Implemented as part of SECURITY 5 fix — entries:{productId,qty}[] persisted to AsyncStorage (no prices). Items re-enriched from searchProducts on next cart open. Zustand v1 migration handles old CartItem[] format. |
 | 8.7 | Review carousel on shop screen | [RN1] | ✅ | Built as part of 8.1 — stars, comment, verified badge, horizontal FlatList. |
 | 8.8 | Chat screen (pre-order) | [RN1] | ⬜ | Socket.IO, message bubbles |
 | 8.9 | Shop "open now" status indicator | [RN1] | ⬜ | Real-time via Socket.IO |
 
-**Sprint 8 Status:** 🔵 In progress — 4/9 tasks complete (8.1, 8.2, 8.3, 8.7)
+**Sprint 8 Status:** 🔵 In progress — 7/9 tasks complete (8.1–8.7)
 
 ---
 
@@ -358,7 +358,7 @@
 | 5 | 12 | 12 | 100% | ✅ All delivery/OTP/ratings complete (370+ tests) |
 | 6 | 12 | 12 | 100% | ✅ Chat/reviews/trust score/analytics/earnings complete (370+ tests) |
 | 7 | 11 | 11 | 100% | ✅ All tasks complete — Auth, Home, Search, FCM push token |
-| 8 | 9 | 4 | 44% | 🔵 In progress — Tasks 8.1, 8.2, 8.3, 8.7 complete (shop profile, product grid, cart interaction, review carousel) |
+| 8 | 9 | 7 | 78% | 🔵 In progress — Tasks 8.1–8.7 complete (shop profile, product grid, cart interaction, review carousel, cart screen, address picker, cart persistence) |
 | 9 | 10 | — | — | ⬜ Not started (Customer app checkout) |
 | 10 | 10 | — | — | ⬜ Not started (Customer app history) |
 | 11 | 9 | — | — | ⬜ Not started (Shop owner app) |

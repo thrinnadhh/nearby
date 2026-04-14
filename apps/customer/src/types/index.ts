@@ -116,3 +116,10 @@ export interface GetShopReviewsResponse {
   data: Review[];
   meta: { total: number; page: number; pages: number };
 }
+
+export interface AddressSuggestion {
+  id: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
