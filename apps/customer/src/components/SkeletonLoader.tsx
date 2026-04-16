@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  ViewStyle,
 } from 'react-native';
 import {
   colors,
@@ -20,7 +21,7 @@ interface SkeletonLoaderProps {
   width?: number | string;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: ViewStyle | ViewStyle[];
 }
 
 export function SkeletonLoader({

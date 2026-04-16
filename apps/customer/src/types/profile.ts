@@ -16,7 +16,11 @@ export interface Profile {
 export interface SavedAddress {
   id: string;
   label: string;
-  address: string;
+  address_line_1: string;
+  address_line_2?: string;
+  city: string;
+  postal_code: string;
+  phone?: string;
   lat: number;
   lng: number;
   is_default: boolean;

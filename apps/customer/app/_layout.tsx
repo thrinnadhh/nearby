@@ -47,7 +47,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontError) {
       // Font failure is fatal in dev (fonts are bundled in release builds).
-      console.error('Font loading error:', fontError);
+      logger.error('Font loading error', { error: fontError.message });
     }
     if (ready) {
       SplashScreen.hideAsync();

@@ -42,8 +42,8 @@ export async function submitOrderReview(
     }
 
     return response.data.data;
-  } catch (err: any) {
-    const message = err.response?.data?.error?.message || err.message || 'Failed to submit review';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to submit review';
     throw new Error(message);
   }
 }
@@ -68,8 +68,8 @@ export async function checkReviewStatus(
     }
 
     return response.data.data;
-  } catch (err: any) {
-    const message = err.response?.data?.error?.message || err.message || 'Failed to check review status';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to check review status';
     throw new Error(message);
   }
 }

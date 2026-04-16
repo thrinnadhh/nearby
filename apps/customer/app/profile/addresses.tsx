@@ -32,7 +32,7 @@ import { SkeletonLoader } from '@/components/SkeletonLoader';
 export default function SavedAddressesScreen() {
   const router = useRouter();
   const { token } = useAuthStore();
-  const { addresses, loading, error, fetchProfile } = useProfileStore();
+  const { savedAddresses, loading, error, fetchProfile } = useProfileStore();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   // Fetch addresses on mount
@@ -116,7 +116,7 @@ export default function SavedAddressesScreen() {
     );
   }
 
-  const hasAddresses = addresses && addresses.length > 0;
+  const hasAddresses = savedAddresses && savedAddresses.length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -142,7 +142,7 @@ export default function SavedAddressesScreen() {
         />
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {addresses!.map((address) => (
+          {savedAddresses!.map((address) => (
             <View key={address.id} style={styles.addressCard}>
               <View style={styles.addressInfo}>
                 <View style={styles.addressHeader}>

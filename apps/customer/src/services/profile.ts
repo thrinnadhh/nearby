@@ -33,8 +33,8 @@ export async function getProfile(token: string): Promise<Profile> {
     }
 
     return response.data.data;
-  } catch (err: any) {
-    const message = err.response?.data?.error?.message || err.message || 'Failed to fetch profile';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch profile';
     throw new Error(message);
   }
 }
@@ -54,8 +54,8 @@ export async function getSavedAddresses(token: string): Promise<SavedAddress[]> 
     }
 
     return response.data.data;
-  } catch (err: any) {
-    const message = err.response?.data?.error?.message || err.message || 'Failed to fetch addresses';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch addresses';
     throw new Error(message);
   }
 }
@@ -78,8 +78,8 @@ export async function updateProfile(
     }
 
     return response.data.data;
-  } catch (err: any) {
-    const message = err.response?.data?.error?.message || err.message || 'Failed to update profile';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update profile';
     throw new Error(message);
   }
 }
@@ -100,8 +100,8 @@ export async function logout(token: string): Promise<void> {
     if (!response.data.success) {
       throw new Error('Failed to logout');
     }
-  } catch (err: any) {
-    const message = err.response?.data?.error?.message || err.message || 'Failed to logout';
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to logout';
     throw new Error(message);
   }
 }

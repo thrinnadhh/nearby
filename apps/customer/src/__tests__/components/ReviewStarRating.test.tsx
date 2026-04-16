@@ -5,29 +5,29 @@ import { ReviewStarRating } from '@/components/ReviewStarRating';
 describe('ReviewStarRating Component', () => {
   it('renders 5 stars', () => {
     const { getAllByTestId } = render(
-      <ReviewStarRating value={0} onChange={() => {}} />
+      <ReviewStarRating rating={0} onRatingChange={() => {}} />
     );
     expect(getAllByTestId(/star/)).toHaveLength(5);
   });
 
   it('displays filled stars based on rating', () => {
     const { getByTestId } = render(
-      <ReviewStarRating value={3} onChange={() => {}} />
+      <ReviewStarRating rating={3} onRatingChange={() => {}} />
     );
     expect(getByTestId('star-3-filled')).toBeDefined();
   });
 
-  it('calls onChange when a star is pressed', () => {
-    const onChange = jest.fn();
+  it('calls onRatingChange when a star is pressed', () => {
+    const onRatingChange = jest.fn();
     const { getByTestId } = render(
-      <ReviewStarRating value={0} onChange={onChange} />
+      <ReviewStarRating rating={0} onRatingChange={onRatingChange} />
     );
     
     // Simulate pressing star 4
     const star4 = getByTestId('star-4');
     star4.props.onPress();
     
-    expect(onChange).toHaveBeenCalledWith(4);
+    expect(onRatingChange).toHaveBeenCalledWith(4);
   });
 
   it('supports all ratings from 1 to 5', () => {
