@@ -16,6 +16,8 @@ import { useAuthStore } from '@/store/auth';
 import { useOrdersStore } from '@/store/orders';
 import { getOrderHistory, reorderFromHistory, getStatusLabel, getStatusColor, getStatusIcon } from '@/services/order-history';
 import { useLocationStore } from '@/store/location';
+import logger from '@/utils/logger';
+import type { Order } from '@/types';
 
 /**
  * Order History Screen (Task 9.7)
@@ -62,7 +64,7 @@ export default function OrderHistoryScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
@@ -119,7 +121,7 @@ export default function OrderHistoryScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to load orders';
       setError(message);
-      console.error('Order history load error:', message);
+      logger.error('Order history load error', { message, page, filter: selectedFilter });
     } finally {
       setIsRefreshing(false);
       setIsLoading(false);
@@ -171,6 +173,10 @@ export default function OrderHistoryScreen() {
     setIsReordering(order.id);
 
     try {
+      if (!deliveryCoords) {
+        Alert.alert('Error', 'Delivery coordinates are required for reorder');
+        return;
+      }
       const newOrder = await reorderFromHistory(
         order.id,
         {
@@ -196,13 +202,13 @@ export default function OrderHistoryScreen() {
             style: 'cancel',
           },
         ]
-      );
+      logger.error('Reorder error', { orderId: order.id, message }
     } catch (err: any) {
       const message = err?.message || 'Failed to reorder';
       Alert.alert('Reorder Failed', message);
       console.error('Reorder error:', message);
     } finally {
-      setIsReordering(null);
+      setIsReordering(null);Order
     }
   };
 

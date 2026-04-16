@@ -15,13 +15,30 @@ import {
  * Displays delivery partner information (name, masked phone, rating, vehicle)
  */
 
+interface PartnerData {
+  name: string;
+  rating: number;
+  deliveries_count: number;
+  vehicle?: string;
+  vehicle_number?: string;
+}
+
 interface PartnerInfoCardProps {
+  partner?: PartnerData;
   onContact?: () => void;
 }
 
-export function PartnerInfoCard({ onContact }: PartnerInfoCardProps) {
-  // In a real implementation, this would receive partner data from the order
-  // For now, showing placeholder structure
+export function PartnerInfoCard({ partner, onContact }: PartnerInfoCardProps) {
+  // Handle missing partner data gracefully
+  if (!partner) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.placeholderText}>Delivery partner information will appear here</Text>
+      </View>
+    );
+  }
+
+  const maskedPhone = '••••••••••'; // Phone is sensitive data, shown as masked
 
   return (
     <View style={styles.container}>
@@ -31,11 +48,11 @@ export function PartnerInfoCard({ onContact }: PartnerInfoCardProps) {
           <Ionicons name="person" size={24} color={colors.primary} />
         </View>
         <View style={styles.info}>
-          <Text style={styles.name}>Partner Name</Text>
+          <Text style={styles.name}>{partner.name}</Text>
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={14} color={colors.warning} />
-            <Text style={styles.rating}>4.8</Text>
-            <Text style={styles.ratingCount}>(125 deliveries)</Text>
+            <Text style={styles.rating}>{partner.rating.toFixed(1)}</Text>
+            <Text style={styles.ratingCount}>({partner.deliveries_count} deliveries)</Text>
           </View>
         </View>
       </View>
@@ -46,14 +63,14 @@ export function PartnerInfoCard({ onContact }: PartnerInfoCardProps) {
           <Ionicons name="car" size={16} color={colors.textSecondary} />
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Vehicle</Text>
-            <Text style={styles.infoValue}>Bike</Text>
+            <Text style={styles.infoValue}>{partner.vehicle || 'Bike'}</Text>
           </View>
         </View>
         <View style={styles.infoItem}>
           <Ionicons name="help-circle" size={16} color={colors.textSecondary} />
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Vehicle No.</Text>
-            <Text style={styles.infoValue}>KA-01-••••</Text>
+            <Text style={styles.infoValue}>{partner.vehicle_number || maskedPhone}</Text>
           </View>
         </View>
       </View>
@@ -117,6 +134,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
     fontFamily: fontFamily.semiBold,
+  },
+
+  placeholderText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontFamily: fontFamily.regular,
+    textAlign: 'center',
+    paddingVertical: spacing.lg,
   },
 
   ratingCount: {

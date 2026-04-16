@@ -253,7 +253,11 @@ export default function OrderDetailScreen() {
         {/* Refund Status (if cancelled) */}
         {order.status === 'cancelled' && (
           <View style={styles.section}>
-            <RefundStatusBadge orderId={order.id} />
+            <RefundStatusBadge 
+              orderId={order.id}
+              status={order.refund_status || 'processing'}
+              refundAmount={order.refund_amount}
+            />
           </View>
         )}
 
@@ -263,7 +267,10 @@ export default function OrderDetailScreen() {
         ) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Delivery Partner</Text>
-            <PartnerInfoCard onContact={handleContactPartner} />
+            <PartnerInfoCard 
+              partner={order.delivery_partner}
+              onContact={handleContactPartner} 
+            />
           </View>
         )}
 
@@ -274,7 +281,7 @@ export default function OrderDetailScreen() {
             <Ionicons
               name="location"
               size={16}
-              color={colors.textSecondary}
+              color={colors.textSecondary}delivery_address || 'Address not available'
               style={{ marginRight: spacing.sm }}
             />
             <Text style={styles.addressText}>{order.id}</Text>

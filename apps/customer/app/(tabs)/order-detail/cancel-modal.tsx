@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -58,10 +59,20 @@ export function CancelOrderModal({
   const handleConfirm = async () => {
     if (!selectedReason) return;
 
+    // Explicit validation for "Other reason" case
+    if (selectedReason === 'Other reason') {
+      if (!otherReason || otherReason.trim().length === 0) {
+        Alert.alert('Validation Error', 'Please provide a reason for cancellation');
+        return;
+      }
+      if (otherReason.trim().length < 3) {
+        Alert.alert('Validation Error', 'Reason must be at least 3 characters');
+        return;
+      }
+    }
+
     const reason =
       selectedReason === 'Other reason' ? otherReason : selectedReason;
-
-    if (!reason.trim()) return;
 
     setIsSubmitting(true);
     try {
