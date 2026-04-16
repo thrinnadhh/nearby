@@ -1,4 +1,5 @@
 import { api } from './api';
+import { client } from './api';
 import type { Order } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -46,13 +47,41 @@ export async function getOrder(orderId: string): Promise<Order> {
     success: boolean;
     data?: Order;
     error?: { code: string; message: string };
-  }>(`/api/v1/orders/${orderId}`);
+  }>(\`/api/v1/orders/${orderId}\`);
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to fetch order');
   }
 
   return response.data.data;
+}
+
+/**
+ * Get order detail with full information (Task 10.2)
+ * Includes: timeline, items, partner info, refund status
+ */
+export async function getOrderDetail(
+  orderId: string,
+  token?: string
+): Promise<Order> {
+  try {
+    const response = await client.get<{
+      success: boolean;
+      data?: Order;
+      error?: { code: string; message: string };
+    }>(\`/api/v1/orders/${orderId}\`, {
+      headers: token ? { Authorization: \`Bearer ${token}\` } : undefined,
+    });
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Order not found');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('Failed to fetch order details');
+  }
 }
 
 /**
@@ -73,6 +102,99 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 /**
+ * Cancel an order by ID with reason (Task 10.3)
+ * Only works for orders in 'pending' or 'accepted' status
+ */
+export async function cancelOrder(
+  orderId: string,
+  reason: string,
+  token?: string
+): Promise<void> {
+  try {
+    const response = await client.patch<{
+      success: boolean;
+      error?: { code: string; message: string };
+    }>(
+      \`/api/v1/orders/${orderId}/cancel\`,
+      { reason },
+      {
+        headers: token ? { Authorization: \`Bearer ${token}\` } : undefined,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new Error(response.data.error?.message || 'Failed to cancel order');
+    }
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('Failed to cancel order');
+  }
+}
+
+/**
+ * Reorder items from a previous order (Task 10.4)
+ * Checks availability and current prices, prefills cart
+ */
+export async function reorderFromOrder(
+  orderId: string,
+  deliveryAddress: string,
+  deliveryCoords: [number, number],
+  token?: string
+): Promise<{
+  newOrderId: string;
+  unavailableItems: string[];
+  priceChanges: Array<{
+    productId: string;
+    oldPrice: number;
+    newPrice: number;
+  }>;
+}> {
+  try {
+    const response = await client.post<{
+      success: boolean;
+      data?: {
+        new_order_id?: string;
+        order_id?: string;
+        unavailable_items?: string[];
+        price_changes?: Array<{
+          product_id: string;
+          old_price: number;
+          new_price: number;
+        }>;
+      };
+      error?: { code: string; message: string };
+    }>(
+      \`/api/v1/orders/${orderId}/reorder\`,
+      {
+        delivery_address: deliveryAddress,
+        delivery_coords: deliveryCoords,
+      },
+      {
+        headers: token ? { Authorization: \`Bearer ${token}\` } : undefined,
+      }
+    );
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Failed to reorder');
+    }
+
+    const data = response.data.data;
+    return {
+      newOrderId: data.new_order_id || data.order_id || '',
+      unavailableItems: data.unavailable_items || [],
+      priceChanges: data.price_changes?.map((pc) => ({
+        productId: pc.product_id,
+        oldPrice: pc.old_price,
+        newPrice: pc.new_price,
+      })) || [],
+    };
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('Failed to reorder');
+  }
+}
+
+/**
  * Initiate a payment session via Cashfree (UPI/Card).
  * Returns payment link for deep-linking into Cashfree checkout.
  */
@@ -84,7 +206,7 @@ export async function initiatePayment(orderId: string): Promise<{
     success: boolean;
     data?: { session_url: string; order_id: string };
     error?: { code: string; message: string };
-  }>(`/api/v1/payments/initiate`, { order_id: orderId });
+  }>(\`/api/v1/payments/initiate\`, { order_id: orderId });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to initiate payment');
@@ -107,7 +229,7 @@ export async function getPaymentStatus(
     success: boolean;
     data?: { status: string; paid: boolean; error?: string };
     error?: { code: string; message: string };
-  }>(`/api/v1/payments/${orderId}`);
+  }>(\`/api/v1/payments/${orderId}\`);
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to get payment status');

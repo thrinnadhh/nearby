@@ -8,15 +8,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import { getOrder } from '@/services/orders';
 import { submitReview } from '@/services/reviews';
 import { paise } from '@/utils/currency';
-
-const WINDOW_WIDTH = Dimensions.get('window').width;
+import logger from '@/utils/logger';
 
 /**
  * Delivery Confirmed Screen (Task 9.10)
@@ -82,7 +80,7 @@ export default function DeliveryConfirmedScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to load order';
       setError(message);
-      console.error('Order fetch error:', message);
+      logger.error('Order fetch error', { message });
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +118,7 @@ export default function DeliveryConfirmedScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to submit rating';
       Alert.alert('Error', message);
-      console.error('Rating submission error:', message);
+      logger.error('Rating submission error', { message });
     } finally {
       setIsSubmitting(false);
     }

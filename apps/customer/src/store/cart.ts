@@ -29,6 +29,12 @@ interface CartActions {
   /** Called by the cart screen after fetching fresh product data.
    *  Rebuilds items from entries with current server prices. */
   enrichItems: (products: Product[]) => void;
+  /** Reorder flow: prefill cart with items from a previous order (Task 10.4) */
+  reorderItems: (
+    products: Product[],
+    items: Array<{ product_id: string; qty: number }>,
+    shopId: string
+  ) => void;
 }
 
 const initialState: CartState = {
@@ -110,6 +116,31 @@ export const useCartStore = create<CartState & CartActions>()(
         });
       },
 
+      reorderItems: (products, items, newShopId) => {
+        const productMap = new Map(products.map((p) => [p.id, p]));
+
+        // Build new entries and items from the reorder list
+        const newEntries: CartEntry[] = items
+          .filter((item) => productMap.has(item.product_id))
+          .map((item) => ({
+            productId: item.product_id,
+            qty: item.qty,
+          }));
+
+        const newItems: CartItem[] = items
+          .filter((item) => productMap.has(item.product_id))
+          .map((item) => ({
+            product: productMap.get(item.product_id)!,
+            qty: item.qty,
+          }));
+
+        set({
+          shopId: newShopId,
+          entries: newEntries,
+          items: newItems,
+        });
+      },
+
       clearCart: () => set(initialState),
     }),
     {
@@ -147,7 +178,3 @@ export const useCartStore = create<CartState & CartActions>()(
 /** Total price in paise — computed from in-memory items (current session prices). */
 export const selectCartTotal = (state: CartState): number =>
   state.items.reduce((sum, i) => sum + i.product.price * i.qty, 0);
-
-/** Total item count — computed from persisted entries (survives app restart). */
-export const selectCartCount = (state: CartState): number =>
-  state.entries.reduce((sum, e) => sum + e.qty, 0);

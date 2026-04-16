@@ -41,7 +41,6 @@ export default function OrderConfirmedScreen() {
 
   const [order, setOrder] = useState<any>(null);
   const [timeRemaining, setTimeRemaining] = useState(ACCEPTANCE_TIMEOUT);
-  const [isPolling, setIsPolling] = useState(false);
   const [pollError, setPollError] = useState<string | null>(null);
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
@@ -88,18 +87,12 @@ export default function OrderConfirmedScreen() {
 
   // Polling effect: check order status every 5 seconds
   useEffect(() => {
-    if (hasTimedOut || !orderId || !token || isPolling) return;
+    if (hasTimedOut || !orderId || !token) return;
 
-    setIsPolling(true);
-    fetchOrderDetails().finally(() => setIsPolling(false));
-
-    const pollInterval = setInterval(() => {
-      setIsPolling(true);
-      fetchOrderDetails().finally(() => setIsPolling(false));
-    }, 5000); // Poll every 5 seconds
-
+    fetchOrderDetails();
+    const pollInterval = setInterval(fetchOrderDetails, 5000);
     return () => clearInterval(pollInterval);
-  }, [orderId, token, hasTimedOut, fetchOrderDetails, isPolling]);
+  }, [orderId, token, hasTimedOut, fetchOrderDetails]);
 
   const handleRetry = () => {
     setTimeRemaining(ACCEPTANCE_TIMEOUT);
@@ -154,7 +147,7 @@ export default function OrderConfirmedScreen() {
                 <Text style={styles.summaryLabel}>Order ID</Text>
                 <Text style={styles.orderId}>{order.id}</Text>
 
-                <Text style={styles.summaryLabel} style={{ marginTop: 16 }}>
+                <Text style={[styles.summaryLabel, { marginTop: 16 }]}>
                   Amount
                 </Text>
                 <Text style={styles.amount}>{paise(order.total_amount)}</Text>

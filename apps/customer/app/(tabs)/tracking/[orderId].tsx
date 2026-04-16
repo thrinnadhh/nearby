@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -15,8 +15,9 @@ import { useOrdersStore } from '@/store/orders';
 import { useAuthStore } from '@/store/auth';
 import { useLocationStore } from '@/store/location';
 import { getOrder } from '@/services/orders';
-import { connectSocket, disconnectSocket, onGpsUpdate } from '@/services/socket';
+import { initSocket, joinOrderRoom, leaveOrderRoom, onGpsPosition } from '@/services/socket';
 import { paise } from '@/utils/currency';
+import logger from '@/utils/logger';
 
 /**
  * Order Tracking Screen (Task 9.4)
@@ -55,8 +56,6 @@ export default function TrackingScreen() {
   const { deliveryAddress, deliveryCoords } = useLocationStore();
   const { setActiveOrder } = useOrdersStore();
 
-  const socketRef = useRef<any>(null);
-
   // Order & tracking state
   const [order, setOrder] = useState<any>(null);
   const [deliveryPartner, setDeliveryPartner] = useState<DeliveryPartner | null>(null);
@@ -94,7 +93,7 @@ export default function TrackingScreen() {
         setDistance(data.delivery_distance_km);
       }
 
-      if (data.order_status === 'delivered' && data.delivery_otp) {
+      if (data.order_status === 'delivered') {
         setShowOtpModal(true);
       }
 
@@ -118,39 +117,31 @@ export default function TrackingScreen() {
     if (!orderId || !token) return;
 
     try {
-      socketRef.current = connectSocket(token);
-      
-      // Join order room for tracking
-      socketRef.current?.emit('join_order_room', { orderId });
+      initSocket(token);
+      joinOrderRoom(orderId);
 
-      // Listen for GPS updates from delivery partner
-      const handleGpsUpdate = (data: any) => {
-        if (data.orderId === orderId) {
-          setPartnerLocation({
-            lat: data.lat,
-            lng: data.lng,
-            timestamp: data.timestamp || Date.now(),
-          });
+      // Unsubscribe function returned by onGpsPosition
+      const unsubscribeGps = onGpsPosition((data) => {
+        setPartnerLocation({
+          lat: data.lat,
+          lng: data.lng,
+          timestamp: data.timestamp,
+        });
 
-          // Update ETA and distance if provided
-          if (data.eta_seconds !== undefined) {
-            setEta(data.eta_seconds);
-          }
-
-          if (data.distance_km !== undefined) {
-            setDistance(data.distance_km);
-          }
+        // Backend sends eta (seconds); no distance_km in payload
+        if (data.eta !== null && data.eta !== undefined) {
+          setEta(data.eta);
         }
-      };
-
-      socketRef.current?.on('gps_update', handleGpsUpdate);
+      });
 
       return () => {
-        socketRef.current?.off('gps_update', handleGpsUpdate);
-        socketRef.current?.emit('leave_order_room', { orderId });
+        unsubscribeGps();
+        leaveOrderRoom(orderId);
       };
-    } catch (err: any) {
-      console.error('Socket.IO error:', err?.message);
+    } catch (err: unknown) {
+      logger.error('Socket.IO error in tracking', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }, [orderId, token]);
 
@@ -207,27 +198,25 @@ export default function TrackingScreen() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otpInput || otpInput.length !== 6) {
-      setOtpError('OTP must be 6 digits');
+    if (!otpInput || otpInput.length !== 4) {
+      setOtpError('OTP must be 4 digits');
       return;
     }
 
     setVerifyingOtp(true);
     try {
-      // TODO: Verify OTP with backend
-      // POST /api/v1/orders/{orderId}/delivery-otp/verify
-      if (otpInput === order?.delivery_otp) {
+      // Verify OTP server-side via PATCH /delivery/:orderId/deliver
+      // The delivery partner's app calls this; here we poll for confirmed status
+      const updated = await getOrder(orderId!);
+      if (updated.order_status === 'delivered') {
         setOtpError(null);
         setShowOtpModal(false);
-        
-        // Navigate to delivery-confirmed screen for review prompt (Task 9.10)
-        // This replaces the tracking screen and shows delivery confirmation + 5-star rating
         router.replace(`/(tabs)/delivery-confirmed/${orderId}`);
       } else {
-        setOtpError('Invalid OTP');
+        setOtpError('OTP not confirmed yet. Please ask the delivery partner to verify.');
       }
-    } catch (err: any) {
-      setOtpError(err?.message || 'Verification failed');
+    } catch (err: unknown) {
+      setOtpError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
       setVerifyingOtp(false);
     }
@@ -756,7 +745,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   timelineItem: {
-    flex Direction: 'row',
+    flexDirection: 'row',
     alignItems: 'flex-start',
   },
   timelineIcon: {

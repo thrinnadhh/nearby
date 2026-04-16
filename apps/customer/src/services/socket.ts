@@ -213,6 +213,49 @@ export function onShopStatusChange(
 }
 
 /**
+ * Join order room to receive real-time GPS and status events
+ * Room naming: order:{orderId}
+ */
+export function joinOrderRoom(orderId: string): void {
+  if (!socket) return;
+  socket.emit('order:join', { orderId });
+}
+
+/**
+ * Leave order room
+ */
+export function leaveOrderRoom(orderId: string): void {
+  if (!socket) return;
+  socket.emit('order:leave', { orderId });
+}
+
+/**
+ * Register listener for GPS position updates from delivery partner
+ * Event: gps:position — emitted by backend gpsTracker.js
+ */
+export function onGpsPosition(
+  callback: (data: {
+    lat: number;
+    lng: number;
+    eta: number | null;
+    timestamp: number;
+  }) => void
+): () => void {
+  if (!socket) {
+    logger.warn('Socket.IO not initialized for onGpsPosition');
+    return () => {};
+  }
+
+  socket.on('gps:position', callback);
+
+  return () => {
+    if (socket) {
+      socket.off('gps:position', callback);
+    }
+  };
+}
+
+/**
  * Register listener for bulk shop status updates
  * Useful when subscribing to a shop category or region
  */
