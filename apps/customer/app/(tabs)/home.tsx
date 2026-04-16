@@ -18,10 +18,12 @@ import {
 } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth';
 import { useLocationStore } from '@/store/location';
+import { useShopsStore } from '@/store/shops';
 import { useLocation } from '@/hooks/useLocation';
 import { CategoryChip, CATEGORY_LABELS } from '@/components/CategoryChip';
 import { ShopCard } from '@/components/ShopCard';
 import { searchNearbyShops } from '@/services/search';
+import { onShopStatusChange } from '@/services/socket';
 import type { Shop, ShopCategory } from '@/types';
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as ShopCategory[];
@@ -30,6 +32,7 @@ export default function HomeScreen() {
   const token = useAuthStore((s) => s.token) ?? undefined;
   const { coords, address } = useLocationStore();
   const { requesting, requestLocation } = useLocation();
+  const setShopStatus = useShopsStore((s) => s.setShopStatus);
 
   const [selectedCategory, setSelectedCategory] = useState<ShopCategory | null>(
     null
@@ -64,6 +67,23 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchShops();
   }, [fetchShops]);
+
+  // ── Listen for real-time shop status changes ─────────────────────────────
+  useEffect(() => {
+    const unsubscribe = onShopStatusChange(({ shopId, isOpen }) => {
+      // Update the store for other screens to consume
+      setShopStatus(shopId, isOpen);
+      
+      // Update local shops list to reflect status change immediately
+      setShops((prev) =>
+        prev.map((shop) =>
+          shop.id === shopId ? { ...shop, is_open: isOpen } : shop
+        )
+      );
+    });
+
+    return () => unsubscribe();
+  }, [setShopStatus]);
 
   // ── Location not granted yet ─────────────────────────────────────────────
   if (!coords) {

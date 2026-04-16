@@ -108,7 +108,9 @@ export default function CartScreen() {
   } = useCartStore();
   const subtotal = useCartStore(selectCartTotal);
 
-  const [enriching, setEnriching] = useState(false);
+  // FIX: initialise to true when a restart scenario is detected so the first
+  // render shows the spinner rather than a blank list with ₹0 subtotal.
+  const [enriching, setEnriching] = useState(entries.length > 0 && items.length === 0);
   const [enrichError, setEnrichError] = useState(false);
 
   // ── Re-enrich items after app restart (entries persisted, items cleared) ────
@@ -153,6 +155,11 @@ export default function CartScreen() {
   }
 
   function handleProceed() {
+    if (!deliveryAddress) {
+      router.push('/address-picker');
+      return;
+    }
+    // TODO Sprint 9: push to order confirmation screen
     router.push('/address-picker');
   }
 
@@ -212,6 +219,7 @@ export default function CartScreen() {
   }
 
   const total = subtotal + DELIVERY_FEE_PAISE;
+  const totalQty = entries.reduce((s, e) => s + e.qty, 0);
 
   // ── Main cart ─────────────────────────────────────────────────────────────
   return (
@@ -219,8 +227,7 @@ export default function CartScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          Cart ({entries.reduce((s, e) => s + e.qty, 0)}{' '}
-          {entries.reduce((s, e) => s + e.qty, 0) === 1 ? 'item' : 'items'})
+          Cart ({totalQty} {totalQty === 1 ? 'item' : 'items'})
         </Text>
         <TouchableOpacity onPress={handleClearCart} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.clearText}>Clear</Text>
@@ -270,9 +277,15 @@ export default function CartScreen() {
               </View>
             </View>
 
-            {/* CTA */}
-            <TouchableOpacity style={styles.proceedBtn} onPress={handleProceed}>
-              <Text style={styles.proceedText}>Proceed to checkout</Text>
+            {/* CTA — disabled until a delivery address is confirmed */}
+            <TouchableOpacity
+              style={[styles.proceedBtn, !deliveryAddress && styles.proceedBtnDisabled]}
+              disabled={!deliveryAddress}
+              onPress={handleProceed}
+            >
+              <Text style={styles.proceedText}>
+                {deliveryAddress ? 'Proceed to checkout' : 'Set delivery address first'}
+              </Text>
               <Ionicons name="arrow-forward" size={18} color={colors.white} />
             </TouchableOpacity>
           </View>
@@ -453,6 +466,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
+  },
+  proceedBtnDisabled: {
+    backgroundColor: colors.textDisabled,
   },
   proceedText: {
     fontSize: fontSize.base,

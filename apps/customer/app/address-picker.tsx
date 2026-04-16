@@ -53,6 +53,9 @@ export default function AddressPickerScreen() {
       .then((results) => {
         if (!cancelled) setSuggestions(results);
       })
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      })
       .finally(() => {
         if (!cancelled) setSearching(false);
       });

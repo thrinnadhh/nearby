@@ -13,6 +13,8 @@ import {
   toggleShopSchema,
 } from '../utils/validators.js';
 import ShopService from '../services/shops.js';
+import { broadcastShopStatusChange } from '../socket/index.js';
+import { getRealtimeServer } from '../socket/ioRegistry.js';
 
 const router = Router();
 
@@ -160,7 +162,9 @@ router.patch(
  * Requires: Authentication + shop_owner role + ownership of shop
  * Request body: Empty (no fields required)
  * Response: 200 with updated shop object showing toggled is_open status
- * Side effects: Queues async Typesense sync job (sync if opening, remove if closing)
+ * Side effects: 
+ *   - Queues async Typesense sync job (sync if opening, remove if closing)
+ *   - Broadcasts shop status change to all connected customers via Socket.IO
  */
 router.patch(
   '/:shopId/toggle',
@@ -178,7 +182,13 @@ router.patch(
         shopId
       );
 
-      // 2. Return 200 with updated shop
+      // 2. Broadcast status change to all connected customers
+      const io = getRealtimeServer();
+      if (io) {
+        broadcastShopStatusChange(io, shopId, updatedShop.isOpen);
+      }
+
+      // 3. Return 200 with updated shop
       logger.info('Toggle shop endpoint success', {
         shopId,
         userId: req.user.userId,
@@ -187,7 +197,7 @@ router.patch(
 
       res.status(200).json(successResponse(updatedShop));
     } catch (err) {
-      // 3. Forward error to error handler middleware
+      // 4. Forward error to error handler middleware
       logger.error('Toggle shop endpoint error', {
         error: err.message,
         shopId: req.params.shopId,

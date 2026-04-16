@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { verifyOtp, sendOtp } from '@/services/auth';
 import { registerPushToken } from '@/services/notifications';
+import { initSocket } from '@/services/socket';
 import { useAuthStore } from '@/store/auth';
 
 const OTP_LENGTH = 6;
@@ -73,6 +74,8 @@ export default function OtpScreen() {
     try {
       const data = await verifyOtp(phone, otpValue);
       login({ userId: data.userId, phone: data.phone, token: data.token });
+      // Initialize Socket.IO for real-time features (chat, orders, GPS)
+      initSocket(data.token);
       // Fire-and-forget — never block navigation on push token registration.
       // Errors (denied permission, no Firebase config in dev) are silently swallowed.
       registerPushToken(data.token).catch(() => undefined);

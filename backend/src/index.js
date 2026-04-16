@@ -34,6 +34,7 @@ import { globalLimiter } from './middleware/rateLimit.js';
 import { registerOrderRoom } from './socket/orderRoom.js';
 import { registerGpsTracker } from './socket/gpsTracker.js';
 import { registerChat } from './socket/chat.js';
+import { registerShopStatus } from './socket/index.js';
 import { setRealtimeServer } from './socket/ioRegistry.js';
 
 // Validate required environment variables at startup
@@ -239,6 +240,7 @@ io.on('connection', (socket) => {
   registerOrderRoom(io, socket);
   registerGpsTracker(io, socket);
   registerChat(io, socket);
+  registerShopStatus(io, socket);
 
   socket.on('disconnect', () => {
     logger.debug('Socket.IO client disconnected', {

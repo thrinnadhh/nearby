@@ -95,20 +95,16 @@ export const useCartStore = create<CartState & CartActions>()(
       },
 
       enrichItems: (products) => {
-        const { entries, shopId } = get();
+        const { entries } = get();
         const productMap = new Map(products.map((p) => [p.id, p]));
+        // Drop any entries whose product was deleted or is beyond the fetch limit.
+        // This prevents ₹0 ghost line items in the cart total.
+        const resolvedEntries = entries.filter((e) => productMap.has(e.productId));
         set({
-          items: entries.map((entry) => ({
-            product: productMap.get(entry.productId) ?? {
-              id: entry.productId,
-              name: 'Unknown product',
-              price: 0,
-              image_url: null,
-              category: '',
-              is_available: true,
-              shop_id: shopId ?? '',
-              stock_qty: 0,
-            },
+          entries: resolvedEntries,
+          items: resolvedEntries.map((entry) => ({
+            // Non-null assertion safe: filtered to only entries with a resolved product above.
+            product: productMap.get(entry.productId)!,
             qty: entry.qty,
           })),
         });

@@ -19,9 +19,11 @@ import {
   borderRadius,
 } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth';
+import { useShopsStore } from '@/store/shops';
 import { getShop } from '@/services/shops';
 import { getShopReviews } from '@/services/reviews';
 import { searchProducts } from '@/services/search';
+import { onShopStatusChange } from '@/services/socket';
 import { ProductCard } from '@/components/ProductCard';
 import type { ShopDetail, Review, Product } from '@/types';
 
@@ -130,6 +132,20 @@ export default function ShopScreen() {
     void fetchReviews();
     void fetchProducts();
   }, [fetchShop, fetchReviews, fetchProducts]);
+
+  // ── Listen for real-time shop status changes ─────────────────────────────
+  useEffect(() => {
+    if (!isValidUUID(id)) return;
+
+    const unsubscribe = onShopStatusChange(({ shopId, isOpen }) => {
+      if (shopId === id && shop) {
+        // Update local shop state to reflect status change
+        setShop({ ...shop, is_open: isOpen });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [id, shop]);
 
   // ── Navigation helper ────────────────────────────────────────────────────
 
@@ -249,6 +265,15 @@ export default function ShopScreen() {
             {shop.description}
           </Text>
         ) : null}
+
+        {/* Chat button */}
+        <TouchableOpacity
+          onPress={() => router.push(`/chat/${shop.id}`)}
+          style={styles.chatButton}
+        >
+          <Ionicons name="chatbubble-outline" size={18} color={colors.white} />
+          <Text style={styles.chatButtonText}>Message Shop</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Reviews carousel */}
@@ -363,19 +388,16 @@ export default function ShopScreen() {
               : 'No products listed yet.'}
           </Text>
         ) : (
-          <FlatList
-            data={filteredProducts}
-            keyExtractor={(p) => p.id}
-            numColumns={2}
-            scrollEnabled={false}
-            columnWrapperStyle={styles.gridRow}
-            contentContainerStyle={styles.gridContent}
-            renderItem={({ item }) => (
-              <View style={styles.gridCell}>
+          // Use a flex-wrap View instead of FlatList to avoid the
+          // VirtualizedList-inside-ScrollView warning (scrollEnabled={false}
+          // suppresses the crash but not the perf overhead).
+          <View style={styles.gridContent}>
+            {filteredProducts.map((item) => (
+              <View key={item.id} style={styles.gridCell}>
                 <ProductCard product={item} shopId={id} />
               </View>
-            )}
-          />
+            ))}
+          </View>
         )}
       </View>
     </ScrollView>
@@ -496,6 +518,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     lineHeight: 20,
   },
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+  },
+  chatButtonText: {
+    color: colors.white,
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.base,
+  },
 
   // ── Section ──────────────────────────────────────────────────────────────
   section: {
@@ -571,14 +609,18 @@ const styles = StyleSheet.create({
   },
 
   // ── Product grid ─────────────────────────────────────────────────────────
-  gridRow: {
-    gap: spacing.md,
-  },
+  // flex-wrap two-column layout — avoids nested VirtualizedList warning.
+  // gridRow was the FlatList columnWrapperStyle; no longer needed.
+  gridRow: {},
   gridContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
   },
   gridCell: {
-    flex: 1,
+    // Two columns with a gap: (100% - gap) / 2.
+    // Using a fixed percentage keeps columns equal regardless of screen width.
+    width: '48%',
   },
 
   // ── Empty / error states ─────────────────────────────────────────────────
