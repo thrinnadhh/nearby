@@ -1,4 +1,5 @@
 import { api } from './api';
+import logger from '@/utils/logger';
 
 /**
  * Cashfree Payment Service
@@ -32,7 +33,7 @@ export function initializeCashfree(config: CashfreeConfig) {
   // import Cashfree from 'react-native-cashfree-pg';
   // Cashfree.initialize(config);
 
-  console.log(`[Cashfree] Initialized in ${config.environment} mode`);
+  logger.info(`[Cashfree] Initialized in ${config.environment} mode`);
 }
 
 /**
@@ -84,7 +85,7 @@ export async function verifyPayment(orderId: string): Promise<PaymentResult> {
       orderId: orderData.order_id,
     };
   } catch (error) {
-    console.error('[PaymentService] Verification error:', error);
+    logger.error('[PaymentService] Verification error:', { error });
     throw error;
   }
 }
@@ -117,7 +118,7 @@ export async function pollPaymentStatus(
           reject(new Error('Payment verification timeout'));
         }
       } catch (error) {
-        console.error('[PaymentService] Poll error:', error);
+        logger.error('[PaymentService] Poll error:', { error });
         // Continue polling on error
       }
     }, intervalMs);

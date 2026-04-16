@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, Alert } from 'react-native';
+import { SafeAreaView, Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import { useOrdersStore } from '@/store/orders';
@@ -45,28 +45,33 @@ export default function PaymentScreen() {
       return;
     }
 
-    const initializePayment = async () => {
-      try {
-        logger.info('Initializing payment session', { orderId });
-        setLoading(true);
-
-        // Call backend to create Cashfree session
-        const { sessionId, paymentLink } = await createPaymentSession(orderId);
-
-        logger.info('Payment session created', { orderId, sessionId });
-        setPaymentLink(paymentLink);
-        setError(null);
-      } catch (err) {
-        logger.error('Failed to initialize payment', { orderId, error: err });
-        setError(
-          err instanceof Error ? err.message : 'Failed to load payment page. Please try again.'
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     initializePayment();
+  }, [orderId, token]);
+
+  const initializePayment = useCallback(async () => {
+    if (!orderId || !token) {
+      setError('Missing order ID or authentication');
+      return;
+    }
+
+    try {
+      logger.info('Initializing payment session', { orderId });
+      setLoading(true);
+      setError(null);
+
+      // Call backend to create Cashfree session
+      const { sessionId, paymentLink } = await createPaymentSession(orderId);
+
+      logger.info('Payment session created', { orderId, sessionId });
+      setPaymentLink(paymentLink);
+    } catch (err) {
+      logger.error('Failed to initialize payment', { orderId, error: err });
+      setError(
+        err instanceof Error ? err.message : 'Failed to load payment page. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [orderId, token]);
 
   // Handle payment success (called when user completes payment)
@@ -148,15 +153,31 @@ export default function PaymentScreen() {
   // Show error message if payment initialization failed
   if (error && !loading && !paymentLink) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
-        <PaymentWebView
-          orderId={orderId || ''}
-          paymentLink=""
-          onSuccess={handlePaymentSuccess}
-          onFailure={handlePaymentFailure}
-          onTimeout={handlePaymentTimeout}
-        />
-        {/* PaymentWebView will show error UI */}
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <View style={styles.errorIconContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+          </View>
+          <Text style={styles.errorTitle}>Payment Initialization Failed</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => initializePayment()}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show loading state
+  if (loading && !paymentLink) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading payment page...</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -181,3 +202,58 @@ export default function PaymentScreen() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  errorIconContainer: {
+    marginBottom: 20,
+  },
+  errorIcon: {
+    fontSize: 48,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+    color: '#1a1a1a',
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: '#ff6b35',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+});

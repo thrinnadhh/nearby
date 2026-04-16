@@ -23,7 +23,7 @@ export function PaymentCallbackListener({ onPaymentCallback }: PaymentCallbackLi
       // Expected format: nearby-customer://payment-callback?orderId=UUID&status=success
       const parsed = new URL(url);
       
-      if (!parsed.hostname.includes('payment-callback')) {
+      if (parsed.hostname !== 'payment-callback') {
         return null;
       }
 

@@ -58,12 +58,20 @@ export function PaymentWebView({
   useEffect(() => {
     logger.info('PaymentWebView mounted', { orderId, timeoutMs });
 
-    timeoutRef.current = setTimeout(() => {
-      if (!paymentStarted) {
-        logger.warn('Payment timeout - no payment started', { orderId });
-        setError('Payment timed out. Please try again.');
-        onTimeout?.();
+    // Clear existing timeout if payment has already started
+    if (paymentStarted) {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
       }
+      return;
+    }
+
+    // Set new timeout only if payment hasn't started
+    timeoutRef.current = setTimeout(() => {
+      logger.warn('Payment timeout - no payment started', { orderId });
+      setError('Payment timed out. Please try again.');
+      onTimeout?.();
     }, timeoutMs);
 
     return () => {
