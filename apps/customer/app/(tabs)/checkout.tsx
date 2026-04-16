@@ -24,6 +24,7 @@ import { useAuthStore } from '@/store/auth';
 import { useOrdersStore } from '@/store/orders';
 import { createOrder, generateIdempotencyKey } from '@/services/orders';
 import { searchProducts } from '@/services/search';
+import logger from '@/utils/logger';
 import type { OrderItem as OrderItemType } from '@/types';
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -227,7 +228,7 @@ export default function CheckoutScreen() {
       const message =
         error instanceof Error ? error.message : 'Failed to place order';
       Alert.alert('Order failed', message);
-      console.error('[CheckoutScreen] Order creation error:', error);
+      logger.error('[CheckoutScreen] Order creation error', { error });
     } finally {
       setIsProcessing(false);
     }
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.md,
-    fontFamily: fontFamily.semibold,
+    fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
@@ -459,7 +460,7 @@ const styles = StyleSheet.create({
   },
   orderItemPrice: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semibold,
+    fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
     minWidth: 50,
     textAlign: 'right',
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semibold,
+    fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
   },
   totalLabel: {
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
   },
   paymentOptionLabel: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semibold,
+    fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },

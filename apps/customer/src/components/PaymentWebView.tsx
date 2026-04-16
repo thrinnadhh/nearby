@@ -197,7 +197,7 @@ export function PaymentWebView({
         </Text>
 
         <View style={styles.timerContainer}>
-          <Ionicons name="time-outline" size={40} color={colors.textSecondary} />
+          <Ionicons name="time-outline" size={40} color={colors.textPrimarySecondary} />
           <Text style={styles.timerText}>Waiting for payment confirmation...</Text>
         </View>
 
@@ -241,12 +241,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.xl,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
     marginTop: spacing.md,
   },
   subtitle: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
+    color: colors.textPrimarySecondary,
     marginTop: spacing.sm,
     textAlign: 'center',
   },
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: fontSize.sm,
-    color: colors.text,
+    color: colors.textPrimary,
     marginLeft: spacing.md,
     flex: 1,
     lineHeight: 20,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: fontSize.md,
-    color: colors.text,
+    color: colors.textPrimary,
     fontWeight: '500',
     flex: 1,
   },
@@ -365,13 +365,13 @@ const styles = StyleSheet.create({
   processingTitle: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
   processingMessage: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
+    color: colors.textPrimarySecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: spacing.xl,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
+    color: colors.textPrimarySecondary,
     marginTop: spacing.md,
     textAlign: 'center',
   },
