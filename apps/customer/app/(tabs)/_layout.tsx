@@ -80,6 +80,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" color={color} size={size} />
+          ),
+        }}
+      />
       {/* Hidden route — navigated to via router.push, not shown in tab bar */}
       <Tabs.Screen
         name="shop/[id]"

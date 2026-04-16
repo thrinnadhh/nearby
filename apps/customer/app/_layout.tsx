@@ -7,6 +7,8 @@ import { Alert } from 'react-native';
 import { useAuthStore } from '@/store/auth';
 import { configureForegroundNotifications } from '@/services/notifications';
 import { PaymentCallbackListener } from '@/components/PaymentCallbackListener';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import logger from '@/utils/logger';
 
 // Must be called at module level — before any render cycle — so the splash
@@ -57,12 +59,13 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <>
+    <ErrorBoundary>
+      <OfflineBanner />
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }} />
       
       {/* Listen for payment callbacks from Cashfree redirect at app root */}
       <PaymentCallbackListener onPaymentCallback={handlePaymentCallback} />
-    </>
+    </ErrorBoundary>
   );
 }
