@@ -10,7 +10,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9
  */
 
 export function registerChat(io, socket) {
-  const { userId, role } = socket.data.user || {};
+  const { userId, role } = socket;
 
   if (!userId || !role) {
     logger.warn('Chat handler: unauthenticated socket', { socketId: socket.id });
@@ -52,7 +52,7 @@ export function registerChat(io, socket) {
       }
 
       // Shop owners can only send messages on behalf of their own shop
-      if (role === 'shop_owner' && socket.data.user.shopId !== shopId) {
+      if (role === 'shop_owner' && socket.shopId !== shopId) {
         socket.emit('message-error', {
           code: 'FORBIDDEN',
           message: 'Cannot send messages on behalf of another shop',
@@ -167,7 +167,7 @@ export function registerChat(io, socket) {
       }
 
       // Shop owners can only join their own shop's chat room
-      if (role === 'shop_owner' && socket.data.user.shopId !== shopId) {
+      if (role === 'shop_owner' && socket.shopId !== shopId) {
         socket.emit('chat-error', {
           code: 'FORBIDDEN',
           message: 'Cannot join another shop\'s chat room',

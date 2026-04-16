@@ -7,7 +7,7 @@ import logger from '../utils/logger.js';
  */
 
 export function registerShopStatus(io, socket) {
-  const { userId, role } = socket.data.user || {};
+  const { userId, role } = socket;
 
   if (!userId || !role) {
     logger.warn('Shop status handler: unauthenticated socket', { socketId: socket.id });
