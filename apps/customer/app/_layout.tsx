@@ -1,10 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { Alert } from 'react-native';
 import { useAuthStore } from '@/store/auth';
 import { configureForegroundNotifications } from '@/services/notifications';
+import { PaymentCallbackListener } from '@/components/PaymentCallbackListener';
+import logger from '@/utils/logger';
 
 // Must be called at module level — before any render cycle — so the splash
 // screen stays visible while fonts and the auth store both hydrate.
@@ -16,6 +19,7 @@ configureForegroundNotifications();
 
 export default function RootLayout() {
   const hasHydrated = useAuthStore((s) => s._hasHydrated);
+  const [paymentCallbackHandled, setPaymentCallbackHandled] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
@@ -23,6 +27,18 @@ export default function RootLayout() {
     'Inter-SemiBold': require('../assets/fonts/Inter-SemiBold.ttf'),
     'Inter-Bold': require('../assets/fonts/Inter-Bold.ttf'),
   });
+
+  // Handle payment callbacks from Cashfree
+  const handlePaymentCallback = useCallback(
+    (orderId: string, status: 'success' | 'failed') => {
+      logger.info('Root payment callback handler triggered', { orderId, status });
+      setPaymentCallbackHandled(true);
+      
+      // Payment screen will handle the actual callback via PaymentCallbackListener
+      // This is just for logging/debugging at the app root level
+    },
+    []
+  );
 
   const ready = (fontsLoaded || fontError != null) && hasHydrated;
 
@@ -44,6 +60,9 @@ export default function RootLayout() {
     <>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }} />
+      
+      {/* Listen for payment callbacks from Cashfree redirect at app root */}
+      <PaymentCallbackListener onPaymentCallback={handlePaymentCallback} />
     </>
   );
 }

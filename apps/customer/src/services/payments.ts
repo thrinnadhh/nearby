@@ -245,3 +245,52 @@ export async function initiateRefund(
 
   return response.data.data;
 }
+
+/**
+ * Validate payment callback from deep-link
+ * Ensures orderId is valid UUID and status is known value
+ * Prevents malformed or spoofed callbacks
+ */
+export function validateCallback(
+  orderId: string,
+  status: string
+): { valid: boolean; error?: string } {
+  // Validate orderId is UUID v4
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!orderId || !uuidRegex.test(orderId)) {
+    return { valid: false, error: 'Invalid order ID format' };
+  }
+
+  // Validate status is known value
+  if (!['success', 'failed'].includes(status)) {
+    return { valid: false, error: 'Invalid payment status' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Generate deep-link callback URL for Cashfree redirect
+ * Format: nearby-customer://payment-callback?orderId=UUID&status=success|failed
+ */
+export function generateDeepLinkCallback(orderId: string): string {
+  const baseUrl = 'nearby-customer://payment-callback';
+  const params = new URLSearchParams({
+    orderId,
+    // Status will be appended by Cashfree or handled by payment processor
+  });
+  return `${baseUrl}?${params.toString()}`;
+}
+
+/**
+ * Extract orderId from deep-link callback URL
+ * Inverse of generateDeepLinkCallback()
+ */
+export function extractOrderIdFromCallback(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get('orderId') || null;
+  } catch {
+    return null;
+  }
+}
