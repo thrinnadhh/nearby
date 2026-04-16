@@ -226,16 +226,20 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 10.1 | Order history list | [RN1] | ⬜ | All statuses, infinite scroll |
-| 10.2 | Order detail screen | [RN1] | ⬜ | Full timeline, items, partner info |
-| 10.3 | Cancel order screen | [RN1] | ⬜ | Reason select, confirm |
-| 10.4 | Reorder flow | [RN1] | ⬜ | Availability check, prefill cart |
-| 10.5 | Review submission screen | [RN1] | ⬜ | Stars, comment, emoji tags |
-| 10.6 | Profile screen | [RN1] | ⬜ | Name, phone, saved addresses |
-| 10.7 | Push notification handlers | [RN1] | ⬜ | Navigate to correct screen on tap |
-| 10.8 | Refund status display | [RN1] | ⬜ | "Refund processing / credited" |
-| 10.9 | Empty states for all screens | [RN1] | ⬜ | No shops, no orders, no results |
-| 10.10 | Error handling + offline state | [RN1] | ⬜ | No network banner, retry |
+| 10.1 | Order history list | [RN1] | ✅ | Infinite scroll, status filters (All/Active/Delivered/Cancelled), pull-to-refresh. Commit ba2d46f + 4fda7d8. |
+| 10.2 | Order detail screen | [RN1] | ✅ | Timeline, itemized breakdown, partner info, refund badge, action buttons. Commit ba2d46f + 4fda7d8. |
+| 10.3 | Cancel order screen | [RN1] | ✅ | Reason selection modal, input validation (3+ chars), refund info display. Commit ba2d46f + 4fda7d8. |
+| 10.4 | Reorder flow | [RN1] | ✅ | Availability check, cart prefill, same-shop enforcement. Commit ba2d46f + 4fda7d8. |
+| 10.5 | Review submission screen | [RN1] | ✅ | 5-star rating, 500-char comments, optimistic updates, error recovery. Commit 4fda7d8. |
+| 10.6 | Profile screen | [RN1] | ✅ | User info display, edit profile stub, saved addresses management, logout. Commit 4fda7d8. |
+| 10.7 | Push notification handlers | [RN1] | ✅ | Foreground notifications, deep-link routing, idempotent tap handling. Commit 4fda7d8. |
+| 10.8 | Refund status display | [RN1] | ✅ | Badge + timeline (processing/credited/failed), support link. Commit 4fda7d8. |
+| 10.9 | Empty states for all screens | [RN1] | ✅ | Reusable template (icon + copy + CTA), applied across all screens. Commit 4fda7d8. |
+| 10.10 | Error handling + offline state | [RN1] | ✅ | Error boundary, offline banner, retry queues, graceful degradation. Commit 4fda7d8. |
+
+**Phase 1 (Tasks 10.1-10.4):** ✅ COMPLETE — Commit ba2d46f (8 code review issues fixed, 84+ tests)
+**Phase 2 (Tasks 10.5-10.10):** ✅ COMPLETE — Commit 4fda7d8 (32 files, 10 test files, 80%+ coverage)
+**Sprint 10 Status:** 🟩 100% COMPLETE — 35 files changed, 3,216 insertions. Pushed to main.
 
 ---
 
