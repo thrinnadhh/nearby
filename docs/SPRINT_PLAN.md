@@ -207,16 +207,18 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 9.1 | Checkout screen | [RN1] | ⬜ | Order summary, payment method select |
-| 9.2 | Cashfree SDK integration (UPI) | [RN1] | ⬜ | cashfree-pg React Native SDK |
-| 9.3 | COD flow | [RN1] | ⬜ | Skip SDK, confirm directly |
-| 9.4 | Order confirmed screen | [RN1] | ⬜ | Countdown to shop acceptance |
-| 9.5 | Order tracking screen | [RN1] | ⬜ | Status timeline + map |
-| 9.6 | Leaflet.js + OSM live map | [RN1] | ⬜ | WebView with Leaflet for tracking |
-| 9.7 | Socket.IO client — GPS updates on map | [RN1] | ⬜ | Moving marker |
-| 9.8 | ETA display ("Suresh is 8 min away") | [RN1] | ⬜ | From Socket.IO event |
-| 9.9 | OTP display screen for delivery | [RN1] | ✅ | Large 4-digit display (48pt font, monospace, 8px letter-spacing). Components/OTPDisplay.tsx with keypad input. Enhanced tracking screen OTP modal. |
-| 9.10 | Delivery confirmed screen + review prompt | [RN1] | ✅ | 5-star quick rating with celebration UI. App/(tabs)/delivery-confirmed/[orderId].tsx with success message + "Write full review" link. Auto-navigates from tracking after OTP verify. |
+| 9.1 | Checkout screen | [RN1] | ✅ | checkout.tsx complete. Order summary, payment method selector (UPI/COD), delivery fee (₹25), tax (5%), place order button. |
+| 9.2 | Cashfree SDK integration (UPI) | [RN1] | 🔵 | Partial. checkout.tsx routes to payment/[orderId] on UPI select, but payment processing needs completion. |
+| 9.3 | COD flow | [RN1] | ✅ | Integrated in checkout.tsx. COD payment method → createOrder() directly → order-confirmed. |
+| 9.4 | Order confirmed screen | [RN1] | ✅ | order-confirmed/[orderId].tsx complete. 180s countdown timer, real-time polling, auto-navigates to tracking on shop acceptance. |
+| 9.5 | Order tracking screen | [RN1] | ✅ | tracking/[orderId].tsx complete. Real-time GPS, ETA, delivery partner info, Socket.IO integration, OTP modal. |
+| 9.6 | Leaflet.js + OSM live map | [RN1] | ⬜ | Not yet. Tracking uses polling only; live map not implemented. |
+| 9.7 | Socket.IO client — GPS updates on map | [RN1] | ✅ | Implemented in tracking/[orderId].tsx. connectSocket(), onGpsUpdate listener, partnerLocation state updates. |
+| 9.8 | ETA display ("Suresh is 8 min away") | [RN1] | ✅ | Implemented in tracking/[orderId].tsx. ETA countdown (seconds) + distance display + delivery partner name in header. |
+| 9.9 | OTP display screen for delivery | [RN1] | ✅ | Components/OTPDisplay.tsx. 56pt monospace OTP display, numeric keypad, 6-box manual input, standalone modal. Also enhanced tracking screen OTP modal styling. |
+| 9.10 | Delivery confirmed screen + review prompt | [RN1] | ✅ | delivery-confirmed/[orderId].tsx. 5-star quick rating, celebration UI, success message, "Write full review" link, "Done" button navigates to order-history. |
+
+**Sprint 9 Status:** 🔵 **8/10 in progress** (9.1, 9.3, 9.4, 9.5, 9.7, 9.8, 9.9, 9.10 complete; 9.2 partial; 9.6 not started)
 
 ---
 
