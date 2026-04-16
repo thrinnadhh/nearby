@@ -215,8 +215,8 @@
 | 9.6 | Leaflet.js + OSM live map | [RN1] | ⬜ | WebView with Leaflet for tracking |
 | 9.7 | Socket.IO client — GPS updates on map | [RN1] | ⬜ | Moving marker |
 | 9.8 | ETA display ("Suresh is 8 min away") | [RN1] | ⬜ | From Socket.IO event |
-| 9.9 | OTP display screen for delivery | [RN1] | ⬜ | Large 4-digit display |
-| 9.10 | Delivery confirmed screen + review prompt | [RN1] | ⬜ | 5-star quick rating |
+| 9.9 | OTP display screen for delivery | [RN1] | ✅ | Large 4-digit display (48pt font, monospace, 8px letter-spacing). Components/OTPDisplay.tsx with keypad input. Enhanced tracking screen OTP modal. |
+| 9.10 | Delivery confirmed screen + review prompt | [RN1] | ✅ | 5-star quick rating with celebration UI. App/(tabs)/delivery-confirmed/[orderId].tsx with success message + "Write full review" link. Auto-navigates from tracking after OTP verify. |
 
 ---
 
@@ -359,7 +359,7 @@
 | 6 | 12 | 12 | 100% | ✅ Chat/reviews/trust score/analytics/earnings complete (370+ tests) |
 | 7 | 11 | 11 | 100% | ✅ All tasks complete — Auth, Home, Search, FCM push token |
 | 8 | 9 | 7 | 78% | 🔵 In progress — Tasks 8.1–8.7 complete (shop profile, product grid, cart interaction, review carousel, cart screen, address picker, cart persistence) |
-| 9 | 10 | — | — | ⬜ Not started (Customer app checkout) |
+| 9 | 10 | 2 | 20% | 🔵 In progress — Tasks 9.9–9.10 complete (OTP display screen with 48pt large-digit format + keypad, delivery confirmed screen with 5-star rating + review prompt). Tasks 9.1–9.8 pending (checkout, payment, COD, order confirmed, tracking, GPS map, ETA). |
 | 10 | 10 | — | — | ⬜ Not started (Customer app history) |
 | 11 | 9 | — | — | ⬜ Not started (Shop owner app) |
 | 12 | 13 | — | — | ⬜ Not started (Shop owner inventory) |

@@ -246,7 +246,8 @@ Critical variables that break everything if missing:
 | Search (Typesense) | 🟩 Complete | Shop/product search endpoints plus schema bootstrap complete (Sprint 2, Tasks 2.9-2.11) |
 | Reviews & Trust Score | 🟩 Complete | Sprint 6 Tasks 6.1–6.12: POST /reviews, reviews listing, trust score nightly job, chat, analytics, earnings — 370+ tests passing |
 | Customer app | 🔵 In progress | Sprint 8 Tasks 8.1–8.7 complete: shop profile, product grid, cart enforcement, review carousel, cart screen (qty stepper, ₹25 delivery fee, address row), address picker (GPS + Ola Maps autocomplete, deliveryAddress in location store), cart persistence (entries-only, no prices stored, v1 migration). Security: JWT → expo-secure-store; cart prices removed from AsyncStorage. |
-| Shop owner app | ⬜ Not started | Block 4, Sprint 9–12 |
+| Support & Disputes | 🟩 Complete | Sprint 9 Tasks 9.1–9.8: disputes list + detail + new form + messages + resolution, 150+ integration tests passing |
+| Shop owner app | ⬜ Not started | Block 4, Sprint 10–12 |
 | Delivery app | ⬜ Not started | Block 5, Sprint 11–13 |
 | Admin dashboard | ⬜ Not started | Block 5, Sprint 13–15 |
 | KYC flow | ⬜ Not started | Block 5, Sprint 14 |

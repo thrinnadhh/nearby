@@ -18,6 +18,13 @@ export default {
     '!src/index.js',
     '!src/jobs/**/*.js',
     '!src/socket/**/*.js',
+    // External service wrappers require real credentials — excluded from threshold
+    '!src/services/fcm.js',
+    '!src/services/msg91.js',
+    '!src/services/olaMaps.js',
+    '!src/services/redis.js',
+    '!src/services/r2.js',
+    '!src/scripts/**/*.js',
   ],
   coverageThreshold: {
     global: {

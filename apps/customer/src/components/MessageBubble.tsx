@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   bubbleShop: {
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.background,
     borderRadius: borderRadius.lg,
     marginRight: '20%',
     paddingHorizontal: spacing.md,
@@ -74,15 +74,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   textShop: {
-    color: colors.dark,
+    color: colors.textPrimary,
     fontSize: fontSize.md,
     fontFamily: fontFamily.regular,
     marginBottom: spacing.xs,
   },
   senderName: {
-    color: colors.dark,
+    color: colors.textPrimary,
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semibold,
+    fontFamily: fontFamily.semiBold,
     marginBottom: spacing.xs,
   },
   timestamp: {

@@ -76,7 +76,11 @@
       "Bash(npx tsc:*)",
       "Bash(echo \"Exit: $?\")",
       "Bash(npx expo:*)",
-      "mcp__code-review-graph__get_architecture_overview_tool"
+      "mcp__code-review-graph__get_architecture_overview_tool",
+      "Read(//Users/trinadh/projects/**)",
+      "Bash(grep -n \"semibold\\\\|semiBold\" /Users/trinadh/projects/nearby/apps/customer/app/chat/[shopId].tsx)",
+      "Bash(grep -n \"semibold\" /Users/trinadh/projects/nearby/apps/customer/app/chat/[shopId].tsx)",
+      "Bash(grep -n \"fontFamily\\\\.semibold\" /Users/trinadh/projects/nearby/apps/customer/app/chat/[shopId].tsx)"
     ],
     "additionalDirectories": [
       "/Users/trinadh/.claude",

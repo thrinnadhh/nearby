@@ -170,7 +170,7 @@ router.patch(
   '/:shopId/toggle',
   authenticate,
   roleGuard(['shop_owner']),
-  rateLimit('shop-toggle', { max: 10, window: 60 }),
+  rateLimit('shop-toggle', 10, 60),
   validate(toggleShopSchema, 'body'),
   shopOwnerGuard(),
   async (req, res, next) => {

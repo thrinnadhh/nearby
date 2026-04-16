@@ -138,14 +138,14 @@ export default function ShopScreen() {
     if (!isValidUUID(id)) return;
 
     const unsubscribe = onShopStatusChange(({ shopId, isOpen }) => {
-      if (shopId === id && shop) {
-        // Update local shop state to reflect status change
-        setShop({ ...shop, is_open: isOpen });
+      if (shopId === id) {
+        // Functional update avoids stale closure — no need for `shop` in deps
+        setShop((prev) => (prev ? { ...prev, is_open: isOpen } : prev));
       }
     });
 
     return () => unsubscribe();
-  }, [id, shop]);
+  }, [id]);
 
   // ── Navigation helper ────────────────────────────────────────────────────
 

@@ -174,7 +174,7 @@ export default function ChatScreen() {
 
       {messages.length === 0 ? (
         <View style={styles.centerContent}>
-          <Ionicons name="chatbubble-outline" size={48} color={colors.lightGray} />
+          <Ionicons name="chatbubble-outline" size={48} color={colors.textDisabled} />
           <Text style={styles.emptyText}>No messages yet</Text>
           <Text style={styles.emptySubtext}>Start a conversation with {shop?.name}</Text>
         </View>
@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: fontSize.lg,
-    fontFamily: fontFamily.semibold,
-    color: colors.dark,
+    fontFamily: fontFamily.semiBold,
+    color: colors.textPrimary,
   },
   headerStatus: {
     fontSize: fontSize.sm,
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: fontSize.md,
-    fontFamily: fontFamily.semibold,
-    color: colors.dark,
+    fontFamily: fontFamily.semiBold,
+    color: colors.textPrimary,
   },
   emptySubtext: {
     fontSize: fontSize.sm,

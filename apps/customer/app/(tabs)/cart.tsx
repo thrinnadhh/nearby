@@ -159,8 +159,8 @@ export default function CartScreen() {
       router.push('/address-picker');
       return;
     }
-    // TODO Sprint 9: push to order confirmation screen
-    router.push('/address-picker');
+    // Sprint 9.1: Navigate to checkout screen
+    router.push('/(tabs)/checkout');
   }
 
   // ── Empty cart ────────────────────────────────────────────────────────────

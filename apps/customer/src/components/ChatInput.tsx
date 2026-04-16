@@ -70,13 +70,13 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.background,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: fontSize.md,
     fontFamily: fontFamily.regular,
-    color: colors.dark,
+    color: colors.textPrimary,
     maxHeight: 100,
   },
   sendButton: {
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.textDisabled,
     opacity: 0.5,
   },
 });

@@ -30,41 +30,38 @@ export function registerChat(io, socket) {
    * send-message event
    * Customer sends message to shop (or vice versa)
    */
-  socket.on('send-message', async (data) => {
+  socket.on('send-message', async (data, callback) => {
+    const ack = typeof callback === 'function' ? callback : null;
     try {
       const { shopId, orderId, body } = data;
 
       // Validate inputs
       if (!shopId || !body) {
-        socket.emit('message-error', {
-          code: 'VALIDATION_ERROR',
-          message: 'shopId and body are required',
-        });
+        const err = { code: 'VALIDATION_ERROR', message: 'shopId and body are required' };
+        socket.emit('message-error', err);
+        ack?.(err);
         return;
       }
 
       if (!UUID_REGEX.test(shopId)) {
-        socket.emit('message-error', {
-          code: 'VALIDATION_ERROR',
-          message: 'shopId must be a valid UUID',
-        });
+        const err = { code: 'VALIDATION_ERROR', message: 'shopId must be a valid UUID' };
+        socket.emit('message-error', err);
+        ack?.(err);
         return;
       }
 
       // Shop owners can only send messages on behalf of their own shop
       if (role === 'shop_owner' && socket.shopId !== shopId) {
-        socket.emit('message-error', {
-          code: 'FORBIDDEN',
-          message: 'Cannot send messages on behalf of another shop',
-        });
+        const err = { code: 'FORBIDDEN', message: 'Cannot send messages on behalf of another shop' };
+        socket.emit('message-error', err);
+        ack?.(err);
         return;
       }
 
       if (body.trim().length === 0 || body.length > 2000) {
-        socket.emit('message-error', {
-          code: 'VALIDATION_ERROR',
-          message: 'Message must be 1–2000 characters',
-        });
+        const err = { code: 'VALIDATION_ERROR', message: 'Message must be 1–2000 characters' };
+        socket.emit('message-error', err);
+        ack?.(err);
         return;
       }
 
@@ -75,10 +72,9 @@ export function registerChat(io, socket) {
       } else if (role === 'shop_owner') {
         senderType = 'shop';
       } else {
-        socket.emit('message-error', {
-          code: 'FORBIDDEN',
-          message: 'Only customers and shops can send messages',
-        });
+        const err = { code: 'FORBIDDEN', message: 'Only customers and shops can send messages' };
+        socket.emit('message-error', err);
+        ack?.(err);
         return;
       }
 
@@ -106,10 +102,9 @@ export function registerChat(io, socket) {
           userId,
           error: error.message,
         });
-        socket.emit('message-error', {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to send message',
-        });
+        const err = { code: 'INTERNAL_ERROR', message: 'Failed to send message' };
+        socket.emit('message-error', err);
+        ack?.(err);
         return;
       }
 
@@ -130,15 +125,16 @@ export function registerChat(io, socket) {
         senderType,
         userId,
       });
+
+      ack?.(null);
     } catch (err) {
       logger.error('send-message handler error', {
         userId,
         error: err.message,
       });
-      socket.emit('message-error', {
-        code: 'INTERNAL_ERROR',
-        message: 'An error occurred',
-      });
+      const errPayload = { code: 'INTERNAL_ERROR', message: 'An error occurred' };
+      socket.emit('message-error', errPayload);
+      ack?.(errPayload);
     }
   });
 
@@ -146,32 +142,30 @@ export function registerChat(io, socket) {
    * join-shop-chat event
    * Join the shop chat room to receive messages
    */
-  socket.on('join-shop-chat', async (data) => {
+  socket.on('join-shop-chat', async (data, callback) => {
+    const ack = typeof callback === 'function' ? callback : null;
     try {
       const { shopId } = data;
 
       if (!shopId) {
-        socket.emit('chat-error', {
-          code: 'VALIDATION_ERROR',
-          message: 'shopId is required',
-        });
+        const err = { code: 'VALIDATION_ERROR', message: 'shopId is required' };
+        socket.emit('chat-error', err);
+        ack?.(err);
         return;
       }
 
       if (!UUID_REGEX.test(shopId)) {
-        socket.emit('chat-error', {
-          code: 'VALIDATION_ERROR',
-          message: 'shopId must be a valid UUID',
-        });
+        const err = { code: 'VALIDATION_ERROR', message: 'shopId must be a valid UUID' };
+        socket.emit('chat-error', err);
+        ack?.(err);
         return;
       }
 
       // Shop owners can only join their own shop's chat room
       if (role === 'shop_owner' && socket.shopId !== shopId) {
-        socket.emit('chat-error', {
-          code: 'FORBIDDEN',
-          message: 'Cannot join another shop\'s chat room',
-        });
+        const err = { code: 'FORBIDDEN', message: 'Cannot join another shop\'s chat room' };
+        socket.emit('chat-error', err);
+        ack?.(err);
         return;
       }
 
@@ -185,15 +179,15 @@ export function registerChat(io, socket) {
       });
 
       socket.emit('joined-shop-chat', { shopId });
+      ack?.(null);
     } catch (err) {
       logger.error('join-shop-chat handler error', {
         userId,
         error: err.message,
       });
-      socket.emit('chat-error', {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to join chat',
-      });
+      const errPayload = { code: 'INTERNAL_ERROR', message: 'Failed to join chat' };
+      socket.emit('chat-error', errPayload);
+      ack?.(errPayload);
     }
   });
 
@@ -201,11 +195,15 @@ export function registerChat(io, socket) {
    * leave-shop-chat event
    * Leave the shop chat room
    */
-  socket.on('leave-shop-chat', (data) => {
+  socket.on('leave-shop-chat', (data, callback) => {
+    const ack = typeof callback === 'function' ? callback : null;
     try {
       const { shopId } = data;
 
-      if (!shopId) return;
+      if (!shopId) {
+        ack?.(null);
+        return;
+      }
 
       socket.leave(`shop:${shopId}:chat`);
 
@@ -215,11 +213,13 @@ export function registerChat(io, socket) {
       });
 
       socket.emit('left-shop-chat', { shopId });
+      ack?.(null);
     } catch (err) {
       logger.error('leave-shop-chat handler error', {
         userId,
         error: err.message,
       });
+      ack?.(null); // don't fail leave on error — just proceed
     }
   });
 }

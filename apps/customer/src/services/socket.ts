@@ -64,14 +64,20 @@ export function disconnectSocket(): void {
  * Join shop chat room (pre-order chat)
  * Room naming: shop:{shopId}:chat
  */
-export function joinShopChat(shopId: string): Promise<void> {
+export function joinShopChat(shopId: string, timeoutMs = 5000): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!socket) {
       reject(new Error('Socket.IO not initialized'));
       return;
     }
 
+    const timer = setTimeout(
+      () => reject(new Error('join-shop-chat timed out')),
+      timeoutMs
+    );
+
     socket.emit('join-shop-chat', { shopId }, (error?: { code: string; message: string }) => {
+      clearTimeout(timer);
       if (error) {
         logger.error('Failed to join shop chat', { shopId, error });
         reject(new Error(error.message));
@@ -101,17 +107,23 @@ export function leaveShopChat(shopId: string): void {
 /**
  * Send message to shop chat
  */
-export function sendMessage(shopId: string, body: string, orderId?: string): Promise<void> {
+export function sendMessage(shopId: string, body: string, orderId?: string, timeoutMs = 8000): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!socket) {
       reject(new Error('Socket.IO not initialized'));
       return;
     }
 
+    const timer = setTimeout(
+      () => reject(new Error('send-message timed out')),
+      timeoutMs
+    );
+
     socket.emit(
       'send-message',
       { shopId, body, orderId },
       (error?: { code: string; message: string }) => {
+        clearTimeout(timer);
         if (error) {
           logger.error('Failed to send message', { shopId, error });
           reject(new Error(error.message));
