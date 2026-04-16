@@ -245,7 +245,7 @@ Critical variables that break everything if missing:
 | Delivery tracking | 🟩 Complete | Sprint 5 Tasks 5.1–5.12: assign-delivery worker, OTP verification, partner ratings, GPS tracking, escalation, route optimization — 370+ tests passing |
 | Search (Typesense) | 🟩 Complete | Shop/product search endpoints plus schema bootstrap complete (Sprint 2, Tasks 2.9-2.11) |
 | Reviews & Trust Score | 🟩 Complete | Sprint 6 Tasks 6.1–6.12: POST /reviews, reviews listing, trust score nightly job, chat, analytics, earnings — 370+ tests passing |
-| Customer app | 🔵 In progress | Sprint 8 Tasks 8.1–8.7 complete: shop profile, product grid, cart enforcement, review carousel, cart screen (qty stepper, ₹25 delivery fee, address row), address picker (GPS + Ola Maps autocomplete, deliveryAddress in location store), cart persistence (entries-only, no prices stored, v1 migration). Security: JWT → expo-secure-store; cart prices removed from AsyncStorage. **Sprint 9 Tasks 9.1, 9.3–9.5, 9.7–9.10 complete (8/10): Checkout screen with payment method selector (UPI/COD), order confirmed countdown (180s), tracking with real-time GPS/ETA, Socket.IO updates, OTP display (56pt monospace), delivery confirmed with 5-star review. Remaining: task 9.2 (Cashfree SDK completion) and 9.6 (Leaflet.js + OSM live map).** |
+| Customer app | 🔵 In progress | Sprint 8 Tasks 8.1–8.7 complete: shop profile, product grid, cart enforcement, review carousel, cart screen (qty stepper, ₹25 delivery fee, address row), address picker (GPS + Ola Maps autocomplete, deliveryAddress in location store), cart persistence (entries-only, no prices stored, v1 migration). Security: JWT → expo-secure-store; cart prices removed from AsyncStorage. **Sprint 9 Tasks 9.1–9.5, 9.7–9.10 complete (9/10): Checkout screen with payment method selector (UPI/COD), order confirmed countdown (180s), tracking with real-time GPS/ETA, Socket.IO updates, OTP display (56pt monospace), delivery confirmed with 5-star review, Task 9.2 Cashfree SDK integration (WebView + deep-link callback handler, payment validation, error recovery with retry mechanism). Remaining: task 9.6 (Leaflet.js + OSM live map).** |
 | Support & Disputes | 🟩 Complete | Sprint 9 Tasks 9.1–9.8: disputes list + detail + new form + messages + resolution, 150+ integration tests passing |
 | Shop owner app | ⬜ Not started | Block 4, Sprint 10–12 |
 | Delivery app | ⬜ Not started | Block 5, Sprint 11–13 |
@@ -363,7 +363,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 13, 2026 | Sprints 1–6 backend COMPLETE. 370/373 tests passing (99.2%). Sprint 8 (Customer App) in progress — Tasks 8.1–8.3 complete: shop profile screen, product grid with category tabs, same-shop cart enforcement.*
+*Last updated: April 16, 2026 | Sprints 1–6 backend COMPLETE (370/373 tests, 99.2%). Sprint 9 (Customer App) 9/10 complete: Task 9.2 Cashfree SDK integration finished (WebView payment flow, deep-link callbacks, error recovery, timeout protection). Only 9.6 (Leaflet.js live map) remains.*
 
 ## MCP Tools: code-review-graph
 
