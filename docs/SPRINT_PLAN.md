@@ -254,15 +254,15 @@
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 11.1 | Set up shop owner Expo project | [RN2] | ⬜ | Separate app, shared components library |
-| 11.2 | Registration flow (5 screens) | [RN2] | ⬜ | OTP → profile → photo → KYC → review |
-| 11.3 | KYC document upload (Aadhaar, GST, photo) | [RN2] | ⬜ | Camera + gallery, upload to R2 |
-| 11.4 | Under-review waiting screen | [RN2] | ⬜ | Status tracker |
-| 11.5 | Shop dashboard home | [RN2] | ⬜ | Open/close toggle, earnings today, alerts |
-| 11.6 | Order inbox (loud alert) | [RN2] | ⬜ | Custom ringtone, full-screen, countdown |
-| 11.7 | Order detail + accept/reject | [RN2] | ⬜ | 3-min countdown, reason on reject |
-| 11.8 | Pack checklist screen | [RN2] | ⬜ | Tick each item, mark ready |
-| 11.9 | FCM integration (high-priority orders) | [RN2] | ⬜ | Custom sound, heads-up notification |
+| 11.1 | Set up shop owner Expo project + Auth | [RN2] | 🟨 | ✅ Base project created, 49 files, 6.5K LOC. Phone OTP login implemented. Commit: 1fa654b |
+| 11.2 | Registration flow (5 screens) | [RN2] | ⬜ | Profile → photo → KYC → review (follow-up tasks) |
+| 11.3 | KYC document upload (Aadhaar, GST, photo) | [RN2] | ⬜ | Camera + gallery, upload to R2 (follow-up) |
+| 11.4 | Under-review waiting screen | [RN2] | ⬜ | Status tracker (follow-up) |
+| 11.5 | Shop dashboard home | [RN2] | 🟨 | ✅ Dashboard scaffold, shop status toggle, earnings display implemented |
+| 11.6 | Order inbox (loud alert) | [RN2] | 🟨 | ✅ Order list, real-time Socket.IO, countdown timer implemented |
+| 11.7 | Order detail + accept/reject | [RN2] | 🟨 | ✅ Detail screen, accept/reject with 3-min countdown implemented |
+| 11.8 | Pack checklist screen | [RN2] | ⬜ | Tick each item, mark ready (follow-up) |
+| 11.9 | FCM integration (high-priority orders) | [RN2] | 🟨 | ✅ Firebase FCM hooks + notification routing ready, awaiting backend integration |
 
 ---
 

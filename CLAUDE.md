@@ -247,7 +247,7 @@ Critical variables that break everything if missing:
 | Reviews & Trust Score | 🟩 Complete | Sprint 6 Tasks 6.1–6.12: POST /reviews, reviews listing, trust score nightly job, chat, analytics, earnings — 370+ tests passing |
 | Customer app | � Complete | Sprint 8 Tasks 8.1–8.7 complete: shop profile, product grid, cart enforcement, review carousel, cart screen (qty stepper, ₹25 delivery fee, address row), address picker (GPS + Ola Maps autocomplete, deliveryAddress in location store), cart persistence (entries-only, no prices stored, v1 migration). Security: JWT → expo-secure-store; cart prices removed from AsyncStorage. **Sprint 9 (9/10 - 9.6 optional):** Checkout screen with payment method selector (UPI/COD), order confirmed countdown (180s), tracking with real-time GPS/ETA, Socket.IO updates, OTP display (56pt monospace), delivery confirmed with 5-star review, Task 9.2 Cashfree SDK integration (WebView + deep-link callback handler, payment validation, error recovery with retry mechanism). **Sprint 10 (10/10 COMPLETE):** Order history/detail (ba2d46f, 84+ tests), cancel/reorder flows, profile screen with addresses/logout, review submission (5-star + comments), notification handlers, refund status display, empty states, error boundary + offline support (4fda7d8, 80+ tests). All merged to main. |
 | Support & Disputes | 🟩 Complete | Sprint 9 Tasks 9.1–9.8: disputes list + detail + new form + messages + resolution, 150+ integration tests passing |
-| Shop owner app | ⬜ Not started | Block 4, Sprint 10–12 |
+| Shop owner app | ⬜ Not started (Sprint 11 foundation built, 1fa654b) | Block 4, Sprint 10–12 |
 | Delivery app | ⬜ Not started | Block 5, Sprint 11–13 |
 | Admin dashboard | ⬜ Not started | Block 5, Sprint 13–15 |
 | KYC flow | ⬜ Not started | Block 5, Sprint 14 |
@@ -363,7 +363,7 @@ Example prompt:
 
 ---
 
-*Last updated: April 16, 2026 | Sprints 1–6 backend COMPLETE (370/373 tests, 99.2%). Sprint 9 Customer App 9/10 complete (Cashfree SDK integration done; only 9.6 Leaflet.js map remains). **Sprint 10 Customer App 100% COMPLETE** — Phase 1 (Tasks 10.1-10.4: Order history/detail/cancel/reorder, ba2d46f, 84+ tests), Phase 2 (Tasks 10.5-10.10: Profile/reviews/notifications/refunds/errors, 4fda7d8, 80+ tests). All merged to main.*
+*Last updated: April 16, 2026 | Sprints 1–6 backend COMPLETE (370/373 tests, 99.2%). Sprint 9 Customer App 9/10 complete (Cashfree SDK integration done; only 9.6 Leaflet.js map remains). **Sprint 10 Customer App 100% COMPLETE** — Phase 1 (Tasks 10.1-10.4: Order history/detail/cancel/reorder, ba2d46f, 84+ tests), Phase 2 (Tasks 10.5-10.10: Profile/reviews/notifications/refunds/errors, 4fda7d8, 80+ tests). All merged to main. **Sprint 11 Shop Owner App foundation STARTED** (commit 1fa654b: 49 files, 6.5K LOC, auth/dashboard/orders/socket.io/fcm ready).*
 
 ## MCP Tools: code-review-graph
 
