@@ -15,7 +15,8 @@ import {
   fontFamily,
   borderRadius,
 } from '@/constants/theme';
-import { Order, OrderStatus } from '@/types/orders';
+import { Order } from '@/types/orders';
+import { OrderStatus } from '@/types/shop';
 
 const STATUS_SEQUENCE: Array<{ status: OrderStatus; label: string; icon: string }> =
   [

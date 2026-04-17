@@ -20,6 +20,7 @@ import { useOrders } from '@/hooks/useOrders';
 import { useOrderSocket } from '@/hooks/useOrderSocket.ts';
 import { useFCM } from '@/hooks/useFCM';
 import { useOrdersStore } from '@/store/orders';
+import { Order } from '@/types/orders';
 import { OrderCard } from '@/components/order/OrderCard';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import {
@@ -52,7 +53,7 @@ export default function OrdersListScreen() {
 
   // Listen to Socket.IO new order events
   useEffect(() => {
-    const unsubscribe = onNewOrder((event: any) => {
+    const unsubscribe = onNewOrder((event: { orderId: string; customerId: string; customerName: string; total: number; createdAt: string }) => {
       logger.info('New order received via Socket.IO', { orderId: event.orderId });
       // Add to store to update list
       const newOrder: Order = {
