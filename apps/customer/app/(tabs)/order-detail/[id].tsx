@@ -8,8 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
-  Linking,
-  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,11 +73,14 @@ export default function OrderDetailScreen() {
     }
   }, [id, token, setActiveOrder]);
 
+  // Only fetch on mount. Excluding activeOrder from deps is intentional:
+  // after cancel sets activeOrder(null), we don't want to re-fetch a cancelled order.
   useEffect(() => {
     if (!activeOrder && id) {
       fetchOrder();
     }
-  }, [id, activeOrder, fetchOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleCancelOrder = async (reason: string) => {
     if (!order || !token) return;
@@ -281,10 +282,12 @@ export default function OrderDetailScreen() {
             <Ionicons
               name="location"
               size={16}
-              color={colors.textSecondary}delivery_address || 'Address not available'
+              color={colors.textSecondary}
               style={{ marginRight: spacing.sm }}
             />
-            <Text style={styles.addressText}>{order.id}</Text>
+            <Text style={styles.addressText}>
+              {order.delivery_address || 'Address not available'}
+            </Text>
           </View>
         </View>
 

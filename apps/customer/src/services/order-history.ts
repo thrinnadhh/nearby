@@ -1,4 +1,5 @@
 import { client } from './api';
+import type { Order } from '@/types';
 
 /**
  * Order History Service (Task 9.7)
@@ -16,14 +17,16 @@ export interface OrderHistoryParams {
   sort_order?: 'asc' | 'desc';
 }
 
+export interface OrderHistoryMeta {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 export interface OrderHistoryResponse {
-  data: any[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+  data: Order[];
+  meta: OrderHistoryMeta;
 }
 
 /**
@@ -63,7 +66,7 @@ export async function getOrderHistory(
  * GET /api/v1/orders/:id
  * Get detailed order information
  */
-export async function getOrderDetail(orderId: string, token?: string): Promise<any> {
+export async function getOrderDetail(orderId: string, token?: string): Promise<Order> {
   const { data } = await client.get(`/orders/${orderId}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
@@ -97,11 +100,16 @@ export async function reorderFromHistory(
   return data.data;
 }
 
+export interface OrderStatusResponse {
+  order_status: OrderStatus;
+  updated_at: string;
+}
+
 /**
  * GET /api/v1/orders/:id/status
  * Get current order status (for polling)
  */
-export async function getOrderStatus(orderId: string, token?: string): Promise<any> {
+export async function getOrderStatus(orderId: string, token?: string): Promise<OrderStatusResponse> {
   const { data } = await client.get(`/orders/${orderId}/status`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });

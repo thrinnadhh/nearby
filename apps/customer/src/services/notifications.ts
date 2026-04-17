@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
-import axios from 'axios';
 import { Platform } from 'react-native';
-import { API_BASE_URL, API_TIMEOUT } from '@/constants/api';
+import { client } from './api';
+import logger from '@/utils/logger';
 
 /**
  * Request push-notification permissions, obtain the device push token (raw
@@ -29,15 +29,19 @@ export async function registerPushToken(authToken: string): Promise<void> {
   // APNs device token on iOS). The backend fcm.js service uses this directly.
   const tokenData = await Notifications.getDevicePushTokenAsync();
 
-  // Send to backend — stored in the user's profile row for downstream FCM use.
-  await axios.patch(
-    `${API_BASE_URL}/auth/profile`,
-    { push_token: tokenData.data, push_platform: tokenData.type },
-    {
-      headers: { Authorization: `Bearer ${authToken}` },
-      timeout: API_TIMEOUT,
-    }
-  );
+  // Send to backend via shared client — stored in the user's profile row for downstream FCM use.
+  // Errors are caught and logged silently; push-token registration must never block login.
+  try {
+    await client.patch(
+      '/auth/profile',
+      { push_token: tokenData.data, push_platform: tokenData.type },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+  } catch (err: unknown) {
+    logger.warn('Push token registration failed — notifications may not work', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 /**

@@ -31,7 +31,7 @@ import { EmptyState } from '@/components/EmptyState';
 export default function ProfileScreen() {
   const router = useRouter();
   const { token, logout } = useAuthStore();
-  const { profile, loading, error, fetchProfile } = useProfileStore();
+  const { profile, loading, error, fetchProfile, logout: logoutProfile } = useProfileStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Fetch profile on mount
@@ -57,7 +57,9 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             setIsLoggingOut(true);
+            // Clear both auth token and persisted profile/address data
             logout();
+            logoutProfile();
             router.replace('/(auth)/login');
           } catch (err) {
             Alert.alert('Error', 'Failed to logout. Please try again.');

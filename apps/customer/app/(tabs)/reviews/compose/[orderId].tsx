@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
-import { submitReview, checkReviewExists } from '@/services/reviews';
+import { submitReview } from '@/services/reviews';
+import { checkReviewStatus } from '@/services/reviews-submit';
 import { getOrder } from '@/services/orders';
+import logger from '@/utils/logger';
 
 /**
  * Review Submission Screen (Task 9.5)
@@ -38,7 +40,7 @@ export default function ReviewSubmissionScreen() {
   const { token } = useAuthStore();
 
   // State
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,35 +54,31 @@ export default function ReviewSubmissionScreen() {
   // Fetch order and check if already reviewed
   useEffect(() => {
     const fetchOrderAndCheck = async () => {
-      try {
-        if (!orderId || !token) return;
+      if (!orderId || !token) return;
 
-        const orderData = await getOrder(orderId);
+      try {
+        const orderData = await getOrder(orderId, token);
         setOrder(orderData);
 
-        // Check if already reviewed
+        // Best-effort: check if already reviewed — endpoint may not exist yet
         try {
-          // Check endpoint - backend should have this
-          const response = await fetch(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/v1/orders/${orderId}/review-check`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          const data = await response.json();
-          if (data.data?.hasReviewed) {
+          const checkData = await checkReviewStatus(orderId, token);
+          if (checkData.hasReviewed) {
             setHasReviewed(true);
           }
-        } catch (err) {
-          // If endpoint doesn't exist, allow review submission
-          console.log('Review check endpoint not available');
+        } catch (checkErr: unknown) {
+          // If endpoint doesn't exist yet, allow submission
+          logger.warn('Review check endpoint unavailable', {
+            orderId,
+            error: checkErr instanceof Error ? checkErr.message : String(checkErr),
+          });
         }
 
         setError(null);
-      } catch (err: any) {
-        const message = err?.message || 'Failed to load order';
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load order';
+        logger.error('Order fetch error in review screen', { orderId, error: message });
         setError(message);
-        console.error('Order fetch error:', message);
       } finally {
         setIsLoading(false);
       }
@@ -120,13 +118,14 @@ export default function ReviewSubmissionScreen() {
 
     setIsSubmitting(true);
     try {
-      if (!orderId || !order?.delivery_partner?.id) {
+      const partner = order?.delivery_partner as { id?: string } | undefined;
+      if (!orderId || !partner?.id) {
         throw new Error('Missing order or delivery partner information');
       }
 
       await submitReview({
         order_id: orderId,
-        reviewed_user_id: order.delivery_partner.id,
+        reviewed_user_id: partner.id,
         rating,
         review_text: reviewText || undefined,
       });
@@ -143,10 +142,10 @@ export default function ReviewSubmissionScreen() {
           },
         ]
       );
-    } catch (err: any) {
-      const message = err?.message || 'Failed to submit review';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to submit review';
+      logger.error('Review submission error', { orderId, error: message });
       setFormError(message);
-      console.error('Review submission error:', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -224,19 +223,24 @@ export default function ReviewSubmissionScreen() {
           </View>
 
           {/* Delivery Partner Info */}
-          {order?.delivery_partner && (
-            <View style={styles.partnerCard}>
-              <Text style={styles.partnerLabel}>Delivery Partner</Text>
-              <View style={styles.partnerInfo}>
-                <View style={styles.partnerDetails}>
-                  <Text style={styles.partnerName}>{order.delivery_partner.name}</Text>
-                  <Text style={styles.partnerVehicle}>
-                    🚗 {order.delivery_partner.vehicle_type}
-                  </Text>
+          {order?.delivery_partner && (() => {
+            const partner = order.delivery_partner as { name?: string; vehicle_type?: string };
+            return (
+              <View style={styles.partnerCard}>
+                <Text style={styles.partnerLabel}>Delivery Partner</Text>
+                <View style={styles.partnerInfo}>
+                  <View style={styles.partnerDetails}>
+                    {partner.name ? (
+                      <Text style={styles.partnerName}>{partner.name}</Text>
+                    ) : null}
+                    {partner.vehicle_type ? (
+                      <Text style={styles.partnerVehicle}>{partner.vehicle_type}</Text>
+                    ) : null}
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Rating Selection */}
           <View style={styles.ratingSection}>

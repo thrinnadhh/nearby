@@ -51,18 +51,13 @@ export default function SavedAddressesScreen() {
       { text: 'Cancel', onPress: () => {}, style: 'cancel' },
       {
         text: 'Delete',
-        onPress: async () => {
-          try {
-            setIsDeleting(addressId);
-            // TODO: Implement delete address API call
-            // await deleteAddress(addressId, token);
-            // fetchProfile(token);
-            Alert.alert('Success', 'Address deleted');
-          } catch (err) {
-            Alert.alert('Error', 'Failed to delete address. Please try again.');
-          } finally {
-            setIsDeleting(null);
-          }
+        onPress: () => {
+          // Address deletion API is not yet available on the backend.
+          // Show an honest message — never show a false success to the user.
+          Alert.alert(
+            'Coming Soon',
+            'Address deletion will be available in the next update. Contact support to remove an address.'
+          );
         },
         style: 'destructive',
       },

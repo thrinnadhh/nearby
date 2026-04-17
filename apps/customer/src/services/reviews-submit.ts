@@ -24,7 +24,7 @@ interface CheckReviewResponse {
 }
 
 /**
- * POST /api/v1/reviews
+ * POST /reviews
  * Submit a review for a delivered order
  * @throws Error if API fails
  */
@@ -33,7 +33,7 @@ export async function submitOrderReview(
   token: string
 ): Promise<ReviewResponse> {
   try {
-    const response = await client.post<SubmitReviewResponse>('/api/v1/reviews', payload, {
+    const response = await client.post<SubmitReviewResponse>('/reviews', payload, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -49,7 +49,7 @@ export async function submitOrderReview(
 }
 
 /**
- * GET /api/v1/reviews/:orderId/check
+ * GET /reviews/:orderId/check
  * Check if user has already reviewed this order
  * @throws Error if API fails
  */
@@ -59,7 +59,7 @@ export async function checkReviewStatus(
 ): Promise<CheckReviewStatusResponse> {
   try {
     const response = await client.get<CheckReviewResponse>(
-      `/api/v1/reviews/${orderId}/check`,
+      `/reviews/${orderId}/check`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
