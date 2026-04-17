@@ -46,13 +46,22 @@ export default function PackChecklistScreen() {
   // Find the current order
   const order = orders.find((o) => o.id === orderId);
 
-  // Initialize checked items from form state (if user was mid-checklist)
+  // Initialize checked items on first load, preserve if user navigates away and back
+  // This prevents losing progress if user accidentally goes back
   useEffect(() => {
     if (order && order.items) {
-      // Initialize with empty set (all unchecked)
-      setCheckedItems(new Set());
+      // Only reset if we have no checked items yet (first load)
+      // If user already checked items, preserve them
+      setCheckedItems((prev) => {
+        if (prev.size === 0) {
+          // First load: Initialize with empty set
+          return new Set();
+        }
+        // User navigated back: keep existing checked items
+        return prev;
+      });
     }
-  }, [order]);
+  }, [order?.id]); // Only depend on order.id, not order object
 
   if (loading) {
     return (
@@ -164,15 +173,26 @@ export default function PackChecklistScreen() {
         totalCount={totalCount}
       />
 
-      {/* Error message */}
+      {/* Error message with retry */}
       {(error || submitError) && (
         <View style={styles.errorBox}>
-          <MaterialCommunityIcons
-            name="alert-circle"
-            size={16}
-            color={colors.error}
-          />
-          <Text style={styles.errorText}>{error || submitError}</Text>
+          <View style={styles.errorContent}>
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={16}
+              color={colors.error}
+            />
+            <Text style={styles.errorText}>{error || submitError}</Text>
+          </View>
+          {submitError && (
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={handleMarkAllReady}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -288,6 +308,13 @@ const styles = StyleSheet.create({
     marginVertical: spacing.md,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
 
   errorText: {
@@ -296,6 +323,20 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginLeft: spacing.md,
     flex: 1,
+  },
+
+  retryButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.error,
+    borderRadius: 6,
+    marginLeft: spacing.md,
+  },
+
+  retryButtonText: {
+    fontSize: fontSize.sm,
+    fontFamily: fontFamily.bold,
+    color: colors.surface,
   },
 
   emptyContainer: {

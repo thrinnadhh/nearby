@@ -51,7 +51,8 @@ export function DocumentUploadCard({
   uploadProgress = 0,
   previewUrl,
 }: Props) {
-  const isImage = previewUrl && previewUrl.endsWith('.jpg') || previewUrl?.endsWith('.png');
+  // Check if preview is image (jpg, jpeg, png)
+  const isImage = previewUrl && /\.(jpg|jpeg|png)$/i.test(previewUrl);
 
   return (
     <View style={styles.container}>

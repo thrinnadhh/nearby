@@ -29,6 +29,12 @@ import {
   borderRadius,
 } from '@/constants/theme';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { AppError } from '@/types/common';
+import logger from '@/utils/logger';
+
+// Configuration constants
+const KYC_APPROVED_REDIRECT_DELAY_MS = 2000; // Show approval message for 2s before redirecting
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import logger from '@/utils/logger';
 
@@ -71,7 +77,7 @@ export default function WaitingScreen() {
       // Give user a moment to see the approval message
       const timer = setTimeout(() => {
         router.push('(tabs)');
-      }, 2000);
+      }, KYC_APPROVED_REDIRECT_DELAY_MS);
 
       return () => clearTimeout(timer);
     }

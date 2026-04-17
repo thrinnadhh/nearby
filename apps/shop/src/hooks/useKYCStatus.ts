@@ -46,18 +46,20 @@ export function useKYCStatus(shopId: string): UseKYCStatusState &
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pollCountRef = useRef(0);
+  const isPollingRef = useRef(false);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
+    isPollingRef.current = false;
     setState((prev) => ({
       ...prev,
       isPolling: false,
     }));
     logger.debug('KYC polling stopped', { shopId, pollCount: pollCountRef.current });
-  }, [shopId]);
+  }, []); // Empty deps to keep stable
 
   const fetch = useCallback(async () => {
     try {
@@ -86,7 +88,16 @@ export function useKYCStatus(shopId: string): UseKYCStatusState &
           status: result.status,
           pollCount: pollCountRef.current,
         });
-        stopPolling();
+        // Use ref to avoid adding stopPolling to dependency array
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          isPollingRef.current = false;
+          setState((prev) => ({
+            ...prev,
+            isPolling: false,
+          }));
+        }
       }
     } catch (error) {
       const message =
@@ -103,7 +114,7 @@ export function useKYCStatus(shopId: string): UseKYCStatusState &
         error: message,
       }));
     }
-  }, [shopId, stopPolling]);
+  }, [shopId]); // Only shopId, not stopPolling
 
   const startPolling = useCallback(() => {
     logger.info('KYC polling started', { shopId });
@@ -124,15 +135,24 @@ export function useKYCStatus(shopId: string): UseKYCStatusState &
       // Safety limit: stop after 60 polls (5 minutes)
       if (pollCountRef.current >= 60) {
         logger.warn('KYC polling timeout — max retries reached', { shopId });
-        stopPolling();
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          isPollingRef.current = false;
+          setState((prev) => ({
+            ...prev,
+            isPolling: false,
+          }));
+        }
       }
     }, POLL_INTERVAL);
 
+    isPollingRef.current = true;
     setState((prev) => ({
       ...prev,
       isPolling: true,
     }));
-  }, [shopId, fetch, stopPolling]);
+  }, [shopId, fetch]); // Removed stopPolling from deps
 
   const refetch = useCallback(async () => {
     setState((prev) => ({

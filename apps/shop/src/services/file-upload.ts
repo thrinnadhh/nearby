@@ -121,7 +121,7 @@ export async function uploadFileToR2(
 ): Promise<FileUploadResponse> {
   try {
     // Read file into base64
-    const base64 = await FileSystem.readAsStringAsync(fileUri: file.uri, {
+    const base64 = await FileSystem.readAsStringAsync(file.uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
@@ -193,15 +193,4 @@ function extractErrorMessage(error: unknown): string {
   }
 
   return 'An unknown error occurred';
-}
-
-/**
- * Validate file before upload
- * Quick check without reading full file
- */
-export function validateFilePath(filePath: string): boolean {
-  if (!filePath || typeof filePath !== 'string') return false;
-
-  const extension = filePath.substring(filePath.lastIndexOf('.')).toLowerCase();
-  return FILE_CONSTRAINTS.ALLOWED_EXTENSIONS.includes(extension);
 }
