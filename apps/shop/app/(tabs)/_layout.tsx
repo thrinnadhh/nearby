@@ -50,6 +50,16 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: 'Products',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="inbox-multiple" color={color} size={size} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

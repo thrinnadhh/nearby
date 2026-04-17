@@ -4,6 +4,7 @@ import logger from '../utils/logger.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { authenticate } from '../middleware/auth.js';
 import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import { imageUpload, csvUpload } from '../middleware/multer.js';
 import {
@@ -26,6 +27,54 @@ function handleUploadError(err, res) {
     errorResponse('INVALID_FILE_TYPE', err.message)
   );
 }
+
+/**
+ * GET /api/v1/shops/:shopId/products
+ * List all products for authenticated shop owner
+ * Query params: page (1-indexed), limit (1-100)
+ * Response: { success, data: Product[], meta: { page, total, pages } }
+ */
+router.get(
+  '/shops/:shopId/products',
+  authenticate,
+  roleGuard(['shop_owner']),
+  shopOwnerGuard(),
+  rateLimit('shop-products', 60, 60), // 60 req/min per user (SECURITY FIX #2)
+  async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { userId } = req.user;
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 50));
+
+      // Verify ownership (shopOwnerGuard already did this, but be explicit)
+      const result = await ProductService.listShopProducts(userId, shopId, page, limit);
+
+      logger.info('List shop products success', {
+        userId,
+        shopId,
+        page,
+        limit,
+        count: result.products.length,
+        total: result.total,
+      });
+
+      return res.status(200).json(successResponse(result.products, {
+        page,
+        total: result.total,
+        pages: result.pages,
+        limit,
+      }));
+    } catch (err) {
+      logger.error('List shop products error', {
+        error: err.message,
+        shopId: req.params.shopId,
+        userId: req.user?.userId,
+      });
+      return next(err);
+    }
+  }
+);
 
 /**
  * POST /api/v1/shops/:shopId/products
@@ -213,55 +262,6 @@ router.post(
       return res.status(status).json(successResponse(result));
     } catch (err) {
       logger.error('Bulk create products endpoint error', {
-        error: err.message,
-        shopId: req.params.shopId,
-        userId: req.user?.userId,
-      });
-      return next(err);
-    }
-  }
-);
-
-/**
- * GET /api/v1/shops/:shopId/products
- * List all products for a shop with pagination.
- * Requires: Authentication + shop_owner role + ownership of shop
- * Query params: page (1-indexed, default 1), limit (1-100, default 50)
- * Response: 200 with paginated products list
- */
-router.get(
-  '/shops/:shopId/products',
-  authenticate,
-  roleGuard(['shop_owner']),
-  shopOwnerGuard(),
-  async (req, res, next) => {
-    try {
-      const { shopId } = req.params;
-      const { userId } = req.user;
-      const page = req.query.page ? Math.max(1, parseInt(req.query.page, 10)) : 1;
-      const limit = req.query.limit ? Math.max(1, Math.min(100, parseInt(req.query.limit, 10))) : 50;
-
-      const result = await ProductService.listShopProducts(userId, shopId, page, limit);
-
-      logger.info('List products endpoint success', {
-        userId,
-        shopId,
-        page,
-        limit,
-        count: result.products.length,
-        total: result.total,
-      });
-
-      return res.status(200).json(
-        successResponse(result.products, {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          pages: result.pages,
-        })
-      );
-    } catch (err) {
-      logger.error('List products endpoint error', {
         error: err.message,
         shopId: req.params.shopId,
         userId: req.user?.userId,

@@ -1,6 +1,6 @@
 module.exports = {
   preset: 'react-native',
-  testEnvironment: 'node',
+  testEnvironment: 'react-native',
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {

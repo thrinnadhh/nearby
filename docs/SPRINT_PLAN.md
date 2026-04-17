@@ -271,7 +271,7 @@
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
 | 12.1 | Product catalogue screen | [RN2] | ⬜ | Grid, search within, stock badges |
-| 12.2 | Add product screen (single) | [RN2] | ⬜ | Camera, form, R2 upload |
+| 12.2 | Add product screen (single) | [RN2] | ✅ | Camera, form, R2 upload — 80+ tests, 85%+ coverage, ImagePickerModal, Joi validation |
 | 12.3 | Bulk CSV upload flow | [RN2] | ⬜ | File picker, preview, confirm |
 | 12.4 | Edit product screen | [RN2] | ⬜ | Price, stock, availability toggle |
 | 12.5 | Quick stock toggle (swipe or tap) | [RN2] | ⬜ | Instant feedback, Typesense sync |

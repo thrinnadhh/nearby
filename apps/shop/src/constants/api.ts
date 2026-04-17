@@ -35,3 +35,11 @@ export const ORDER_ENDPOINTS = {
   ACCEPT_ORDER: '/orders/:id/accept',
   REJECT_ORDER: '/orders/:id/reject',
 };
+
+export const PRODUCTS_ENDPOINTS = {
+  LIST_PRODUCTS: '/shops/:shopId/products',
+  GET_PRODUCT: '/products/:id',
+  CREATE_PRODUCT: '/products',
+  UPDATE_PRODUCT: '/products/:id',
+  DELETE_PRODUCT: '/products/:id',
+};

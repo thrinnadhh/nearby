@@ -582,6 +582,81 @@ class ProductService {
       errors,
     };
   }
+
+  /**
+   * List all products for a shop with pagination.
+   * Filters out soft-deleted products.
+   *
+   * @param {string} userId - authenticated user ID
+   * @param {string} shopId - shop ID to list products for
+   * @param {number} page - page number (1-indexed, default 1)
+   * @param {number} limit - items per page (1-100, default 50)
+   * @returns {Promise<Object>} { products: Product[], total: number, pages: number }
+   * @throws {AppError} if not authorized or shop not found
+   */
+  static async listShopProducts(userId, shopId, page = 1, limit = 50) {
+    // 1. Verify ownership
+    await this._verifyOwnership(userId, shopId);
+
+    // 2. Validate pagination params
+    const validPage = Math.max(1, parseInt(page, 10) || 1);
+    const validLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 50));
+    const offset = (validPage - 1) * validLimit;
+
+    // 3. Fetch paginated products
+    const { data: products, error: fetchError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('shop_id', shopId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + validLimit - 1);
+
+    if (fetchError) {
+      logger.error('ProductService: list products fetch failed', {
+        shopId,
+        userId,
+        error: fetchError.message,
+      });
+      throw new AppError(INTERNAL_ERROR, 'Failed to fetch products. Please try again.', 500);
+    }
+
+    // 4. Get total count for pagination
+    const { count: total, error: countError } = await supabase
+      .from('products')
+      .select('id', { count: 'exact' })
+      .eq('shop_id', shopId)
+      .is('deleted_at', null);
+
+    if (countError) {
+      logger.error('ProductService: count products failed', {
+        shopId,
+        userId,
+        error: countError.message,
+      });
+      throw new AppError(INTERNAL_ERROR, 'Failed to get product count. Please try again.', 500);
+    }
+
+    const totalCount = total || 0;
+    const totalPages = Math.ceil(totalCount / validLimit);
+
+    logger.info('ProductService: products listed', {
+      shopId,
+      userId,
+      page: validPage,
+      limit: validLimit,
+      count: products?.length || 0,
+      total: totalCount,
+    });
+
+    return {
+      products: products || [],
+      total: totalCount,
+      pages: totalPages,
+      page: validPage,
+      limit: validLimit,
+    };
+  }
 }
 
 export default ProductService;
