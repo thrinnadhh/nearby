@@ -3,7 +3,7 @@
  * Listens to Socket.IO events for real-time new orders
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo, useEffect, useState } from 'react';
 import {
   View,
   FlatList,
@@ -52,10 +52,10 @@ export default function OrdersListScreen() {
 
   // Listen to Socket.IO new order events
   useEffect(() => {
-    const unsubscribe = onNewOrder((event) => {
+    const unsubscribe = onNewOrder((event: any) => {
       logger.info('New order received via Socket.IO', { orderId: event.orderId });
       // Add to store to update list
-      addOrderToStore({
+      const newOrder: Order = {
         id: event.orderId,
         shopId: '', // Will be populated from JWT
         customerId: event.customerId,
@@ -73,7 +73,8 @@ export default function OrdersListScreen() {
         acceptanceDeadline: new Date(
           new Date(event.createdAt).getTime() + 3 * 60 * 1000
         ).toISOString(),
-      } as any);
+      };
+      addOrderToStore(newOrder);
     });
 
     return unsubscribe;
@@ -111,14 +112,30 @@ export default function OrdersListScreen() {
     ? orders 
     : orders.filter((order) => order.status === activeFilter);
 
-  const filterTabs = [
-    { label: 'All', value: 'all' as const, count: orders.length },
-    { label: 'Pending', value: 'pending' as const, count: orders.filter(o => o.status === 'pending').length },
-    { label: 'Accepted', value: 'accepted' as const, count: orders.filter(o => o.status === 'accepted').length },
-    { label: 'Packing', value: 'packing' as const, count: orders.filter(o => o.status === 'packing').length },
-    { label: 'Ready', value: 'ready' as const, count: orders.filter(o => o.status === 'ready').length },
-    { label: 'Picked Up', value: 'picked_up' as const, count: orders.filter(o => o.status === 'picked_up').length },
-  ];
+  const filterTabs = useMemo(() => {
+    const statusMap: Record<string, number> = {
+      pending: 0,
+      accepted: 0,
+      packing: 0,
+      ready: 0,
+      picked_up: 0,
+    };
+
+    orders.forEach((order) => {
+      if (order.status in statusMap) {
+        statusMap[order.status]++;
+      }
+    });
+
+    return [
+      { label: 'All', value: 'all' as const, count: orders.length },
+      { label: 'Pending', value: 'pending' as const, count: statusMap.pending },
+      { label: 'Accepted', value: 'accepted' as const, count: statusMap.accepted },
+      { label: 'Packing', value: 'packing' as const, count: statusMap.packing },
+      { label: 'Ready', value: 'ready' as const, count: statusMap.ready },
+      { label: 'Picked Up', value: 'picked_up' as const, count: statusMap.picked_up },
+    ];
+  }, [orders]);
 
   const renderEmptyState = () => {
     const filterLabel = filterTabs.find(tab => tab.value === activeFilter)?.label || 'Pending';
@@ -281,8 +298,8 @@ const styles = StyleSheet.create({
 
   filterTabText: {
     fontSize: fontSize.sm,
-    fontFamily: fontFamily.semibold,
-    color: colors.text,
+    fontFamily: fontFamily.semiBold,
+    color: colors.textPrimary,
   },
 
   filterTabTextActive: {
@@ -305,7 +322,7 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     fontSize: fontSize.xs,
     fontFamily: fontFamily.bold,
-    color: colors.text,
+    color: colors.textPrimary,
   },
 
   loadingContainer: {

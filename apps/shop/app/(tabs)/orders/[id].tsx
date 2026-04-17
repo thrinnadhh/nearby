@@ -24,6 +24,7 @@ import { CustomerInfoCard } from '@/components/order/CustomerInfoCard';
 import { CountdownTimer } from '@/components/order/CountdownTimer';
 import { OrderStatusTimeline } from '@/components/order/OrderStatusTimeline';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import {
   colors,
   spacing,
@@ -139,107 +140,113 @@ export default function OrderDetailScreen() {
 
   const canAccept = order.status === OrderStatus.PENDING;
 
+  const content = (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.orderId}>Order #{order.id.slice(0, 8)}</Text>
+        <Text style={styles.timestamp}>
+          {formatDateTime(order.createdAt)}
+        </Text>
+      </View>
+
+      {/* Countdown Timer */}
+      {canAccept && (
+        <View style={styles.timerContainer}>
+          <CountdownTimer
+            acceptanceDeadline={order.acceptanceDeadline}
+            onExpire={() => {
+              setError('Order acceptance window has expired');
+              logger.warn('Order acceptance window expired', {
+                orderId: order.id,
+              });
+            }}
+          />
+        </View>
+      )}
+
+      {/* Order Items */}
+      <OrderItemsPanel items={order.items} />
+
+      {/* Customer Info */}
+      <CustomerInfoCard
+        customerName={order.customerName}
+        customerPhone={order.customerPhone}
+        deliveryAddress={order.deliveryAddress}
+      />
+
+      {/* Order Status Timeline */}
+      <View style={[styles.timelineCard, shadows.sm]}>
+        <Text style={styles.timelineTitle}>Order Status</Text>
+        <OrderStatusTimeline order={order} />
+      </View>
+
+      {/* Total Section */}
+      <View style={[styles.totalCard, shadows.sm]}>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Subtotal</Text>
+          <Text style={styles.totalValue}>
+            {formatCurrency(order.subtotal)}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Delivery Fee</Text>
+          <Text style={styles.totalValue}>
+            {formatCurrency(order.deliveryFee)}
+          </Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.totalRow}>
+          <Text style={styles.grandTotal}>Total Amount</Text>
+          <Text style={styles.grandTotalValue}>
+            {formatCurrency(order.total)}
+          </Text>
+        </View>
+        <Text style={styles.paymentMode}>
+          Payment: {order.paymentMode === 'upi' ? 'UPI' : 'Cash on Delivery'}
+        </Text>
+      </View>
+
+      {/* Action Buttons */}
+      {canAccept && (
+        <View style={styles.actionsContainer}>
+          <PrimaryButton
+            label={actionLoading ? 'Processing...' : 'Accept Order'}
+            onPress={handleAccept}
+            loading={actionLoading}
+            disabled={actionLoading}
+            size="lg"
+          />
+
+          <PrimaryButton
+            label={actionLoading ? 'Processing...' : 'Reject Order'}
+            onPress={() => setShowRejectModal(true)}
+            variant="danger"
+            disabled={actionLoading}
+            size="lg"
+            style={styles.rejectButton}
+          />
+        </View>
+      )}
+
+      {!canAccept && (
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusText}>
+            Order has been {order.status.replace('_', ' ')}
+          </Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.orderId}>Order #{order.id.slice(0, 8)}</Text>
-          <Text style={styles.timestamp}>
-            {formatDateTime(order.createdAt)}
-          </Text>
-        </View>
-
-        {/* Countdown Timer */}
-        {canAccept && (
-          <View style={styles.timerContainer}>
-            <CountdownTimer
-              acceptanceDeadline={order.acceptanceDeadline}
-              onExpire={() => {
-                setError('Order acceptance window has expired');
-                logger.warn('Order acceptance window expired', {
-                  orderId: order.id,
-                });
-              }}
-            />
-          </View>
-        )}
-
-        {/* Order Items */}
-        <OrderItemsPanel items={order.items} />
-
-        {/* Customer Info */}
-        <CustomerInfoCard
-          customerName={order.customerName}
-          customerPhone={order.customerPhone}
-          deliveryAddress={order.deliveryAddress}
-        />
-
-        {/* Order Status Timeline */}
-        <View style={[styles.timelineCard, shadows.sm]}>
-          <Text style={styles.timelineTitle}>Order Status</Text>
-          <OrderStatusTimeline order={order} />
-        </View>
-
-        {/* Total Section */}
-        <View style={[styles.totalCard, shadows.sm]}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal</Text>
-            <Text style={styles.totalValue}>
-              {formatCurrency(order.subtotal)}
-            </Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Delivery Fee</Text>
-            <Text style={styles.totalValue}>
-              {formatCurrency(order.deliveryFee)}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.totalRow}>
-            <Text style={styles.grandTotal}>Total Amount</Text>
-            <Text style={styles.grandTotalValue}>
-              {formatCurrency(order.total)}
-            </Text>
-          </View>
-          <Text style={styles.paymentMode}>
-            Payment: {order.paymentMode === 'upi' ? 'UPI' : 'Cash on Delivery'}
-          </Text>
-        </View>
-
-        {/* Action Buttons */}
-        {canAccept && (
-          <View style={styles.actionsContainer}>
-            <PrimaryButton
-              label={actionLoading ? 'Processing...' : 'Accept Order'}
-              onPress={handleAccept}
-              loading={actionLoading}
-              disabled={actionLoading}
-              size="lg"
-            />
-
-            <PrimaryButton
-              label={actionLoading ? 'Processing...' : 'Reject Order'}
-              onPress={() => setShowRejectModal(true)}
-              variant="danger"
-              disabled={actionLoading}
-              size="lg"
-              style={styles.rejectButton}
-            />
-          </View>
-        )}
-
-        {!canAccept && (
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusText}>
-              Order has been {order.status.replace('_', ' ')}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+      <ErrorBoundary>
+        {content}
+      </ErrorBoundary>
 
       {/* Reject Reason Modal */}
       <Modal

@@ -59,9 +59,6 @@ function isCurrentStatus(status: OrderStatus, currentStatus: OrderStatus): boole
  * Displays a vertical timeline of order status progression
  */
 export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
-  //  Get the index of the current status
-  const currentStatusIndex = getStatusIndex(order.status);
-
   return (
     <View style={styles.container}>
       {STATUS_SEQUENCE.map((item, index) => {
@@ -74,6 +71,7 @@ export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
             {/* Vertical line connecting to next status */}
             {index < STATUS_SEQUENCE.length - 1 && (
               <View
+                testID={`vertical-connector-${item.status}`}
                 style={[
                   styles.verticalConnector,
                   isComplete && styles.verticalConnectorComplete,
@@ -86,6 +84,7 @@ export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
             <View style={styles.timelineItem}>
               {/* Status icon */}
               <View
+                testID={`status-badge-${item.status}-${isComplete ? 'complete' : isCurrent ? 'current' : 'upcoming'}`}
                 style={[
                   styles.statusCircle,
                   isComplete && styles.statusCircleComplete,
@@ -119,6 +118,7 @@ export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
               {/* Status label */}
               <View style={styles.statusLabelContainer}>
                 <Text
+                  testID="status-label"
                   style={[
                     styles.statusLabel,
                     (isComplete || isCurrent) && styles.statusLabelActive,
