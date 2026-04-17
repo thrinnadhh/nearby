@@ -22,6 +22,7 @@ import { useOrdersStore } from '@/store/orders';
 import { OrderItemsPanel } from '@/components/order/OrderItemsPanel';
 import { CustomerInfoCard } from '@/components/order/CustomerInfoCard';
 import { CountdownTimer } from '@/components/order/CountdownTimer';
+import { OrderStatusTimeline } from '@/components/order/OrderStatusTimeline';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import {
   colors,
@@ -176,6 +177,12 @@ export default function OrderDetailScreen() {
           customerPhone={order.customerPhone}
           deliveryAddress={order.deliveryAddress}
         />
+
+        {/* Order Status Timeline */}
+        <View style={[styles.timelineCard, shadows.sm]}>
+          <Text style={styles.timelineTitle}>Order Status</Text>
+          <OrderStatusTimeline order={order} />
+        </View>
 
         {/* Total Section */}
         <View style={[styles.totalCard, shadows.sm]}>
@@ -335,6 +342,21 @@ const styles = StyleSheet.create({
 
   timerContainer: {
     marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+
+  timelineCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+  },
+
+  timelineTitle: {
+    fontSize: fontSize.md,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
     marginBottom: spacing.md,
   },
 

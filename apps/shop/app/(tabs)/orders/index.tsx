@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Text,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -36,6 +37,7 @@ export default function OrdersListScreen() {
   const { registerFCMToken } = useFCM();
   const { addOrder: addOrderToStore } = useOrdersStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'accepted' | 'packing' | 'ready' | 'picked_up'>('all');
 
   // Register FCM token on mount
   useEffect(() => {
@@ -104,14 +106,34 @@ export default function OrdersListScreen() {
     [router]
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyTitle}>No Pending Orders</Text>
-      <Text style={styles.emptyMessage}>
-        You're all caught up! Check back soon for new orders.
-      </Text>
-    </View>
-  );
+  // Filter orders based on active filter
+  const filteredOrders = activeFilter === 'all' 
+    ? orders 
+    : orders.filter((order) => order.status === activeFilter);
+
+  const filterTabs = [
+    { label: 'All', value: 'all' as const, count: orders.length },
+    { label: 'Pending', value: 'pending' as const, count: orders.filter(o => o.status === 'pending').length },
+    { label: 'Accepted', value: 'accepted' as const, count: orders.filter(o => o.status === 'accepted').length },
+    { label: 'Packing', value: 'packing' as const, count: orders.filter(o => o.status === 'packing').length },
+    { label: 'Ready', value: 'ready' as const, count: orders.filter(o => o.status === 'ready').length },
+    { label: 'Picked Up', value: 'picked_up' as const, count: orders.filter(o => o.status === 'picked_up').length },
+  ];
+
+  const renderEmptyState = () => {
+    const filterLabel = filterTabs.find(tab => tab.value === activeFilter)?.label || 'Pending';
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyTitle}>No {filterLabel} Orders</Text>
+        <Text style={styles.emptyMessage}>
+          {activeFilter === 'all' 
+            ? "You're all caught up! Check back soon for new orders."
+            : `No orders in ${filterLabel.toLowerCase()} status yet.`
+          }
+        </Text>
+      </View>
+    );
+  };
 
   if (loading && orders.length === 0) {
     return (
@@ -140,12 +162,52 @@ export default function OrdersListScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Incoming Orders</Text>
         <Text style={styles.headerSubtitle}>
-          {orders.length} {orders.length === 1 ? 'order' : 'orders'} pending
+          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} 
+          {activeFilter !== 'all' ? ` (${activeFilter.replace('_', ' ')})` : ''}
         </Text>
       </View>
 
+      {/* Filter Tabs */}
+      <View style={styles.filterContainer}>
+        <FlatList
+          data={filterTabs}
+          keyExtractor={(item) => item.value}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.filterTab,
+                activeFilter === item.value && styles.filterTabActive,
+              ]}
+              onPress={() => setActiveFilter(item.value)}
+            >
+              <Text
+                style={[
+                  styles.filterTabText,
+                  activeFilter === item.value && styles.filterTabTextActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+              {item.count > 0 && (
+                <View
+                  style={[
+                    styles.filterBadge,
+                    activeFilter === item.value && styles.filterBadgeActive,
+                  ]}
+                >
+                  <Text style={styles.filterBadgeText}>{item.count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={styles.filterTabsContent}
+        />
+      </View>
+
       <FlatList
-        data={orders}
+        data={filteredOrders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <OrderCard order={item} onPress={() => handleOrderPress(item.id)} />
@@ -189,6 +251,61 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+  },
+
+  filterContainer: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+
+  filterTabsContent: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+
+  filterTab: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+
+  filterTabActive: {
+    backgroundColor: colors.primary,
+  },
+
+  filterTabText: {
+    fontSize: fontSize.sm,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+  },
+
+  filterTabTextActive: {
+    color: colors.surface,
+  },
+
+  filterBadge: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  filterBadgeActive: {
+    backgroundColor: colors.surface,
+  },
+
+  filterBadgeText: {
+    fontSize: fontSize.xs,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
   },
 
   loadingContainer: {
