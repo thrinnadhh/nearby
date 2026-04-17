@@ -16,7 +16,8 @@ import {
   TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Order, OrderStatus } from '@/types/orders';
+import { Order } from '@/types/orders';
+import { OrderStatus } from '@/types/shop';
 import { useOrders } from '@/hooks/useOrders';
 import { useOrdersStore } from '@/store/orders';
 import { OrderItemsPanel } from '@/components/order/OrderItemsPanel';
