@@ -24,7 +24,7 @@ interface OrderNewEvent {
 }
 
 interface OrderActionCallback {
-  (orderId: string, data?: any): void;
+  (orderId: string, data?: Record<string, unknown>): void;
 }
 
 interface UseOrderSocketActions {
@@ -59,7 +59,7 @@ export function useOrderSocket(): UseOrderSocketActions {
 
   const onNewOrder = useCallback(
     (callback: (event: OrderNewEvent) => void) => {
-      const unsubscribe = onOrderNew((event: any) => {
+      const unsubscribe = onOrderNew((event) => {
         logger.info('New order received', { orderId: event.orderId });
         callback(event);
       });

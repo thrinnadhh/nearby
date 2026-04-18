@@ -63,7 +63,7 @@ export const useOrdersStore = create<OrdersState & OrdersActions>((set) => ({
     logger.info('Order status updated', { orderId, status });
     set((state) => ({
       orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, status: status as any } : o
+        o.id === orderId ? { ...o, status: status as Order['status'] } : o
       ),
     }));
   },

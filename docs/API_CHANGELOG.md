@@ -6,6 +6,35 @@
 
 ---
 
+## [Sprint 12.5] - 2026-04-19
+
+### Product Availability Toggle
+
+**Modified:**
+
+#### PATCH /api/v1/products/:productId
+- Auth: Bearer JWT (`shop_owner` role)
+- Authorization: Shop owner can only toggle their own products
+- Request: `{ is_available: boolean }` (optional — price, stock_quantity also accepted)
+- Validation: is_available must be true or false (Joi boolean)
+- Behavior:
+  - Toggles product availability without affecting price or stock_quantity
+  - Updates only the is_available field in products table
+  - Triggers Typesense index update (async, queued via BullMQ)
+  - Optimistic UI updates supported (client updates immediately, rollback on error)
+  - Audit logged for all availability changes
+  - Out-of-stock products hidden from search within 15 seconds
+- Response: 200 with `{ id, name, price, stockQuantity, isAvailable, updatedAt }`
+- Error codes: VALIDATION_ERROR (400), PRODUCT_NOT_FOUND (404), FORBIDDEN (403), UNAUTHORIZED (401), INTERNAL_ERROR (500)
+- Rate limit: **10 requests/minute per shop owner** (strictLimiter middleware)
+- Notes:
+  - Supports 3-attempt retry with exponential backoff on network errors (500ms→1s→2s)
+  - Product must exist and not be soft-deleted
+  - Concurrent edits: last write wins (server-side last update persists)
+  - Backward compatible (is_available is optional field in PATCH request)
+
+---
+
 ## [Sprint 6] - 2026-04-12
 
 ### Reviews, Chat, Trust Score, Analytics & Earnings Module

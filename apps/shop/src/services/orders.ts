@@ -2,7 +2,7 @@
  * Orders service — fetch, accept, and reject orders
  */
 
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { client } from './api';
 import { ORDER_ENDPOINTS } from '@/constants/api';
 import {
@@ -16,11 +16,8 @@ import {
 import { AppError } from '@/types/common';
 import logger from '@/utils/logger';
 
-/**
- * Extract error message from axios error
- */
 function extractErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError) {
+  if (axios.isAxiosError(error)) {
     const message = (error.response?.data as { error?: { message?: string } })
       ?.error?.message;
     return message || error.message;
@@ -41,10 +38,7 @@ export async function getOrders(
   status?: string
 ): Promise<OrdersListResponse> {
   try {
-    const params = { page, limit };
-    if (status) {
-      Object.assign(params, { status });
-    }
+    const params = { page, limit, ...(status ? { status } : {}) };
 
     const { data } = await client.get<OrdersListResponse>(
       ORDER_ENDPOINTS.LIST_ORDERS,
