@@ -272,7 +272,7 @@
 |---|------|-------|--------|-------|
 | 12.1 | Product catalogue screen | [RN2] | ⬜ | Grid, search within, stock badges |
 | 12.2 | Add product screen (single) | [RN2] | ✅ | Camera, form, R2 upload — 80+ tests, 85%+ coverage, ImagePickerModal, Joi validation |
-| 12.3 | Bulk CSV upload flow | [RN2] | ⬜ | File picker, preview, confirm |
+| 12.3 | Bulk CSV upload flow | [RN2] | ✅ | 4-step wizard (picker→preview→upload→results), 46 tests, 80%+ coverage, CSV parser with flexible headers, Joi validation, 207 partial success, retry logic |
 | 12.4 | Edit product screen | [RN2] | ⬜ | Price, stock, availability toggle |
 | 12.5 | Quick stock toggle (swipe or tap) | [RN2] | ⬜ | Instant feedback, Typesense sync |
 | 12.6 | Low stock alert screen | [RN2] | ⬜ | List of items near zero |
