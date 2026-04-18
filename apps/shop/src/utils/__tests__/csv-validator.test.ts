@@ -1,0 +1,142 @@
+/**
+ * CSV Validator Utility Tests
+ */
+
+import { validateCsvRow, validateAllCsvRows, getValidationSummary } from '@/utils/csv-validator';
+import { CsvRawRow } from '@/types/csv';
+import { CSV_HEADERS } from '@/constants/csv-schema';
+
+describe('csv-validator utility', () => {
+  const validRow: CsvRawRow = {
+    [CSV_HEADERS.NAME]: 'Basmati Rice',
+    [CSV_HEADERS.DESCRIPTION]: 'Premium rice',
+    [CSV_HEADERS.CATEGORY]: 'grocery',
+    [CSV_HEADERS.PRICE]: '250',
+    [CSV_HEADERS.STOCK_QTY]: '50',
+    [CSV_HEADERS.UNIT]: 'kg',
+  };
+
+  describe('validateCsvRow', () => {
+    it('should validate correct row', () => {
+      const result = validateCsvRow(validRow, 1);
+
+      expect(result.isValid).toBe(true);
+      expect(result.name).toBe('Basmati Rice');
+      expect(result.category).toBe('grocery');
+      expect(Object.keys(result.errors).length).toBe(0);
+    });
+
+    it('should mark row invalid for missing required fields', () => {
+      const invalidRow: CsvRawRow = {
+        [CSV_HEADERS.NAME]: '',
+        [CSV_HEADERS.CATEGORY]: 'grocery',
+        [CSV_HEADERS.PRICE]: '250',
+        [CSV_HEADERS.STOCK_QTY]: '50',
+        [CSV_HEADERS.UNIT]: 'kg',
+      };
+
+      const result = validateCsvRow(invalidRow, 1);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors[CSV_HEADERS.NAME]).toBeDefined();
+    });
+
+    it('should validate price conversion', () => {
+      const result = validateCsvRow(validRow, 1);
+
+      expect(result.price).toBe(25000);
+      expect(typeof result.price).toBe('number');
+    });
+
+    it('should validate stock quantity conversion', () => {
+      const result = validateCsvRow(validRow, 1);
+
+      expect(result.stockQty).toBe(50);
+      expect(typeof result.stockQty).toBe('number');
+    });
+
+    it('should reject invalid category', () => {
+      const invalidRow: CsvRawRow = {
+        ...validRow,
+        [CSV_HEADERS.CATEGORY]: 'invalid_category',
+      };
+
+      const result = validateCsvRow(invalidRow, 1);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors[CSV_HEADERS.CATEGORY]).toBeDefined();
+    });
+
+    it('should reject invalid unit', () => {
+      const invalidRow: CsvRawRow = {
+        ...validRow,
+        [CSV_HEADERS.UNIT]: 'invalid_unit',
+      };
+
+      const result = validateCsvRow(invalidRow, 1);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors[CSV_HEADERS.UNIT]).toBeDefined();
+    });
+
+    it('should reject price below minimum', () => {
+      const invalidRow: CsvRawRow = {
+        ...validRow,
+        [CSV_HEADERS.PRICE]: '0.50', // Less than 100 paise
+      };
+
+      const result = validateCsvRow(invalidRow, 1);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors[CSV_HEADERS.PRICE]).toBeDefined();
+    });
+  });
+
+  describe('validateAllCsvRows', () => {
+    it('should validate multiple rows', () => {
+      const rows = [validRow, validRow];
+
+      const results = validateAllCsvRows(rows);
+
+      expect(results).toHaveLength(2);
+      expect(results.every((r) => r.isValid)).toBe(true);
+    });
+
+    it('should throw error for too many rows', () => {
+      const rows = Array(10001).fill(validRow);
+
+      expect(() => validateAllCsvRows(rows)).toThrow();
+    });
+
+    it('should throw error for empty rows', () => {
+      expect(() => validateAllCsvRows([])).toThrow();
+    });
+  });
+
+  describe('getValidationSummary', () => {
+    it('should calculate summary statistics', () => {
+      const validatedRows = [
+        { ...validRow, isValid: true, rowNumber: 1, errors: {} },
+        { ...validRow, isValid: false, rowNumber: 2, errors: { name: 'Required' } },
+      ];
+
+      const summary = getValidationSummary(validatedRows);
+
+      expect(summary.totalRows).toBe(2);
+      expect(summary.validRows).toBe(1);
+      expect(summary.invalidRows).toBe(1);
+      expect(summary.validPercentage).toBe(50);
+    });
+
+    it('should handle 100% valid rows', () => {
+      const validatedRows = [
+        { ...validRow, isValid: true, rowNumber: 1, errors: {} },
+        { ...validRow, isValid: true, rowNumber: 2, errors: {} },
+      ];
+
+      const summary = getValidationSummary(validatedRows);
+
+      expect(summary.validPercentage).toBe(100);
+    });
+  });
+});
