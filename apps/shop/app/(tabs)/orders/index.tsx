@@ -17,7 +17,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useOrders } from '@/hooks/useOrders';
-import { useOrderSocket } from '@/hooks/useOrderSocket.ts';
+import { useOrderSocket } from '@/hooks/useOrderSocket';
 import { useFCM } from '@/hooks/useFCM';
 import { useOrdersStore } from '@/store/orders';
 import { Order } from '@/types/orders';
@@ -28,8 +28,11 @@ import {
   spacing,
   fontSize,
   fontFamily,
+  borderRadius,
 } from '@/constants/theme';
 import logger from '@/utils/logger';
+
+type FilterStatus = 'all' | 'pending' | 'accepted' | 'packing' | 'ready' | 'picked_up';
 
 export default function OrdersListScreen() {
   const router = useRouter();
@@ -38,7 +41,7 @@ export default function OrdersListScreen() {
   const { registerFCMToken } = useFCM();
   const { addOrder: addOrderToStore } = useOrdersStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'accepted' | 'packing' | 'ready' | 'picked_up'>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
 
   // Register FCM token on mount
   useEffect(() => {
@@ -53,30 +56,39 @@ export default function OrdersListScreen() {
 
   // Listen to Socket.IO new order events
   useEffect(() => {
-    const unsubscribe = onNewOrder((event: { orderId: string; customerId: string; customerName: string; total: number; createdAt: string }) => {
-      logger.info('New order received via Socket.IO', { orderId: event.orderId });
-      // Add to store to update list
-      const newOrder: Order = {
-        id: event.orderId,
-        shopId: '', // Will be populated from JWT
-        customerId: event.customerId,
-        customerName: event.customerName,
-        customerPhone: '',
-        deliveryAddress: '',
-        items: [],
-        subtotal: 0,
-        deliveryFee: 0,
-        total: event.total,
-        status: 'pending',
-        paymentMode: 'upi',
-        createdAt: event.createdAt,
-        updatedAt: event.createdAt,
-        acceptanceDeadline: new Date(
-          new Date(event.createdAt).getTime() + 3 * 60 * 1000
-        ).toISOString(),
-      };
-      addOrderToStore(newOrder);
-    });
+    const unsubscribe = onNewOrder(
+      (event: {
+        orderId: string;
+        customerId: string;
+        customerName: string;
+        total: number;
+        createdAt: string;
+      }) => {
+        logger.info('New order received via Socket.IO', {
+          orderId: event.orderId,
+        });
+        const newOrder: Order = {
+          id: event.orderId,
+          shopId: '',
+          customerId: event.customerId,
+          customerName: event.customerName,
+          customerPhone: '',
+          deliveryAddress: '',
+          items: [],
+          subtotal: 0,
+          deliveryFee: 0,
+          total: event.total,
+          status: 'pending',
+          paymentMode: 'upi',
+          createdAt: event.createdAt,
+          updatedAt: event.createdAt,
+          acceptanceDeadline: new Date(
+            new Date(event.createdAt).getTime() + 3 * 60 * 1000
+          ).toISOString(),
+        };
+        addOrderToStore(newOrder);
+      }
+    );
 
     return unsubscribe;
   }, [onNewOrder, addOrderToStore]);
@@ -108,10 +120,14 @@ export default function OrdersListScreen() {
     [router]
   );
 
-  // Filter orders based on active filter
-  const filteredOrders = activeFilter === 'all' 
-    ? orders 
-    : orders.filter((order) => order.status === activeFilter);
+  // Filter orders based on active filter — client-side filtering
+  const filteredOrders = useMemo(
+    () =>
+      activeFilter === 'all'
+        ? orders
+        : orders.filter((order) => order.status === activeFilter),
+    [orders, activeFilter]
+  );
 
   const filterTabs = useMemo(() => {
     const statusMap: Record<string, number> = {
@@ -129,34 +145,57 @@ export default function OrdersListScreen() {
     });
 
     return [
-      { label: 'All', value: 'all' as const, count: orders.length },
-      { label: 'Pending', value: 'pending' as const, count: statusMap.pending },
-      { label: 'Accepted', value: 'accepted' as const, count: statusMap.accepted },
-      { label: 'Packing', value: 'packing' as const, count: statusMap.packing },
-      { label: 'Ready', value: 'ready' as const, count: statusMap.ready },
-      { label: 'Picked Up', value: 'picked_up' as const, count: statusMap.picked_up },
+      { label: 'All', value: 'all' as FilterStatus, count: orders.length },
+      {
+        label: 'Pending',
+        value: 'pending' as FilterStatus,
+        count: statusMap.pending,
+      },
+      {
+        label: 'Accepted',
+        value: 'accepted' as FilterStatus,
+        count: statusMap.accepted,
+      },
+      {
+        label: 'Packing',
+        value: 'packing' as FilterStatus,
+        count: statusMap.packing,
+      },
+      {
+        label: 'Ready',
+        value: 'ready' as FilterStatus,
+        count: statusMap.ready,
+      },
+      {
+        label: 'Picked Up',
+        value: 'picked_up' as FilterStatus,
+        count: statusMap.picked_up,
+      },
     ];
   }, [orders]);
 
-  const renderEmptyState = () => {
-    const filterLabel = filterTabs.find(tab => tab.value === activeFilter)?.label || 'Pending';
+  const renderEmptyState = useCallback(() => {
+    const filterLabel =
+      filterTabs.find((tab) => tab.value === activeFilter)?.label || 'All';
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyTitle}>No {filterLabel} Orders</Text>
         <Text style={styles.emptyMessage}>
-          {activeFilter === 'all' 
+          {activeFilter === 'all'
             ? "You're all caught up! Check back soon for new orders."
-            : `No orders in ${filterLabel.toLowerCase()} status yet.`
-          }
+            : `No orders in ${filterLabel.toLowerCase()} status yet.`}
         </Text>
       </View>
     );
-  };
+  }, [activeFilter, filterTabs]);
 
   if (loading && orders.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+        <View
+          testID="loading-spinner"
+          style={styles.loadingContainer}
+        >
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
       </SafeAreaView>
@@ -180,8 +219,11 @@ export default function OrdersListScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Incoming Orders</Text>
         <Text style={styles.headerSubtitle}>
-          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} 
-          {activeFilter !== 'all' ? ` (${activeFilter.replace('_', ' ')})` : ''}
+          {filteredOrders.length}{' '}
+          {filteredOrders.length === 1 ? 'order' : 'orders'}
+          {activeFilter !== 'all'
+            ? ` (${activeFilter.replace('_', ' ')})`
+            : ''}
         </Text>
       </View>
 
@@ -225,6 +267,7 @@ export default function OrdersListScreen() {
       </View>
 
       <FlatList
+        testID="orders-list"
         data={filteredOrders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -233,6 +276,7 @@ export default function OrdersListScreen() {
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
+            testID="refresh-control"
             refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={colors.primary}

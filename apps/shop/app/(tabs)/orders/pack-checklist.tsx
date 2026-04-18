@@ -16,7 +16,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useOrders } from '@/hooks/useOrders';
+import { useOrdersStore } from '@/store/orders';
+import { useOrderMarkReady } from '@/hooks/useOrderMarkReady';
 import { PackChecklistHeader } from '@/components/order/PackChecklistHeader';
 import { PackItemCheckbox } from '@/components/order/PackItemCheckbox';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
@@ -29,16 +30,21 @@ import {
 } from '@/constants/theme';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { AppError } from '@/types/common';
-import { Order, OrderItem } from '@/types/orders';
 import logger from '@/utils/logger';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function PackChecklistScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline } = useNetworkStatus();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
 
-  const { orders, markOrderReady, loading, error } = useOrders();
+  const { orders } = useOrdersStore();
+  const {
+    markOrderReady,
+    loading,
+    error: markReadyError,
+  } = useOrderMarkReady();
+
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -46,18 +52,13 @@ export default function PackChecklistScreen() {
   // Find the current order
   const order = orders.find((o) => o.id === orderId);
 
-  // Initialize checked items on first load, preserve if user navigates away and back
-  // This prevents losing progress if user accidentally goes back
+  // Only reset checked items on first load (when order changes)
   useEffect(() => {
     if (order && order.items) {
-      // Only reset if we have no checked items yet (first load)
-      // If user already checked items, preserve them
       setCheckedItems((prev) => {
         if (prev.size === 0) {
-          // First load: Initialize with empty set
-          return new Set();
+          return new Set<string>();
         }
-        // User navigated back: keep existing checked items
         return prev;
       });
     }
@@ -96,22 +97,19 @@ export default function PackChecklistScreen() {
 
   const readyCount = checkedItems.size;
   const totalCount = order.items.length;
-  const allMarkedReady = readyCount === totalCount;
+  const allMarkedReady = readyCount === totalCount && totalCount > 0;
 
-  const handleToggleItem = useCallback(
-    (itemId: string) => {
-      setCheckedItems((prev) => {
-        const next = new Set(prev);
-        if (next.has(itemId)) {
-          next.delete(itemId);
-        } else {
-          next.add(itemId);
-        }
-        return next;
-      });
-    },
-    []
-  );
+  const handleToggleItem = useCallback((itemId: string) => {
+    setCheckedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }, []);
 
   const handleMarkAllReady = useCallback(async () => {
     if (!allMarkedReady) {
@@ -128,13 +126,11 @@ export default function PackChecklistScreen() {
         itemCount: totalCount,
       });
 
-      // Call API to mark order ready
       await markOrderReady(order.id);
 
       logger.info('Order marked as ready', { orderId: order.id });
 
-      // Show success and go back
-      // In a real app, you'd show a toast notification here
+      // Navigate back after short delay to allow state to settle
       setTimeout(() => {
         router.back();
       }, 500);
@@ -154,18 +150,18 @@ export default function PackChecklistScreen() {
 
   const handleMarkAllChecked = useCallback(() => {
     if (allMarkedReady) {
-      // Uncheck all
       setCheckedItems(new Set());
     } else {
-      // Check all
       const allIds = new Set(order.items.map((item) => item.productId));
       setCheckedItems(allIds);
     }
   }, [allMarkedReady, order.items]);
 
+  const displayError = markReadyError || submitError;
+
   return (
     <View style={styles.container}>
-      {!isConnected && <OfflineBanner />}
+      {!isOnline && <OfflineBanner />}
 
       <PackChecklistHeader
         order={order}
@@ -174,7 +170,7 @@ export default function PackChecklistScreen() {
       />
 
       {/* Error message with retry */}
-      {(error || submitError) && (
+      {displayError && (
         <View style={styles.errorBox}>
           <View style={styles.errorContent}>
             <MaterialCommunityIcons
@@ -182,7 +178,7 @@ export default function PackChecklistScreen() {
               size={16}
               color={colors.error}
             />
-            <Text style={styles.errorText}>{error || submitError}</Text>
+            <Text style={styles.errorText}>{displayError}</Text>
           </View>
           {submitError && (
             <TouchableOpacity
@@ -229,7 +225,11 @@ export default function PackChecklistScreen() {
           disabled={isSubmitting}
         >
           <MaterialCommunityIcons
-            name={allMarkedReady ? 'checkbox-multiple-marked' : 'checkbox-multiple-blank'}
+            name={
+              allMarkedReady
+                ? 'checkbox-multiple-marked'
+                : 'checkbox-multiple-blank'
+            }
             size={18}
             color={colors.primary}
           />
@@ -243,7 +243,7 @@ export default function PackChecklistScreen() {
           label={isSubmitting ? 'Submitting...' : 'Mark All Ready'}
           onPress={handleMarkAllReady}
           loading={isSubmitting}
-          disabled={isSubmitting || !allMarkedReady || !isConnected}
+          disabled={isSubmitting || !allMarkedReady || !isOnline}
           size="lg"
           style={styles.submitButton}
         />

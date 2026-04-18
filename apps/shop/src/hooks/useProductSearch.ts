@@ -29,14 +29,15 @@ export function useProductSearch(
   category: string = 'all'
 ): UseProductSearchReturn {
   const [query, setQueryState] = useState('');
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use ReturnType<typeof setTimeout> for cross-environment compatibility
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Debounced search handler
    * Delays actual search to reduce re-renders while user is typing
    */
   const debouncedSearch = useCallback((searchQuery: string) => {
-    if (debounceTimeoutRef.current) {
+    if (debounceTimeoutRef.current !== null) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
@@ -47,17 +48,20 @@ export function useProductSearch(
   }, []);
 
   /**
-   * Set search query immediately (for controlled input)
+   * Set search query with debounce
    */
-  const setQuery = useCallback((newQuery: string) => {
-    debouncedSearch(newQuery);
-  }, [debouncedSearch]);
+  const setQuery = useCallback(
+    (newQuery: string) => {
+      debouncedSearch(newQuery);
+    },
+    [debouncedSearch]
+  );
 
   /**
-   * Clear search query
+   * Clear search query immediately
    */
   const clearQuery = useCallback(() => {
-    if (debounceTimeoutRef.current) {
+    if (debounceTimeoutRef.current !== null) {
       clearTimeout(debounceTimeoutRef.current);
     }
     setQueryState('');
@@ -67,36 +71,34 @@ export function useProductSearch(
   /**
    * Filter products based on search query and category
    * Searches across: name, description, category
-   * Case-insensitive matching
+   * Case-insensitive, trims whitespace before matching
    */
   const filteredProducts = useMemo(() => {
     let results = products;
 
     // Apply category filter
     if (category !== 'all') {
-      results = results.filter((p) => p.category.toLowerCase() === category.toLowerCase());
+      results = results.filter(
+        (p) => p.category.toLowerCase() === category.toLowerCase()
+      );
     }
 
-    // Apply search query
-    if (query.trim()) {
-      const searchLower = query.toLowerCase().trim();
+    // Apply search query (only if non-whitespace chars present)
+    const trimmed = query.trim();
+    if (trimmed) {
+      const searchLower = trimmed.toLowerCase();
       results = results.filter((product) => {
         const nameMatch = product.name.toLowerCase().includes(searchLower);
         const descriptionMatch = product.description
           .toLowerCase()
           .includes(searchLower);
-        const categoryMatch = product.category.toLowerCase().includes(searchLower);
+        const categoryMatch = product.category
+          .toLowerCase()
+          .includes(searchLower);
 
         return nameMatch || descriptionMatch || categoryMatch;
       });
     }
-
-    logger.debug('Products filtered', {
-      query,
-      category,
-      resultCount: results.length,
-      totalProducts: products.length,
-    });
 
     return results;
   }, [products, query, category]);

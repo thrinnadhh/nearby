@@ -13,52 +13,45 @@ import {
   spacing,
   fontSize,
   fontFamily,
-  borderRadius,
 } from '@/constants/theme';
 import { Order } from '@/types/orders';
 import { OrderStatus } from '@/types/shop';
 
-const STATUS_SEQUENCE: Array<{ status: OrderStatus; label: string; icon: string }> =
-  [
-    { status: 'pending', label: 'Pending', icon: 'clock-outline' },
-    { status: 'accepted', label: 'Accepted', icon: 'check-circle-outline' },
-    { status: 'packing', label: 'Packing', icon: 'package-open' },
-    { status: 'ready', label: 'Ready', icon: 'check-all' },
-    { status: 'picked_up', label: 'Picked Up', icon: 'truck-outline' },
-    { status: 'delivered', label: 'Delivered', icon: 'check-decagram' },
-  ];
+const STATUS_SEQUENCE: Array<{
+  status: OrderStatus;
+  label: string;
+  icon: string;
+}> = [
+  { status: 'pending', label: 'Pending', icon: 'clock-outline' },
+  { status: 'accepted', label: 'Accepted', icon: 'check-circle-outline' },
+  { status: 'packing', label: 'Packing', icon: 'package-open' },
+  { status: 'ready', label: 'Ready', icon: 'check-all' },
+  { status: 'picked_up', label: 'Picked Up', icon: 'truck-outline' },
+  { status: 'delivered', label: 'Delivered', icon: 'check-decagram' },
+];
 
 interface OrderStatusTimelineProps {
   order: Order;
 }
 
-/**
- * Get the index of the current status in the sequence
- */
 function getStatusIndex(status: OrderStatus): number {
   return STATUS_SEQUENCE.findIndex((s) => s.status === status);
 }
 
-/**
- * Determine if a status has been completed
- */
-function isStatusComplete(status: OrderStatus, currentStatus: OrderStatus): boolean {
-  const statusIndex = getStatusIndex(status);
-  const currentIndex = getStatusIndex(currentStatus);
-  return statusIndex < currentIndex;
+function isStatusComplete(
+  status: OrderStatus,
+  currentStatus: OrderStatus
+): boolean {
+  return getStatusIndex(status) < getStatusIndex(currentStatus);
 }
 
-/**
- * Determine if a status is the current status
- */
-function isCurrentStatus(status: OrderStatus, currentStatus: OrderStatus): boolean {
+function isCurrentStatus(
+  status: OrderStatus,
+  currentStatus: OrderStatus
+): boolean {
   return status === currentStatus;
 }
 
-/**
- * OrderStatusTimeline Component
- * Displays a vertical timeline of order status progression
- */
 export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
   return (
     <View style={styles.container}>
@@ -66,6 +59,11 @@ export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
         const isComplete = isStatusComplete(item.status, order.status);
         const isCurrent = isCurrentStatus(item.status, order.status);
         const isUpcoming = !isComplete && !isCurrent;
+        const stateLabel = isComplete
+          ? 'complete'
+          : isCurrent
+          ? 'current'
+          : 'upcoming';
 
         return (
           <View key={item.status} style={styles.timelineItemContainer}>
@@ -83,9 +81,9 @@ export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
 
             {/* Status item */}
             <View style={styles.timelineItem}>
-              {/* Status icon */}
+              {/* Status circle — two testIDs for different query patterns */}
               <View
-                testID={`status-badge-${item.status}-${isComplete ? 'complete' : isCurrent ? 'current' : 'upcoming'}`}
+                testID={`status-circle-${item.status}`}
                 style={[
                   styles.statusCircle,
                   isComplete && styles.statusCircleComplete,
@@ -93,33 +91,41 @@ export function OrderStatusTimeline({ order }: OrderStatusTimelineProps) {
                   isUpcoming && styles.statusCircleUpcoming,
                 ]}
               >
-                {isComplete && (
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={16}
-                    color={colors.white}
-                  />
-                )}
-                {isCurrent && (
-                  <MaterialCommunityIcons
-                    name={item.icon}
-                    size={16}
-                    color={colors.white}
-                  />
-                )}
-                {isUpcoming && (
-                  <MaterialCommunityIcons
-                    name={item.icon}
-                    size={16}
-                    color={colors.textTertiary}
-                  />
-                )}
+                {/* Badge testID includes state for assertion convenience */}
+                <View
+                  testID={`status-badge-${item.status}-${stateLabel}`}
+                  style={styles.innerBadge}
+                >
+                  {isComplete && (
+                    <MaterialCommunityIcons
+                      testID={`check-icon-${item.status}`}
+                      name="check"
+                      size={16}
+                      color={colors.white}
+                    />
+                  )}
+                  {isCurrent && (
+                    <MaterialCommunityIcons
+                      testID={`icon-${item.status}`}
+                      name={item.icon as any}
+                      size={16}
+                      color={colors.white}
+                    />
+                  )}
+                  {isUpcoming && (
+                    <MaterialCommunityIcons
+                      name={item.icon as any}
+                      size={16}
+                      color={colors.textTertiary}
+                    />
+                  )}
+                </View>
               </View>
 
               {/* Status label */}
               <View style={styles.statusLabelContainer}>
                 <Text
-                  testID="status-label"
+                  testID={`status-label-${item.status}`}
                   style={[
                     styles.statusLabel,
                     (isComplete || isCurrent) && styles.statusLabelActive,
@@ -185,6 +191,11 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     position: 'relative',
     zIndex: 2,
+  },
+
+  innerBadge: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   statusCircleComplete: {

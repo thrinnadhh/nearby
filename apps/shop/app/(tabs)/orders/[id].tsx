@@ -38,7 +38,7 @@ import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import logger from '@/utils/logger';
 
 export default function OrderDetailScreen() {
-  const { id } = useLocalSearchParams() as { id: string };
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { fetchOrderDetail, acceptCurrentOrder, rejectCurrentOrder } =
     useOrders();
@@ -69,7 +69,8 @@ export default function OrderDetailScreen() {
         setActiveOrder(orderData);
         logger.info('Order detail loaded', { orderId: id });
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load order';
+        const message =
+          err instanceof Error ? err.message : 'Failed to load order';
         setError(message);
         logger.error('Failed to fetch order detail', { id, error: message });
       } finally {
@@ -89,7 +90,8 @@ export default function OrderDetailScreen() {
       logger.info('Order accepted, navigating back');
       router.back();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to accept order';
+      const message =
+        err instanceof Error ? err.message : 'Failed to accept order';
       setError(message);
       logger.error('Failed to accept order', { id, error: message });
     } finally {
@@ -107,7 +109,8 @@ export default function OrderDetailScreen() {
       setShowRejectModal(false);
       router.back();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reject order';
+      const message =
+        err instanceof Error ? err.message : 'Failed to reject order';
       setError(message);
       logger.error('Failed to reject order', { id, error: message });
     } finally {
@@ -115,10 +118,19 @@ export default function OrderDetailScreen() {
     }
   }, [id, rejectReason, rejectCurrentOrder, router]);
 
+  const handleGoToPackingChecklist = useCallback(() => {
+    if (!id) return;
+    logger.info('Navigating to packing checklist', { orderId: id });
+    router.push({
+      pathname: '/(tabs)/index',
+      params: { orderId: id, openChecklist: 'true' },
+    });
+  }, [id, router]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+        <View testID="loading-spinner" style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
       </SafeAreaView>
@@ -130,9 +142,7 @@ export default function OrderDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Failed to Load Order</Text>
-          <Text style={styles.errorMessage}>
-            {error || 'Order not found'}
-          </Text>
+          <Text style={styles.errorMessage}>{error || 'Order not found'}</Text>
           <PrimaryButton label="Go Back" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -140,6 +150,7 @@ export default function OrderDetailScreen() {
   }
 
   const canAccept = order.status === OrderStatus.PENDING;
+  const canStartPacking = order.status === OrderStatus.ACCEPTED;
 
   const content = (
     <ScrollView
@@ -149,9 +160,7 @@ export default function OrderDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.orderId}>Order #{order.id.slice(0, 8)}</Text>
-        <Text style={styles.timestamp}>
-          {formatDateTime(order.createdAt)}
-        </Text>
+        <Text style={styles.timestamp}>{formatDateTime(order.createdAt)}</Text>
       </View>
 
       {/* Countdown Timer */}
@@ -189,9 +198,7 @@ export default function OrderDetailScreen() {
       <View style={[styles.totalCard, shadows.sm]}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Subtotal</Text>
-          <Text style={styles.totalValue}>
-            {formatCurrency(order.subtotal)}
-          </Text>
+          <Text style={styles.totalValue}>{formatCurrency(order.subtotal)}</Text>
         </View>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Delivery Fee</Text>
@@ -211,7 +218,7 @@ export default function OrderDetailScreen() {
         </Text>
       </View>
 
-      {/* Action Buttons */}
+      {/* Action Buttons — Accept/Reject for pending orders */}
       {canAccept && (
         <View style={styles.actionsContainer}>
           <PrimaryButton
@@ -233,10 +240,22 @@ export default function OrderDetailScreen() {
         </View>
       )}
 
-      {!canAccept && (
+      {/* Packing Checklist button for accepted orders */}
+      {canStartPacking && (
+        <View style={styles.actionsContainer}>
+          <PrimaryButton
+            label="Go to Packing Checklist"
+            onPress={handleGoToPackingChecklist}
+            size="lg"
+          />
+        </View>
+      )}
+
+      {/* Status display for all other statuses */}
+      {!canAccept && !canStartPacking && (
         <View style={styles.statusContainer}>
           <Text style={styles.statusText}>
-            Order has been {order.status.replace('_', ' ')}
+            Order has been {order.status.replace(/_/g, ' ')}
           </Text>
         </View>
       )}
@@ -245,9 +264,7 @@ export default function OrderDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ErrorBoundary>
-        {content}
-      </ErrorBoundary>
+      <ErrorBoundary>{content}</ErrorBoundary>
 
       {/* Reject Reason Modal */}
       <Modal
@@ -364,7 +381,7 @@ const styles = StyleSheet.create({
   timelineTitle: {
     fontSize: fontSize.md,
     fontFamily: fontFamily.bold,
-    color: colors.text,
+    color: colors.textPrimary,
     marginBottom: spacing.md,
   },
 

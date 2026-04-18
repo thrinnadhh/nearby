@@ -3,7 +3,7 @@
  * Verifies OTP and saves JWT to secure store
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -26,20 +26,19 @@ import logger from '@/utils/logger';
 
 export default function OtpVerifyScreen() {
   const router = useRouter();
-  const { phone, requestOtpCode } = useLocalSearchParams() as {
-    phone?: string;
-  };
+  const params = useLocalSearchParams<{ phone?: string }>();
+  const requestPhoneNumber = params.phone ?? '';
+
   const {
     otp,
     setOtp,
+    requestOtpCode,
     verifyOtpCode,
     loading,
     error,
     clearError,
     attemptsRemaining,
   } = useAuth();
-
-  const [requestPhoneNumber] = useState(phone);
 
   const handleVerify = useCallback(async () => {
     clearError();

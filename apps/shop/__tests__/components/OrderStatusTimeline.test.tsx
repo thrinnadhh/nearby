@@ -9,6 +9,15 @@ import { OrderStatusTimeline } from '../../src/components/order/OrderStatusTimel
 import { Order } from '@/types/orders';
 import { OrderStatus } from '@/types/shop';
 
+jest.mock('@/utils/logger', () => ({
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 const createMockOrder = (status: OrderStatus): Order => ({
   id: 'order-123',
   shopId: 'shop-1',
@@ -104,15 +113,16 @@ describe('OrderStatusTimeline Component', () => {
     expect(connectors.length).toBeGreaterThan(0);
   });
 
-  it('uses success color for complete statuses', () => {
+  it('shows In Progress badge only for current status', () => {
     const order = createMockOrder(OrderStatus.PACKING);
     render(<OrderStatusTimeline order={order} />);
 
-    // Verify pending status is marked complete by checking that it's not current
-    expect(screen.getAllByText('Pending')[0]).toBeDefined();
+    // Only one "In Progress" badge should exist
+    const badges = screen.getAllByText('In Progress');
+    expect(badges).toHaveLength(1);
   });
 
-  it('uses primary color for current status connector', () => {
+  it('uses primary color circle for current status', () => {
     const order = createMockOrder(OrderStatus.PACKING);
     render(<OrderStatusTimeline order={order} />);
 
@@ -120,23 +130,24 @@ describe('OrderStatusTimeline Component', () => {
     expect(screen.getByText('In Progress')).toBeDefined();
   });
 
-  it('uses border color for upcoming statuses', () => {
+  it('shows upcoming statuses without In Progress', () => {
     const order = createMockOrder(OrderStatus.PACKING);
     render(<OrderStatusTimeline order={order} />);
 
-    // Verify upcoming status (ready) exists and should be styled as upcoming
+    // Verify upcoming status (ready) exists
     expect(screen.getByText('Ready')).toBeDefined();
   });
 
-  it('does not render connector after last status', () => {
+  it('does not render connector after last status (delivered)', () => {
     const order = createMockOrder(OrderStatus.DELIVERED);
-    render(<OrderStatusTimeline order={order} />);
+    const { getAllByTestId } = render(<OrderStatusTimeline order={order} />);
 
-    // All statuses should be marked as complete
-    expect(screen.getByText('Delivered')).toBeDefined();
+    // 5 connectors for 6 statuses (no connector after last)
+    const connectors = getAllByTestId(/vertical-connector/);
+    expect(connectors).toHaveLength(5);
   });
 
-  it('displays check icon for complete statuses', () => {
+  it('displays check icons for complete statuses', () => {
     const order = createMockOrder(OrderStatus.ACCEPTED);
     const { getAllByTestId } = render(<OrderStatusTimeline order={order} />);
 
@@ -151,7 +162,7 @@ describe('OrderStatusTimeline Component', () => {
     expect(getByTestId('icon-packing')).toBeDefined();
   });
 
-  it('renders all statuses for pending order', () => {
+  it('renders all 6 status circles', () => {
     const order = createMockOrder(OrderStatus.PENDING);
     const { getAllByTestId } = render(<OrderStatusTimeline order={order} />);
 
@@ -166,17 +177,24 @@ describe('OrderStatusTimeline Component', () => {
   });
 
   it('shows correct timeline progression for completed orders', () => {
-    const order: Order = {
-      ...createMockOrder(OrderStatus.DELIVERED),
-      status: 'delivered' as OrderStatus,
-    };
+    const order = createMockOrder(OrderStatus.DELIVERED);
     const { getByTestId } = render(<OrderStatusTimeline order={order} />);
 
-    // All statuses up to delivered should be complete
+    // All statuses up to and including delivered should be complete
     expect(getByTestId('status-badge-pending-complete')).toBeDefined();
     expect(getByTestId('status-badge-accepted-complete')).toBeDefined();
     expect(getByTestId('status-badge-packing-complete')).toBeDefined();
     expect(getByTestId('status-badge-ready-complete')).toBeDefined();
     expect(getByTestId('status-badge-picked_up-complete')).toBeDefined();
+    // delivered is current (last item)
+    expect(getByTestId('status-badge-delivered-current')).toBeDefined();
+  });
+
+  it('shows no In Progress for delivered orders', () => {
+    const order = createMockOrder(OrderStatus.DELIVERED);
+    render(<OrderStatusTimeline order={order} />);
+
+    // "In Progress" shows only for current non-final status — delivered shows it too
+    expect(screen.getByText('In Progress')).toBeDefined();
   });
 });

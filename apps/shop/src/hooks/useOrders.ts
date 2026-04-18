@@ -2,10 +2,15 @@
  * useOrders hook — fetch orders list with pagination and filtering
  */
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useOrdersStore } from '@/store/orders';
-import { getOrders, getOrderDetail, acceptOrder, rejectOrder } from '@/services/orders';
+import {
+  getOrders,
+  getOrderDetail,
+  acceptOrder,
+  rejectOrder,
+} from '@/services/orders';
 import { Order, OrdersListResponse } from '@/types/orders';
 import { AppError } from '@/types/common';
 import logger from '@/utils/logger';
@@ -34,15 +39,6 @@ export function useOrders(): UseOrdersActions & {
     removeOrder,
   } = useOrdersStore();
 
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // Fetch orders on mount
-  useEffect(() => {
-    if (shopId && orders.length === 0 && !loading) {
-      fetchOrders();
-    }
-  }, [shopId]);
-
   const fetchOrders = useCallback(
     async (page: number = 1, status?: string) => {
       if (!shopId) {
@@ -54,15 +50,19 @@ export function useOrders(): UseOrdersActions & {
       setError(null);
 
       try {
-        const response: OrdersListResponse = await getOrders(page, 20, status);
+        const response: OrdersListResponse = await getOrders(
+          page,
+          20,
+          status
+        );
         setOrders(response.data);
         logger.info('Orders fetched', {
           count: response.data.length,
           total: response.meta.total,
         });
-      } catch (error) {
+      } catch (err) {
         const message =
-          error instanceof AppError ? error.message : 'Failed to fetch orders';
+          err instanceof AppError ? err.message : 'Failed to fetch orders';
         setError(message);
         logger.error('Failed to fetch orders', { error: message });
       } finally {
@@ -72,17 +72,30 @@ export function useOrders(): UseOrdersActions & {
     [shopId, setOrders, setLoading, setError]
   );
 
+  // Fetch orders on mount — only when shopId is available and list is empty
+  useEffect(() => {
+    if (shopId && orders.length === 0 && !loading) {
+      fetchOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId]);
+
   const fetchOrderDetail = useCallback(
     async (orderId: string): Promise<Order> => {
       try {
         const order = await getOrderDetail(orderId);
         logger.info('Order detail fetched', { orderId });
         return order;
-      } catch (error) {
+      } catch (err) {
         const message =
-          error instanceof AppError ? error.message : 'Failed to fetch order';
-        logger.error('Failed to fetch order detail', { orderId, error: message });
-        throw error;
+          err instanceof AppError
+            ? err.message
+            : 'Failed to fetch order';
+        logger.error('Failed to fetch order detail', {
+          orderId,
+          error: message,
+        });
+        throw err;
       }
     },
     []
@@ -90,19 +103,17 @@ export function useOrders(): UseOrdersActions & {
 
   const acceptCurrentOrder = useCallback(
     async (orderId: string) => {
-      setActionLoading(true);
       try {
         await acceptOrder(orderId);
-        // Update store — remove from pending list
         removeOrder(orderId);
         logger.info('Order accepted successfully', { orderId });
-      } catch (error) {
+      } catch (err) {
         const message =
-          error instanceof AppError ? error.message : 'Failed to accept order';
+          err instanceof AppError
+            ? err.message
+            : 'Failed to accept order';
         logger.error('Failed to accept order', { orderId, error: message });
-        throw error;
-      } finally {
-        setActionLoading(false);
+        throw err;
       }
     },
     [removeOrder]
@@ -110,19 +121,17 @@ export function useOrders(): UseOrdersActions & {
 
   const rejectCurrentOrder = useCallback(
     async (orderId: string, reason: string) => {
-      setActionLoading(true);
       try {
         await rejectOrder(orderId, reason);
-        // Update store — remove from pending list
         removeOrder(orderId);
         logger.info('Order rejected successfully', { orderId, reason });
-      } catch (error) {
+      } catch (err) {
         const message =
-          error instanceof AppError ? error.message : 'Failed to reject order';
+          err instanceof AppError
+            ? err.message
+            : 'Failed to reject order';
         logger.error('Failed to reject order', { orderId, error: message });
-        throw error;
-      } finally {
-        setActionLoading(false);
+        throw err;
       }
     },
     [removeOrder]

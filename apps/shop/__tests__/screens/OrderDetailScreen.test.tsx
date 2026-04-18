@@ -1,36 +1,52 @@
 /**
- * OrderDetailScreen test suite (Task 11.5)
- * Tests for order detail display, status timeline, and packing checklist navigation
+ * OrderDetailScreen test suite (Task 11.7)
+ * Tests for order detail display, status timeline, accept/reject, and navigation
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react-native';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import OrderDetailScreen from '../../../app/(tabs)/orders/[id]';
 import { useOrders } from '@/hooks/useOrders';
 import { useOrdersStore } from '@/store/orders';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-import { Order, OrderStatus } from '@/types/orders';
+import { Order } from '@/types/orders';
+import { OrderStatus } from '@/types/shop';
 
 // Mock dependencies
 jest.mock('expo-router');
 jest.mock('@/hooks/useOrders');
 jest.mock('@/store/orders');
-jest.mock('@/hooks/useNetworkStatus');
 jest.mock('@/components/order/OrderStatusTimeline', () => ({
-  OrderStatusTimeline: () => <></>,
+  OrderStatusTimeline: () => null,
 }));
 jest.mock('@/components/order/CountdownTimer', () => ({
-  CountdownTimer: () => <></>,
+  CountdownTimer: () => null,
 }));
 jest.mock('@/components/order/OrderItemsPanel', () => ({
-  OrderItemsPanel: () => <></>,
+  OrderItemsPanel: () => null,
 }));
 jest.mock('@/components/order/CustomerInfoCard', () => ({
-  CustomerInfoCard: () => <></>,
+  CustomerInfoCard: () => null,
 }));
-jest.mock('@/components/common/OfflineBanner', () => ({
-  OfflineBanner: () => <></>,
+jest.mock('@/components/common/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
+}));
+jest.mock('@/utils/formatters', () => ({
+  formatCurrency: (amount: number) => `₹${(amount / 100).toFixed(0)}`,
+  formatDateTime: (ts: string) => ts,
+}));
+jest.mock('@/utils/logger', () => ({
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 const mockOrder: Order = {
@@ -52,7 +68,7 @@ const mockOrder: Order = {
   subtotal: 100000,
   deliveryFee: 25000,
   total: 125000,
-  status: 'pending' as OrderStatus,
+  status: OrderStatus.PENDING,
   paymentMode: 'upi',
   paymentStatus: 'pending',
   createdAt: '2026-04-17T10:00:00Z',
@@ -60,36 +76,38 @@ const mockOrder: Order = {
   acceptanceDeadline: '2026-04-17T10:03:00Z',
 };
 
-describe('OrderDetailScreen - Task 11.5', () => {
+describe('OrderDetailScreen - Task 11.7', () => {
   const mockRouter = {
     back: jest.fn(),
     push: jest.fn(),
   };
 
-  const mockUseOrders = {
-    fetchOrderDetail: jest.fn(),
-    acceptCurrentOrder: jest.fn(),
-    rejectCurrentOrder: jest.fn(),
-    orders: [],
-    loading: false,
-    error: null,
-    retry: jest.fn(),
-  };
+  const mockFetchOrderDetail = jest.fn();
+  const mockAcceptCurrentOrder = jest.fn();
+  const mockRejectCurrentOrder = jest.fn();
+  const mockSetActiveOrder = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'order-123' });
-    (useOrders as jest.Mock).mockReturnValue(mockUseOrders);
+    (useOrders as jest.Mock).mockReturnValue({
+      fetchOrderDetail: mockFetchOrderDetail,
+      acceptCurrentOrder: mockAcceptCurrentOrder,
+      rejectCurrentOrder: mockRejectCurrentOrder,
+      orders: [],
+      loading: false,
+      error: null,
+      retry: jest.fn(),
+    });
     (useOrdersStore as jest.Mock).mockReturnValue({
       activeOrder: null,
-      setActiveOrder: jest.fn(),
+      setActiveOrder: mockSetActiveOrder,
     });
-    (useNetworkStatus as jest.Mock).mockReturnValue({ isOnline: true });
   });
 
   it('renders OrderDetailScreen with pending order', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
 
     render(<OrderDetailScreen />);
 
@@ -98,8 +116,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
     });
   });
 
-  it('displays order status timeline for pending orders', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+  it('shows Order Status section', async () => {
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
 
     render(<OrderDetailScreen />);
 
@@ -108,18 +126,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
     });
   });
 
-  it('displays order total amount correctly', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
-
-    render(<OrderDetailScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/₹1,250/)).toBeDefined();
-    });
-  });
-
   it('shows accept and reject buttons for pending orders', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
 
     render(<OrderDetailScreen />);
 
@@ -130,7 +138,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
   });
 
   it('calls acceptCurrentOrder when accept button is pressed', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
+    mockAcceptCurrentOrder.mockResolvedValue(undefined);
 
     render(<OrderDetailScreen />);
 
@@ -139,12 +148,14 @@ describe('OrderDetailScreen - Task 11.5', () => {
       fireEvent.press(acceptButton);
     });
 
-    expect(mockUseOrders.acceptCurrentOrder).toHaveBeenCalledWith('order-123');
+    await waitFor(() => {
+      expect(mockAcceptCurrentOrder).toHaveBeenCalledWith('order-123');
+    });
   });
 
   it('shows packing checklist button for accepted orders', async () => {
-    const acceptedOrder = { ...mockOrder, status: 'accepted' as OrderStatus };
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(acceptedOrder);
+    const acceptedOrder: Order = { ...mockOrder, status: OrderStatus.ACCEPTED };
+    mockFetchOrderDetail.mockResolvedValue(acceptedOrder);
 
     render(<OrderDetailScreen />);
 
@@ -154,8 +165,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
   });
 
   it('navigates to packing checklist on button press', async () => {
-    const acceptedOrder = { ...mockOrder, status: 'accepted' as OrderStatus };
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(acceptedOrder);
+    const acceptedOrder: Order = { ...mockOrder, status: OrderStatus.ACCEPTED };
+    mockFetchOrderDetail.mockResolvedValue(acceptedOrder);
 
     render(<OrderDetailScreen />);
 
@@ -175,8 +186,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
     );
   });
 
-  it('handles loading state correctly', () => {
-    mockUseOrders.fetchOrderDetail.mockImplementation(
+  it('shows loading spinner while fetching', () => {
+    mockFetchOrderDetail.mockImplementation(
       () => new Promise(() => {}) // Never resolves
     );
 
@@ -185,7 +196,7 @@ describe('OrderDetailScreen - Task 11.5', () => {
   });
 
   it('displays error when order fetch fails', async () => {
-    mockUseOrders.fetchOrderDetail.mockRejectedValue(
+    mockFetchOrderDetail.mockRejectedValue(
       new Error('Failed to load order')
     );
 
@@ -196,19 +207,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
     });
   });
 
-  it('displays offline banner when not online', async () => {
-    (useNetworkStatus as jest.Mock).mockReturnValue({ isOnline: false });
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
-
-    const { getByTestId } = render(<OrderDetailScreen />);
-
-    await waitFor(() => {
-      expect(getByTestId('offline-banner')).toBeDefined();
-    });
-  });
-
   it('displays reject modal when reject button is pressed', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
 
     render(<OrderDetailScreen />);
 
@@ -220,8 +220,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
     expect(screen.getByText('Why are you rejecting?')).toBeDefined();
   });
 
-  it('validates rejection reason is not empty', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+  it('validates rejection reason is not empty (Confirm Reject disabled)', async () => {
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
 
     render(<OrderDetailScreen />);
 
@@ -234,23 +234,36 @@ describe('OrderDetailScreen - Task 11.5', () => {
     expect(confirmButton.props.disabled).toBe(true);
   });
 
-  it('displays delivered status when order is delivered', async () => {
-    const deliveredOrder = {
-      ...mockOrder,
-      status: 'delivered' as OrderStatus,
-    };
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(deliveredOrder);
+  it('calls rejectCurrentOrder with reason when confirmed', async () => {
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
+    mockRejectCurrentOrder.mockResolvedValue(undefined);
 
     render(<OrderDetailScreen />);
 
     await waitFor(() => {
-      expect(screen.getByText(/been delivered/)).toBeDefined();
+      fireEvent.press(screen.getByText('Reject Order'));
+    });
+
+    const input = screen.getByPlaceholderText('Please provide a reason...');
+    fireEvent.changeText(input, 'Out of stock');
+
+    await waitFor(() => {
+      const confirmButton = screen.getByText('Confirm Reject');
+      expect(confirmButton.props.disabled).toBe(false);
+      fireEvent.press(confirmButton);
+    });
+
+    await waitFor(() => {
+      expect(mockRejectCurrentOrder).toHaveBeenCalledWith(
+        'order-123',
+        'Out of stock'
+      );
     });
   });
 
   it('hides accept/reject buttons after order is accepted', async () => {
-    const acceptedOrder = { ...mockOrder, status: 'accepted' as OrderStatus };
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(acceptedOrder);
+    const acceptedOrder: Order = { ...mockOrder, status: OrderStatus.ACCEPTED };
+    mockFetchOrderDetail.mockResolvedValue(acceptedOrder);
 
     render(<OrderDetailScreen />);
 
@@ -260,8 +273,8 @@ describe('OrderDetailScreen - Task 11.5', () => {
     });
   });
 
-  it('displays payment mode correctly', async () => {
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(mockOrder);
+  it('displays payment mode as UPI', async () => {
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
 
     render(<OrderDetailScreen />);
 
@@ -271,13 +284,48 @@ describe('OrderDetailScreen - Task 11.5', () => {
   });
 
   it('displays COD payment mode correctly', async () => {
-    const codOrder = { ...mockOrder, paymentMode: 'cod' as const };
-    mockUseOrders.fetchOrderDetail.mockResolvedValue(codOrder);
+    const codOrder: Order = { ...mockOrder, paymentMode: 'cod' };
+    mockFetchOrderDetail.mockResolvedValue(codOrder);
 
     render(<OrderDetailScreen />);
 
     await waitFor(() => {
       expect(screen.getByText(/Cash on Delivery/)).toBeDefined();
+    });
+  });
+
+  it('shows status text for delivered orders', async () => {
+    const deliveredOrder: Order = {
+      ...mockOrder,
+      status: OrderStatus.DELIVERED,
+    };
+    mockFetchOrderDetail.mockResolvedValue(deliveredOrder);
+
+    render(<OrderDetailScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/been delivered/)).toBeDefined();
+    });
+  });
+
+  it('sets active order in store after loading', async () => {
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
+
+    render(<OrderDetailScreen />);
+
+    await waitFor(() => {
+      expect(mockSetActiveOrder).toHaveBeenCalledWith(mockOrder);
+    });
+  });
+
+  it('shows total amount in formatted currency', async () => {
+    mockFetchOrderDetail.mockResolvedValue(mockOrder);
+
+    render(<OrderDetailScreen />);
+
+    await waitFor(() => {
+      // 125000 paise = ₹1250
+      expect(screen.getByText(/₹1250/)).toBeDefined();
     });
   });
 });

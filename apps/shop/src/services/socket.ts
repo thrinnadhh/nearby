@@ -64,35 +64,50 @@ export function closeSocket(): void {
   }
 }
 
+interface OrderNewPayload {
+  orderId: string;
+  total: number;
+  itemsCount: number;
+}
+
+interface OrderAcceptedPayload {
+  orderId: string;
+  shopId: string;
+}
+
+interface OrderRejectedPayload {
+  orderId: string;
+  reason: string;
+}
+
 /**
  * Listen to new order event
  * Event emitted when customer places new order for this shop
  */
 export function onOrderNew(
-  callback: (order: { orderId: string; total: number; itemsCount: number }) => void
+  callback: (order: OrderNewPayload) => void
 ): () => void {
-  const listener = (data: unknown) => {
-    logger.info('Received order:new event', data);
-    callback(data as any);
+  const listener = (data: OrderNewPayload) => {
+    logger.info('Received order:new event', { orderId: data.orderId });
+    callback(data);
   };
 
   socketInstance?.on('order:new', listener);
 
-  // Return unsubscribe function
   return () => {
     socketInstance?.off('order:new', listener);
   };
 }
 
 /**
- * Listen to order accepted event (by another shop or same shop)
+ * Listen to order accepted event
  */
 export function onOrderAccepted(
-  callback: (data: { orderId: string; shopId: string }) => void
+  callback: (data: OrderAcceptedPayload) => void
 ): () => void {
-  const listener = (data: unknown) => {
-    logger.info('Received order:accepted event', data);
-    callback(data as any);
+  const listener = (data: OrderAcceptedPayload) => {
+    logger.info('Received order:accepted event', { orderId: data.orderId });
+    callback(data);
   };
 
   socketInstance?.on('order:accepted', listener);
@@ -106,11 +121,11 @@ export function onOrderAccepted(
  * Listen to order rejected event
  */
 export function onOrderRejected(
-  callback: (data: { orderId: string; reason: string }) => void
+  callback: (data: OrderRejectedPayload) => void
 ): () => void {
-  const listener = (data: unknown) => {
-    logger.info('Received order:rejected event', data);
-    callback(data as any);
+  const listener = (data: OrderRejectedPayload) => {
+    logger.info('Received order:rejected event', { orderId: data.orderId });
+    callback(data);
   };
 
   socketInstance?.on('order:rejected', listener);
