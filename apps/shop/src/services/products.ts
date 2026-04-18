@@ -115,3 +115,53 @@ export async function deleteProduct(productId: string): Promise<void> {
     throw new AppError('PRODUCT_DELETE_FAILED', message);
   }
 }
+
+/**
+ * PATCH /products/:id — Update product fields (price, stock_quantity)
+ * Partial update - only provided fields are updated
+ */
+export async function updateProduct(
+  productId: string,
+  updates: {
+    price?: number;
+    stock_quantity?: number;
+  }
+): Promise<Product> {
+  try {
+    const url = PRODUCTS_ENDPOINTS.UPDATE_PRODUCT.replace(':id', productId);
+    const { data } = await client.patch<ProductDetailResponse>(url, updates);
+
+    logger.info('Product updated', { productId, updates });
+    return data.data;
+  } catch (error) {
+    const message = extractErrorMessage(error);
+    logger.error('Failed to update product', { productId, error: message });
+
+    if (axios.isAxiosError(error) && error.response?.status === 400) {
+      throw new AppError('VALIDATION_ERROR', message, 400);
+    }
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw new AppError(
+        'UNAUTHORIZED',
+        'Your session expired. Please log in again.',
+        401
+      );
+    }
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      throw new AppError(
+        'FORBIDDEN',
+        'You are not authorized to update this product',
+        403
+      );
+    }
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      throw new AppError(
+        'PRODUCT_NOT_FOUND',
+        'Product not found. It may have been deleted.',
+        404
+      );
+    }
+
+    throw new AppError('PRODUCT_UPDATE_FAILED', message);
+  }
+}

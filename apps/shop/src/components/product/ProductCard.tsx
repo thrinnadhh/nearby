@@ -3,6 +3,7 @@
  */
 
 import React, { useCallback } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -37,6 +38,7 @@ export const ProductCard = React.memo(function ProductCard({
   onDeletePress,
   testID = `product-card-${product.id}`,
 }: Props) {
+  const router = useRouter();
   const primaryImage = product.images?.find((img) => img.isPrimary);
   const imageUrl = primaryImage?.url || 'https://via.placeholder.com/160x160';
 
@@ -64,9 +66,8 @@ export const ProductCard = React.memo(function ProductCard({
   }, [product.id, product.name, onDeletePress]);
 
   const handleEditPress = useCallback(() => {
-    // Navigate to edit screen (TODO: implement in follow-up sprint)
-    Alert.alert('Edit Product', 'Edit feature coming in Sprint 12.2');
-  }, []);
+    router.push(`/products/edit/${product.id}`);
+  }, [product.id, router]);
 
   return (
     <TouchableOpacity
