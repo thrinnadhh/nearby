@@ -165,3 +165,81 @@ export async function updateProduct(
     throw new AppError('PRODUCT_UPDATE_FAILED', message);
   }
 }
+
+/**
+ * PATCH /products/:id — Toggle product availability (is_available boolean)
+ * One-tap/swipe toggle for product availability with instant feedback
+ * Uses server as single source of truth; client does optimistic update with rollback
+ *
+ * @param {string} productId - UUID of product
+ * @param {boolean} isAvailable - New availability state
+ * @returns {Promise<Product>} Updated product with new is_available state
+ * @throws {AppError} PRODUCT_NOT_FOUND (404), FORBIDDEN (403), UNAUTHORIZED (401), etc.
+ *
+ * Edge cases handled:
+ * - 404: Product deleted after render → user sees toast "Product no longer available"
+ * - 403: Permission revoked → disable toggle, show "No longer have access"
+ * - 401: Auth expired → redirect to login (interceptor handles)
+ * - Network offline → optimistic UI allows toggle, queues for retry
+ */
+export async function updateProductAvailability(
+  productId: string,
+  isAvailable: boolean
+): Promise<Product> {
+  try {
+    const url = PRODUCTS_ENDPOINTS.UPDATE_PRODUCT.replace(':id', productId);
+    const { data } = await client.patch<ProductDetailResponse>(url, {
+      is_available: isAvailable,
+    });
+
+    logger.info('Product availability updated', { productId, isAvailable });
+    return data.data;
+  } catch (error) {
+    const message = extractErrorMessage(error);
+    logger.error('Failed to update product availability', {
+      productId,
+      isAvailable,
+      error: message,
+    });
+
+    if (axios.isAxiosError(error)) {
+      switch (error.response?.status) {
+        case 400:
+          throw new AppError('VALIDATION_ERROR', message, 400);
+        case 401:
+          throw new AppError(
+            'UNAUTHORIZED',
+            'Your session expired. Please log in again.',
+            401
+          );
+        case 403:
+          throw new AppError(
+            'FORBIDDEN',
+            'You no longer have access to this product',
+            403
+          );
+        case 404:
+          throw new AppError(
+            'PRODUCT_NOT_FOUND',
+            'Product no longer exists. It may have been deleted.',
+            404
+          );
+        case 503:
+        case 504:
+          throw new AppError(
+            'SERVICE_UNAVAILABLE',
+            'Server temporarily unavailable. Please try again.',
+            503
+          );
+        default:
+          break;
+      }
+    }
+
+    throw new AppError(
+      'PRODUCT_AVAILABILITY_UPDATE_FAILED',
+      'Failed to update product availability. Please try again.',
+      500
+    );
+  }
+}

@@ -275,6 +275,11 @@ export const updateProductSchema = Joi.object({
       'number.integer': 'stock_quantity must be an integer',
       'number.min': 'stock_quantity must be 0 or greater',
     }),
+  is_available: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'is_available must be true or false',
+    }),
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update',
 });

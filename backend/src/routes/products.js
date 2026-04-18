@@ -6,6 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
 import { validate } from '../middleware/validate.js';
 import { imageUpload, csvUpload } from '../middleware/multer.js';
+import { strictLimiter } from '../middleware/rateLimit.js';
 import {
   createProductSchema,
   productTemplateQuerySchema,
@@ -114,6 +115,7 @@ router.patch(
   '/products/:productId',
   authenticate,
   roleGuard(['shop_owner']),
+  strictLimiter,
   validate(updateProductSchema),
   async (req, res, next) => {
     try {

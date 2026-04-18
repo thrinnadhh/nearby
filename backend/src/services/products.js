@@ -347,6 +347,9 @@ class ProductService {
     if (Object.prototype.hasOwnProperty.call(updateData, 'stock_quantity')) {
       productPatch.stock_quantity = updateData.stock_quantity;
     }
+    if (Object.prototype.hasOwnProperty.call(updateData, 'is_available')) {
+      productPatch.is_available = updateData.is_available;
+    }
 
     const { data: updatedProduct, error: updateError } = await supabase
       .from('products')
@@ -362,6 +365,18 @@ class ProductService {
         error: updateError?.message,
       });
       throw new AppError(INTERNAL_ERROR, 'Failed to update product. Please try again.', 500);
+    }
+
+    // Audit log for availability changes
+    if (Object.prototype.hasOwnProperty.call(updateData, 'is_available')) {
+      logger.warn('Product availability toggled (AUDIT)', {
+        userId,
+        productId,
+        shopId: product.shop_id,
+        oldAvailability: product.is_available,
+        newAvailability: updateData.is_available,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     await this._queueTypesenseSync(updatedProduct);

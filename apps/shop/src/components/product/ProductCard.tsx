@@ -1,5 +1,6 @@
 /**
  * ProductCard Component — grid card for individual product display
+ * Includes one-tap availability toggle with instant feedback
  */
 
 import React, { useCallback } from 'react';
@@ -23,7 +24,9 @@ import {
 } from '@/constants/theme';
 import { Product } from '@/types/products';
 import { StockBadge } from './StockBadge';
+import { ProductToggleButton } from './ProductToggleButton';
 import { formatCurrency } from '@/utils/formatters';
+import { useProductToggle } from '@/hooks/useProductToggle';
 
 interface Props {
   product: Product;
@@ -41,6 +44,8 @@ export const ProductCard = React.memo(function ProductCard({
   const router = useRouter();
   const primaryImage = product.images?.find((img) => img.isPrimary);
   const imageUrl = primaryImage?.url || 'https://via.placeholder.com/160x160';
+
+  const { toggle: toggleAvailability, isLoading, error } = useProductToggle();
 
   const handlePress = useCallback(() => {
     onPress(product.id);
@@ -68,6 +73,10 @@ export const ProductCard = React.memo(function ProductCard({
   const handleEditPress = useCallback(() => {
     router.push(`/products/edit/${product.id}`);
   }, [product.id, router]);
+
+  const handleToggle = useCallback(async () => {
+    await toggleAvailability(product.id, product.isAvailable ?? true);
+  }, [toggleAvailability, product.id, product.isAvailable]);
 
   return (
     <TouchableOpacity
@@ -116,6 +125,19 @@ export const ProductCard = React.memo(function ProductCard({
             />
           </View>
 
+          {/* Availability Toggle */}
+          <View style={styles.toggleContainer}>
+            <ProductToggleButton
+              productId={product.id}
+              productName={product.name}
+              isAvailable={product.isAvailable ?? true}
+              isLoading={isLoading}
+              error={error}
+              onToggle={handleToggle}
+              testID={`product-toggle-card-${product.id}`}
+            />
+          </View>
+
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
             <TouchableOpacity
@@ -159,7 +181,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    height: 260, // Fixed height for grid consistency
+    height: 300,
   },
   cardContent: {
     flex: 1,
@@ -181,7 +203,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
-    height: 36, // Fixed height for 2 lines
+    height: 36,
   },
   price: {
     fontSize: fontSize.lg,
@@ -190,6 +212,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   badgeContainer: {
+    marginBottom: spacing.md,
+  },
+  toggleContainer: {
     marginBottom: spacing.md,
   },
   actionsContainer: {
