@@ -14,14 +14,8 @@ import { AppError } from '@/types/common';
 jest.mock('@/store/auth');
 jest.mock('@/store/products');
 jest.mock('@/services/products');
-jest.mock('@/utils/logger', () => ({
-  default: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// Logger is mocked via manual mock in src/utils/__mocks__/logger.ts
+// configured in jest.config.js moduleNameMapper
 
 describe('useAddProduct', () => {
   const mockShopId = 'shop-123';
@@ -29,12 +23,14 @@ describe('useAddProduct', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAuthStore as unknown as jest.Mock).mockImplementation((selector) =>
-      selector({ shopId: mockShopId })
-    );
-    (useProductsStore as unknown as jest.Mock).mockImplementation((selector) =>
-      selector({ updateProduct: mockUpdateProduct })
-    );
+    (useAuthStore as unknown as jest.Mock).mockImplementation((selector) => {
+      const state = { shopId: mockShopId };
+      return typeof selector === 'function' ? selector(state) : state;
+    });
+    (useProductsStore as unknown as jest.Mock).mockImplementation((selector) => {
+      const state = { updateProduct: mockUpdateProduct };
+      return typeof selector === 'function' ? selector(state) : state;
+    });
   });
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -270,8 +266,9 @@ describe('useAddProduct', () => {
     test('should return false for empty form', () => {
       const { result } = renderHook(() => useAddProduct());
 
-      const isValid = act(() => {
-        return result.current.validateForm();
+      let isValid: boolean;
+      act(() => {
+        isValid = result.current.validateForm();
       });
 
       expect(isValid).toBe(false);
@@ -294,8 +291,9 @@ describe('useAddProduct', () => {
         result.current.setFormField('unit', 'kg');
       });
 
-      const isValid = act(() => {
-        return result.current.validateForm();
+      let isValid: boolean;
+      act(() => {
+        isValid = result.current.validateForm();
       });
 
       expect(isValid).toBe(true);
@@ -325,8 +323,7 @@ describe('useAddProduct', () => {
     test('should validate individual field', () => {
       const { result } = renderHook(() => useAddProduct());
 
-      act(() => {
-        result.current.validateField('name');
+      act(() => {        result.current.setFormField('name', 'Fresh Tomatoes');        result.current.validateField('name');
       });
 
       expect(result.current.errors.name).toBeTruthy();
@@ -335,8 +332,13 @@ describe('useAddProduct', () => {
     test('should clear error for valid field', () => {
       const { result } = renderHook(() => useAddProduct());
 
+      // First, set the form field
       act(() => {
         result.current.setFormField('name', 'Fresh Tomatoes');
+      });
+
+      // Then validate the field (after state is updated)
+      act(() => {
         result.current.validateField('name');
       });
 
