@@ -1,6 +1,25 @@
 /**
  * CSV Upload Service — API calls for bulk product uploads
- * Handles batch uploads, progress tracking, and 207 Multi-Status responses
+ *
+ * ## Features
+ * - Batch processing with 100 products max per batch
+ * - 207 Multi-Status partial success handling
+ * - Idempotency key generation for deduplication
+ * - Comprehensive error handling with retry guidance
+ * - Real-time progress callbacks
+ *
+ * ## Error Handling
+ * Errors are sanitized to avoid leaking technical details:
+ * - User sees: "Upload timeout. Please retry."
+ * - Logs contain: Full stack trace, request details, response codes
+ *
+ * ## Examples
+ * ```typescript
+ * const result = await uploadProductBatch(products, 1);
+ * if (result.statusCode === 207) {
+ *   console.log(`Success: ${result.data.successful.length}, Failed: ${result.data.failed.length}`);
+ * }
+ * ```
  */
 
 import axios, { AxiosError } from 'axios';
@@ -12,22 +31,81 @@ import {
   BatchUploadResponse,
   ProductUploadResult,
 } from '@/types/csv';
+import {
+  CSV_BATCH_CONFIG,
+  CSV_UPLOAD_RETRY,
+  generateIdempotencyKey,
+} from '@/constants/csv-upload';
 import { AppError } from '@/types/common';
 import logger from '@/utils/logger';
 
 /**
- * Extract error message from axios error
+ * Sanitize error message for user display
+ * Removes technical details and provides user-friendly guidance
+ *
+ * @param error - Original error object
+ * @returns User-friendly error message
  */
-function extractErrorMessage(error: unknown): string {
+function sanitizeErrorMessage(error: unknown): string {
   if (error instanceof AxiosError) {
-    const message = (error.response?.data as { error?: { message?: string } })
-      ?.error?.message;
-    return message || error.message;
+    // Network errors
+    if (!error.response) {
+      return 'Network connection lost. Please check your internet and retry.';
+    }
+
+    // Server errors - don't expose internal details
+    if (error.response.status >= 500) {
+      return 'Server error. Please try again in a few moments.';
+    }
+
+    // Auth errors
+    if (error.response.status === 401) {
+      return 'Your session expired. Please login again.';
+    }
+
+    // Payload errors
+    if (error.response.status === 413) {
+      return 'Batch is too large. Please upload fewer products at once.';
+    }
+
+    // Validation errors - can show more details
+    if (error.response.status === 422) {
+      const details = (error.response?.data as { message?: string })?.message;
+      return details || 'Some products in the batch are invalid.';
+    }
+
+    // Timeout
+    if (error.code === 'ECONNABORTED') {
+      return 'Upload timeout. Please retry.';
+    }
+  }
+
+  if (error instanceof Error) {
+    // Don't expose system errors directly
+    logger.debug('Original error for reference', { error: error.message });
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  return 'An unexpected error occurred.';
+}
+
+/**
+ * Extract error details for logging (not user display)
+ */
+function extractLogDetails(error: unknown): Record<string, any> {
+  if (error instanceof AxiosError) {
+    return {
+      status: error.response?.status,
+      method: error.config?.method,
+      url: error.config?.url,
+      message: error.message,
+      responseData: error.response?.data,
+    };
   }
   if (error instanceof Error) {
-    return error.message;
+    return { message: error.message, stack: error.stack };
   }
-  return 'An unexpected error occurred';
+  return { error: String(error) };
 }
 
 /**
@@ -35,46 +113,50 @@ function extractErrorMessage(error: unknown): string {
  * Backend handles idempotency and deduplication
  * Returns 207 Multi-Status for partial success
  *
+ * ## Batch Constraints
+ * - Minimum: 1 product
+ * - Maximum: 100 products
+ * - Timeout: 30 seconds per request
+ *
  * @param products - Array of validated product rows (max 100)
- * @param batchNumber - Current batch number (for logging)
- * @returns BatchUploadResponse with success/failed product results
+ * @param batchNumber - Current batch number (1-indexed, for idempotency key)
+ * @returns BatchUploadResponse with successful and failed products
+ * @throws AppError if batch validation fails or network error occurs
  */
 export async function uploadProductBatch(
   products: CsvProductRow[],
   batchNumber: number = 1
 ): Promise<BatchUploadResponse> {
   try {
+    // Validate batch
     if (!products || products.length === 0) {
       throw new AppError(
         'EMPTY_BATCH',
-        'Batch cannot be empty'
+        'No products to upload'
       );
     }
 
-    if (products.length > 100) {
+    if (products.length > CSV_BATCH_CONFIG.MAX_BATCH_SIZE) {
       throw new AppError(
         'BATCH_TOO_LARGE',
-        'Batch size cannot exceed 100 products'
+        `Batch size cannot exceed ${CSV_BATCH_CONFIG.MAX_BATCH_SIZE} products`
       );
     }
 
+    // Verify shop authentication
     const shopId = useAuthStore.getState().shopId;
     if (!shopId) {
       throw new AppError(
         'SHOP_ID_MISSING',
-        'Shop ID not available'
+        'Authentication required'
       );
     }
 
-    // Create FormData with products as JSON array
-    // Backend expects: Content-Type: multipart/form-data with 'products' field
+    // Prepare upload
     const formData = new FormData();
-
-    // Add products as JSON string
     formData.append('products', JSON.stringify(products));
-
-    // Generate idempotency key for this batch
-    const idempotencyKey = `bulk-${Date.now()}-${batchNumber}`;
+    
+    const idempotencyKey = generateIdempotencyKey(batchNumber);
     formData.append('idempotencyKey', idempotencyKey);
 
     const url = PRODUCTS_ENDPOINTS.BULK_CREATE.replace(':shopId', shopId);
@@ -85,51 +167,54 @@ export async function uploadProductBatch(
       idempotencyKey,
     });
 
-    const { data, status } = await client.post<BatchUploadResponse>(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Execute upload with timeout
+    const { data, status } = await client.post<BatchUploadResponse>(
+      url,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: CSV_UPLOAD_RETRY.REQUEST_TIMEOUT_MS,
+      }
+    );
 
-    // Handle 207 Multi-Status (partial success)
-    if (status === 207 || data.statusCode === 207) {
+    // Log result
+    const isPartialSuccess = status === 207 || data?.statusCode === 207;
+    if (isPartialSuccess) {
       logger.warn('Batch upload partial success', {
         batch: batchNumber,
-        successful: data.data.successful.length,
-        failed: data.data.failed.length,
+        successful: data?.data?.successful?.length ?? 0,
+        failed: data?.data?.failed?.length ?? 0,
+        idempotencyKey,
       });
     } else {
       logger.info('Batch upload successful', {
         batch: batchNumber,
         productCount: products.length,
+        idempotencyKey,
       });
     }
 
     return data;
   } catch (error) {
-    const message = extractErrorMessage(error);
+    // Log with full details
+    const logDetails = extractLogDetails(error);
     logger.error('Batch upload failed', {
       batch: batchNumber,
-      error: message,
+      ...logDetails,
     });
 
-    // Parse axios error for more details
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 413) {
-        throw new AppError(
-          'PAYLOAD_TOO_LARGE',
-          'Batch payload too large. Try fewer products per batch.'
-        );
-      }
-      if (error.response?.status === 422) {
-        throw new AppError(
-          'VALIDATION_FAILED',
-          'Batch contains invalid products'
-        );
-      }
+    // Return user-friendly error
+    const userMessage = sanitizeErrorMessage(error);
+    
+    // Add recovery hint for timeout
+    if (error instanceof AxiosError && error.code === 'ECONNABORTED') {
+      throw new AppError(
+        'UPLOAD_TIMEOUT',
+        `${userMessage} (Attempt ${batchNumber})`
+      );
     }
 
-    throw new AppError('BATCH_UPLOAD_FAILED', message);
+    throw new AppError('BATCH_UPLOAD_FAILED', userMessage);
   }
 }
 

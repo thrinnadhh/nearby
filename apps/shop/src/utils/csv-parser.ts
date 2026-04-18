@@ -1,7 +1,21 @@
 /**
  * CSV Parser Utility — parses CSV files into typed rows
  * Uses papaparse library for robust parsing
- * Handles BOM, extra columns, missing headers
+ * Handles BOM (Byte Order Mark), extra columns, missing headers
+ *
+ * ## Features
+ * - BOM removal for Excel-exported CSVs
+ * - Flexible header detection with alias mapping
+ * - Safe parsing with Papa Parse library
+ * - Comprehensive error handling
+ *
+ * ## Examples
+ * ```typescript
+ * const { rows, headers } = await parseCsvFile(file, fileContent);
+ * validateFile(file); // throws if invalid
+ * const headerMap = normalizeHeaders(csvHeaders);
+ * const normalized = transformRow(rawRow, headerMap);
+ * ```
  */
 
 import Papa from 'papaparse';
@@ -11,6 +25,10 @@ import {
   HEADER_ALIASES,
   CSV_CONSTRAINTS,
 } from '@/constants/csv-schema';
+import {
+  CSV_FILE_CONSTRAINTS,
+  formatFileSize,
+} from '@/constants/csv-upload';
 import logger from '@/utils/logger';
 
 /**
@@ -153,40 +171,50 @@ export function transformRow(
 
 /**
  * Validate file before parsing
- * Checks MIME type, size, extension
+ * Checks file size, extension, and type
  *
- * @param file - Picked file
+ * ## Validation Rules
+ * - File size: ≤ 5 MB
+ * - Extension: .csv only
+ * - Must be readable text
+ *
+ * @param file - Picked file from document picker
  * @returns true if valid
- * @throws CsvParseError if invalid
+ * @throws CsvParseError with user-friendly message if invalid
  */
 export function validateFile(file: PickedFile): true {
-  // Check file size
-  if (file.size > CSV_CONSTRAINTS.MAX_FILE_SIZE) {
-    logger.error('CSV file too large', {
-      size: file.size,
-      max: CSV_CONSTRAINTS.MAX_FILE_SIZE,
+  // Validate file size
+  if (file.size > CSV_FILE_CONSTRAINTS.MAX_FILE_SIZE) {
+    const fileSize = formatFileSize(file.size);
+    const maxSize = CSV_FILE_CONSTRAINTS.MAX_FILE_SIZE_MB;
+    
+    logger.error('CSV file exceeds size limit', {
+      fileName: file.name,
+      fileSize,
+      maxSize: `${maxSize} MB`,
     });
+    
     throw {
       code: 'FILE_TOO_LARGE',
-      message: `File size must be under ${
-        CSV_CONSTRAINTS.MAX_FILE_SIZE / (1024 * 1024)
-      } MB`,
+      message: `File size must be under ${maxSize} MB (your file: ${fileSize})`,
     } as CsvParseError;
   }
 
-  // Check extension
-  const hasValidExt = CSV_CONSTRAINTS.ACCEPTED_EXTENSIONS.some((ext) =>
-    file.name.toLowerCase().endsWith(ext)
+  // Validate file extension
+  const fileName = file.name.toLowerCase();
+  const hasValidExtension = CSV_FILE_CONSTRAINTS.ALLOWED_EXTENSIONS.some(
+    (ext) => fileName.endsWith(ext)
   );
 
-  if (!hasValidExt) {
-    logger.error('Invalid CSV file extension', {
-      name: file.name,
-      accepted: CSV_CONSTRAINTS.ACCEPTED_EXTENSIONS,
+  if (!hasValidExtension) {
+    logger.warn('CSV file has invalid extension', {
+      fileName: file.name,
+      allowedExtensions: CSV_FILE_CONSTRAINTS.ALLOWED_EXTENSIONS,
     });
+    
     throw {
       code: 'INVALID_FILE_TYPE',
-      message: 'File must be a CSV file (.csv)',
+      message: 'Please select a CSV file (.csv)',
     } as CsvParseError;
   }
 

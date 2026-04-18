@@ -7,7 +7,7 @@ module.exports = {
   },
   // Allow transforming Expo and React Native ESM packages
   transformIgnorePatterns: [
-    'node_modules/(?!(expo-secure-store|expo-router|expo-font|expo-splash-screen|expo-status-bar|expo-notifications|expo/|@expo/vector-icons|@expo/|@react-native|react-native|@testing-library/react-native|socket\\.io-client|engine\\.io-client|@react-navigation|react-native-screens|react-native-gesture-handler|zustand)/)',
+    'node_modules/(?!(expo-secure-store|expo-router|expo-font|expo-splash-screen|expo-status-bar|expo-notifications|expo-document-picker|papaparse|expo/|@expo/vector-icons|@expo/|@react-native|react-native|@testing-library/react-native|socket\\.io-client|engine\\.io-client|@react-navigation|react-native-screens|react-native-gesture-handler|zustand)/)',
   ],
   moduleNameMapper: {
     // Resolve @/ alias to src/
