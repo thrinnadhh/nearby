@@ -3,7 +3,7 @@
  * Mocks Redis and Supabase services
  */
 
-// Mock Redis and Supabase BEFORE any imports
+// Must come before any imports to set up mocks
 jest.mock('../src/services/redis.js', () => require('./mocks/redis.js'));
 jest.mock('../src/services/supabase.js', () => require('./mocks/supabase.js'));
 
@@ -51,3 +51,6 @@ process.env.NODE_ENV = 'test';
 global.testUUID = 'test-uuid-1234-5678-9012-3456';
 global.testPhone = '9876543210';
 global.testEmail = 'test@example.com';
+
+// Timeout for all integration tests (30 seconds)
+jest.setTimeout(30000);
