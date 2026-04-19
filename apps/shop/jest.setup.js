@@ -41,6 +41,7 @@ jest.mock('expo-router', () => ({
 // Mock @expo/vector-icons
 jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MaterialCommunityIcons',
+  MaterialIcons: 'MaterialIcons',
   Feather: 'Feather',
 }));
 
@@ -73,13 +74,19 @@ jest.mock('socket.io-client', () => ({
 }));
 
 // Mock @react-navigation/native
-jest.mock('@react-navigation/native', () => ({
-  useFocusEffect: jest.fn((cb) => cb()),
-  useNavigation: jest.fn(() => ({
-    navigate: jest.fn(),
-    goBack: jest.fn(),
-  })),
-}));
+jest.mock('@react-navigation/native', () => {
+  const React = require('react');
+  return {
+    NavigationContainer: function ({ children }) {
+      return React.createElement(React.Fragment, null, children);
+    },
+    useFocusEffect: jest.fn((cb) => cb()),
+    useNavigation: jest.fn(() => ({
+      navigate: jest.fn(),
+      goBack: jest.fn(),
+    })),
+  };
+});
 
 // Suppress console.log/warn in tests for clean output
 const originalConsoleError = console.error;
@@ -100,19 +107,21 @@ jest.doMock(
   { virtual: true }
 );
 
-// Mock react-native-screens
-jest.doMock(
-  'react-native-screens',
-  () => ({
-    enableScreens: jest.fn(),
-  }),
-  { virtual: true }
-);
-
-// Polyfill TextEncoder/TextDecoder
-if (typeof global.TextEncoder === 'undefined') {
-  global.TextEncoder = require('util').TextEncoder;
-}
-if (typeof global.TextDecoder === 'undefined') {
-  global.TextDecoder = require('util').TextDecoder;
-}
+// Cleanup after each test — prevent memory leaks and infinite loops
+afterEach(() => {
+  jest.clearAllMocks();
+  jest.clearAllTimers();
+  // jest.resetModules(); // Disabled - breaks React hook dispatcher between tests
+  
+  // Reset Zustand earnings store state between tests
+  // This prevents state leakage across test suites
+  const { useEarningsStore } = require('@/store/earnings');
+  useEarningsStore.setState({
+    data: null,
+    loading: false,
+    error: null,
+    lastUpdated: null,
+    dateRange: '30d',
+    isOffline: false,
+  });
+});

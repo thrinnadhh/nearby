@@ -1,11 +1,11 @@
 /**
  * Shared axios client for all NearBy Shop API calls
- * Token interceptor automatically adds JWT to all requests
+ * Token interceptor automatically adds JWT to all requests from Zustand auth store
  * Import this in every service module — never create a second axios instance
  */
 
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { useAuthStore } from '@/store/auth';
 import { API_BASE_URL, API_TIMEOUT } from '@/constants/api';
 import logger from '@/utils/logger';
 
@@ -16,17 +16,17 @@ export const client = axios.create({
 
 /**
  * Request interceptor: Automatically attach JWT token to all requests
- * Read token from secure store and add to Authorization header
+ * Read token from Zustand auth store and add to Authorization header
  */
 client.interceptors.request.use(
-  async (config) => {
+  (config) => {
     try {
-      const token = await SecureStore.getItemAsync('nearby-jwt');
+      const token = useAuthStore.getState().token;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      logger.error('Failed to retrieve JWT from secure store', {
+      logger.error('Failed to retrieve JWT from auth store', {
         error: error instanceof Error ? error.message : String(error),
       });
     }
