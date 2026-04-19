@@ -35,7 +35,88 @@
 
 ---
 
-## [Sprint 6] - 2026-04-12
+## [Sprint 12.6] - 2026-04-19
+
+### Low Stock Alert Endpoint
+
+**Added:**
+
+#### GET /api/v1/shops/:shopId/products/low-stock
+- Auth: Bearer JWT (`shop_owner` role)
+- Authorization: Shop owner can only view their own shop's products
+- Query Parameters:
+  - `threshold` (optional, default=5): integer 1–999 — stock quantity threshold to alert on
+  - `page` (optional, default=1): integer ≥1 — pagination page number
+  - `limit` (optional, default=20): integer 1–100 — items per page
+  - `sortBy` (optional, default='stock'): enum ['stock', 'name', 'updated_at'] — sort order
+    - `stock`: ascending (lowest stock first)
+    - `name`: alphabetical A-Z
+    - `updated_at`: descending (most recently updated first)
+- Validation:
+  - threshold must be integer 1–999 (400 error: INVALID_THRESHOLD)
+  - page must be ≥1 (400 error: INVALID_PAGE)
+  - limit must be 1–100, clamped silently to max 100 (400 error: INVALID_LIMIT if <1)
+  - sortBy must be one of: stock, name, updated_at (400 error: INVALID_SORT_BY)
+- Behavior:
+  - Returns products where `stock_quantity < threshold`
+  - Excludes soft-deleted products (deleted_at IS NULL)
+  - Applies ownership guard: returns only products from authorized shop
+  - Pagination offset calculated as `(page - 1) * limit`
+- Response: 200 with:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "uuid",
+        "shopId": "uuid",
+        "name": "string",
+        "category": "string",
+        "stockQuantity": integer,
+        "threshold": integer,
+        "imageUrl": "string (CDN URL)",
+        "thumbnailUrl": "string (CDN URL)",
+        "isAvailable": boolean,
+        "updatedAt": "ISO 8601 timestamp"
+      }
+    ],
+    "meta": {
+      "page": integer,
+      "limit": integer,
+      "total": integer (count of items below threshold),
+      "pages": integer (ceil(total / limit)),
+      "threshold": integer (query param echoed back),
+      "lowStockCount": integer (same as total)
+    }
+  }
+  ```
+- Error codes:
+  - `SHOP_NOT_FOUND` (404) — Shop doesn't exist
+  - `INVALID_THRESHOLD` (400) — Threshold not 1–999
+  - `INVALID_PAGE` (400) — Page <1
+  - `INVALID_LIMIT` (400) — Limit <1 or >100
+  - `INVALID_SORT_BY` (400) — sortBy not in enum
+  - `UNAUTHORIZED` (401) — Missing or invalid JWT
+  - `FORBIDDEN` (403) — User doesn't own the shop
+  - `INTERNAL_ERROR` (500) — Database or server error
+- Rate limit: **10 requests/minute per shop owner** (strictLimiter middleware)
+- Notes:
+  - Frontend: useLowStockAlerts hook handles fetch, refresh, pagination, sorting
+  - Components: LowStockAlertItem (product card), LowStockEmptyState (empty/error states)
+  - Dismissal preferences stored client-side in AsyncStorage (not synced to backend)
+  - Pull-to-refresh resets pagination to page=1 and clears dismissals
+  - No N+1 queries: single count query + single paginated fetch query
+  - Response metadata includes `lowStockCount` (same as `total`) for compatibility
+
+---
+
+## [Sprint 12.5] - 2026-04-19
+
+### Product Availability Toggle
+
+**Modified:**
+
+#### PATCH /api/v1/products/:productId
 
 ### Reviews, Chat, Trust Score, Analytics & Earnings Module
 

@@ -275,7 +275,7 @@
 | 12.3 | Bulk CSV upload flow | [RN2] | ✅ | 4-step wizard (picker→preview→upload→results), 46 tests, 80%+ coverage, CSV parser with flexible headers, Joi validation, 207 partial success, retry logic |
 | 12.4 | Edit product screen | [RN2] | ✅ | Price/stock update, Joi validation, retry (3x), AsyncStorage backup, optimistic Zustand update — 42 tests, 80%+ coverage |
 | 12.5 | Quick stock toggle (swipe or tap) | [RN2] | ✅ | ProductToggleButton component, useProductToggle hook with 3-attempt retry + exponential backoff, optimistic UI with rollback, error auto-dismiss, all 10 edge cases handled, 220 tests passing, 92%+ coverage, rate limiting, security audit passed |
-| 12.6 | Low stock alert screen | [RN2] | ⬜ | List of items near zero |
+| 12.6 | Low stock alert screen | [RN2] | ✅ | List of items near zero. Endpoint: GET /shops/:shopId/products/low-stock. Hook: useLowStockAlerts. Components: LowStockAlertItem, LowStockEmptyState. 186+ tests (67 backend + 119 frontend), >80% coverage, rate limiting (strictLimiter), pagination, sorting, threshold validation (1-999). Code review: 95/100. Security audit: APPROVED. Commit: dbd0f2f |
 | 12.7 | Earnings dashboard | [RN2] | ⬜ | Today, week, month chart |
 | 12.8 | Settlement history | [RN2] | ⬜ | Each payout with UTR number |
 | 12.9 | Monthly statement PDF share | [RN2] | ⬜ | Generate via API, share via WhatsApp |
