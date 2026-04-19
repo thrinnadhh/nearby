@@ -22,7 +22,7 @@
  * ```
  */
 
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { client } from '@/services/api';
 import { PRODUCTS_ENDPOINTS } from '@/constants/api';
 import { useAuthStore } from '@/store/auth';
@@ -47,7 +47,7 @@ import logger from '@/utils/logger';
  * @returns User-friendly error message
  */
 function sanitizeErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError) {
+  if (axios.isAxiosError(error)) {
     // Network errors
     if (!error.response) {
       return 'Network connection lost. Please check your internet and retry.';
@@ -92,8 +92,8 @@ function sanitizeErrorMessage(error: unknown): string {
 /**
  * Extract error details for logging (not user display)
  */
-function extractLogDetails(error: unknown): Record<string, any> {
-  if (error instanceof AxiosError) {
+function extractLogDetails(error: unknown): Record<string, unknown> {
+  if (axios.isAxiosError(error)) {
     return {
       status: error.response?.status,
       method: error.config?.method,
@@ -155,7 +155,7 @@ export async function uploadProductBatch(
     // Prepare upload
     const formData = new FormData();
     formData.append('products', JSON.stringify(products));
-    
+
     const idempotencyKey = generateIdempotencyKey(batchNumber);
     formData.append('idempotencyKey', idempotencyKey);
 
@@ -205,9 +205,9 @@ export async function uploadProductBatch(
 
     // Return user-friendly error
     const userMessage = sanitizeErrorMessage(error);
-    
+
     // Add recovery hint for timeout
-    if (error instanceof AxiosError && error.code === 'ECONNABORTED') {
+    if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
       throw new AppError(
         'UPLOAD_TIMEOUT',
         `${userMessage} (Attempt ${batchNumber})`
@@ -241,7 +241,7 @@ export async function uploadAllBatches(
   totalFailed: number;
   allResults: ProductUploadResult[];
 }> {
-  const batches = [];
+  const batches: CsvProductRow[][] = [];
   for (let i = 0; i < products.length; i += maxBatchSize) {
     batches.push(products.slice(i, i + maxBatchSize));
   }

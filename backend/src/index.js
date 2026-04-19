@@ -21,10 +21,14 @@ import shopsRouter from './routes/shops.js';
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
 import deliveryRouter from './routes/delivery.js';
+import deliveryPartnersRouter from './routes/delivery-partners.js';
 import paymentsRouter from './routes/payments.js';
 import reviewsRouter from './routes/reviews.js';
 import searchRouter from './routes/search.js';
 import adminRouter from './routes/admin.js';
+import analyticsProductsRouter from './routes/analytics-products.js';
+import chatsRouter from './routes/chats.js';
+import earningsRouter from './routes/earnings.js';
 
 // Middleware imports
 import errorHandler from './middleware/errorHandler.js';
@@ -141,11 +145,16 @@ app.get('/readiness', async (req, res) => {
 
 // 7. Mount all route files under /api/v1/
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/auth', deliveryPartnersRouter);
 app.use('/api/v1/shops', shopsRouter);
+app.use('/api/v1/shops', analyticsProductsRouter);
+app.use('/api/v1/shops', chatsRouter);
+app.use('/api/v1/shops', earningsRouter);
 // Product routes include both nested shop creation/bulk endpoints and product update endpoints.
 app.use('/api/v1', productsRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/delivery', deliveryRouter);
+app.use('/api/v1', deliveryPartnersRouter);
 app.use('/api/v1/payments', paymentsRouter);
 app.use('/api/v1/reviews', reviewsRouter);
 app.use('/api/v1/search', searchRouter);

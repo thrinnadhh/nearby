@@ -1,0 +1,156 @@
+/**
+ * AadhaarScreen — Enter last 4 digits of Aadhaar (Task 13.5)
+ */
+
+import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { useRegistration } from '@/hooks/useRegistration';
+import logger from '@/utils/logger';
+
+interface AadhaarScreenProps {
+  onNext: (last4: string) => void;
+  onBack?: () => void;
+}
+
+export function AadhaarScreen({ onNext, onBack }: AadhaarScreenProps) {
+  const [aadhaarLast4, setAadhaarLast4] = useState('');
+  const { isLoading, error } = useRegistration();
+
+  const handleContinue = () => {
+    if (aadhaarLast4.length === 4 && /^\d{4}$/.test(aadhaarLast4)) {
+      logger.info('Proceeding to next step with Aadhaar', { aadhaarLast4: 'xxxx' });
+      onNext(aadhaarLast4);
+    }
+  };
+
+  const isValid = aadhaarLast4.length === 4 && /^\d{4}$/.test(aadhaarLast4);
+
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Aadhaar Verification</Text>
+      <Text style={styles.subtitle}>Enter last 4 digits of your Aadhaar number</Text>
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter last 4 digits"
+          placeholderTextColor="#999"
+          maxLength={4}
+          keyboardType="numeric"
+          value={aadhaarLast4}
+          onChangeText={setAadhaarLast4}
+          editable={!isLoading}
+          testID="aadhaar-input"
+        />
+      </View>
+
+      <Text style={styles.helpText}>We'll verify your Aadhaar for KYC compliance</Text>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.button, !isValid || isLoading ? styles.buttonDisabled : styles.buttonEnabled]}
+          onPress={handleContinue}
+          disabled={!isValid || isLoading}
+          testID="continue-button"
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Continue</Text>
+          )}
+        </TouchableOpacity>
+
+        {onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            disabled={isLoading}
+            testID="back-button"
+          >
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#333',
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    gap: 12,
+  },
+  button: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonEnabled: {
+    backgroundColor: '#007AFF',
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  backButton: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  errorText: {
+    color: '#ff3333',
+    marginBottom: 12,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+});

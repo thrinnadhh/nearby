@@ -5,7 +5,6 @@
  */
 
 import Joi from 'joi';
-import { AppError } from '@/types/common';
 
 // Product categories matching backend
 export const PRODUCT_CATEGORIES = [
@@ -180,14 +179,14 @@ export function validateProductForm(formData: ProductFormData): ProductFormError
   const errors: ProductFormErrors = {};
 
   // Validate against Joi schema
-  const { error, value } = productFormSchema.validate(formData, {
+  const { error } = productFormSchema.validate(formData, {
     abortEarly: false,
     convert: false,
   });
 
   if (error) {
     // Convert Joi errors to field-level errors
-    error.details.forEach((detail: any) => {
+    error.details.forEach((detail) => {
       const field = detail.path[0] as keyof ProductFormErrors;
       if (field) {
         errors[field] = detail.message;

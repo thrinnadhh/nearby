@@ -3,7 +3,7 @@
  * Adds new methods to products.ts service
  */
 
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { client } from './api';
 import { useAuthStore } from '@/store/auth';
 import {
@@ -18,7 +18,7 @@ import logger from '@/utils/logger';
  * Extract error message from axios error
  */
 function extractErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError) {
+  if (axios.isAxiosError(error)) {
     const message = (error.response?.data as { error?: { message?: string } })
       ?.error?.message;
     return message || error.message;

@@ -3,6 +3,7 @@
  * Fetches earnings and analytics data from backend
  */
 
+import axios from 'axios';
 import { client } from './api';
 import { ApiResponse } from '@/types/common';
 import { EarningsData, DateRange } from '@/types/earnings';
@@ -54,10 +55,14 @@ export async function getAnalytics(
       error: message,
     });
 
+    const statusCode = axios.isAxiosError(error)
+      ? error.response?.status
+      : undefined;
+
     throw new AppError(
       'ANALYTICS_FETCH_ERROR',
       message,
-      (error as any)?.response?.status
+      statusCode
     );
   }
 }

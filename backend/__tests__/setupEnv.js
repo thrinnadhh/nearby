@@ -1,0 +1,53 @@
+/**
+ * Jest setup for backend integration tests
+ * Mocks Redis and Supabase services
+ */
+
+// Mock Redis and Supabase BEFORE any imports
+jest.mock('../src/services/redis.js', () => require('./mocks/redis.js'));
+jest.mock('../src/services/supabase.js', () => require('./mocks/supabase.js'));
+
+// Mock external services that require credentials
+jest.mock('../src/services/fcm.js', () => ({
+  sendFCM: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
+}));
+
+jest.mock('../src/services/msg91.js', () => ({
+  sendOTP: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
+}));
+
+jest.mock('../src/services/olaMaps.js', () => ({
+  getDistanceMatrix: jest.fn().mockResolvedValue({
+    distance_matrix: [
+      [
+        { elements: [{ distance: { value: 1000 } }] }
+      ]
+    ],
+  }),
+  getAutocomplete: jest.fn().mockResolvedValue({
+    predictions: [{ description: '123 Main St', place_id: 'mock-123' }],
+  }),
+}));
+
+jest.mock('../src/services/r2.js', () => ({
+  uploadFile: jest.fn().mockResolvedValue({
+    url: 'https://r2.example.com/file.jpg',
+    key: 'file.jpg',
+  }),
+  generatePresignedUrl: jest.fn().mockResolvedValue({
+    url: 'https://r2.example.com/file.jpg?signed',
+  }),
+}));
+
+// Set test environment variables
+process.env.JWT_SECRET = 'test-secret-key';
+process.env.SUPABASE_URL = 'http://localhost:54321';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-supabase-key';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.MSG91_AUTH_KEY = 'test-msg91-key';
+process.env.NODE_ENV = 'test';
+
+// Global test utilities
+global.testUUID = 'test-uuid-1234-5678-9012-3456';
+global.testPhone = '9876543210';
+global.testEmail = 'test@example.com';
