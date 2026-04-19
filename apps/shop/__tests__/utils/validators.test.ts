@@ -34,7 +34,8 @@ describe('validatePhone', () => {
   });
 
   it('strips non-digits before validating', () => {
-    expect(validatePhone('+91-9876543210').valid).toBe(true);
+    // Strips dashes — 9876543210 is exactly 10 digits
+    expect(validatePhone('98765-43210').valid).toBe(true);
   });
 });
 

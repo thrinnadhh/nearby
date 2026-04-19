@@ -29,9 +29,9 @@ import {
 } from '@/services/socket';
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  // Reset singleton between tests
+  // closeSocket before clearAllMocks so the disconnect call doesn't pollute counts
   closeSocket();
+  jest.clearAllMocks();
 });
 
 describe('initializeSocket', () => {

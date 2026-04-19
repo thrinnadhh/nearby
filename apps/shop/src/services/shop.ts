@@ -2,18 +2,15 @@
  * Shop profile service — fetch and update shop information
  */
 
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { client } from './api';
 import { SHOP_ENDPOINTS } from '@/constants/api';
 import { Shop, ShopProfile, EarningsData } from '@/types/shop';
 import { AppError } from '@/types/common';
 import logger from '@/utils/logger';
 
-/**
- * Extract error message from axios error
- */
 function extractErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError) {
+  if (axios.isAxiosError(error)) {
     const message = (error.response?.data as { error?: { message?: string } })
       ?.error?.message;
     return message || error.message;
