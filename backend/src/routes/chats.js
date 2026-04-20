@@ -135,11 +135,13 @@ router.post(
       });
 
       // Get order to find shop and customer
-      const { data: order, error: orderError } = await supabase
+      const queryResult = await supabase
         .from('orders')
         .select('id, shop_id, customer_id')
-        .eq('id', orderId)
-        .single();
+        .eq('id', orderId);
+      
+      const order = Array.isArray(queryResult.data) ? queryResult.data[0] : queryResult.data;
+      const orderError = !order ? queryResult.error : null;
 
       if (orderError || !order) {
         logger.warn('Send message: Order not found', { orderId });
@@ -161,7 +163,7 @@ router.post(
 
       // Create message
       const messageId = uuidv4();
-      const { data: createdMessage, error: messageError } = await supabase
+      const insertResult = await supabase
         .from('messages')
         .insert({
           id: messageId,
@@ -173,9 +175,10 @@ router.post(
           body: message,
           is_read: false,
           created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+        });
+      
+      const createdMessage = Array.isArray(insertResult.data) ? insertResult.data[0] : insertResult.data;
+      const messageError = !createdMessage ? insertResult.error : null;
 
       if (messageError) {
         logger.error('Send message: Failed to create message', {
