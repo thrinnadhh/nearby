@@ -385,11 +385,15 @@ router.get(
       const { page = 1, limit = 10 } = req.query;
 
       // shopOwnerGuard already verified ownership
-      const { data: ordersData } = await supabase
+      const { data: ordersData, error } = await supabase
         .from('orders')
         .select('*')
         .eq('shop_id', shopId)
         .eq('status', 'delivered');
+
+      if (error) {
+        throw error;
+      }
 
       const orders = ordersData || [];
 
@@ -557,7 +561,7 @@ router.post(
       });
 
       res.status(201).json(successResponse({
-        withdrawal_id: withdrawalId,
+        id: withdrawalId,
         amount_paise: amount_paise,
         status: 'pending',
         shop_id: shopId,

@@ -59,6 +59,8 @@ describe('Earnings Endpoints', () => {
       payment_method: 'card',
       payment_status: 'completed',
       delivery_address: 'Test Address',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     });
 
     await supabase.from('order_items').insert({
