@@ -540,46 +540,6 @@ router.patch(
 // Get delivery partner statistics (total deliveries, earnings, ratings, etc.)
 // ────────────────────────────────────────────────────────────────────────────────
 
-// ────────────────────────────────────────────────────────────────────────────────
-// GET /delivery-partners/:id
-// Fetch a specific delivery partner by ID (public endpoint for partner info)
-// ────────────────────────────────────────────────────────────────────────────────
-
-router.get(
-  '/delivery-partners/:id',
-  validatePartnerUUID,
-  async (req, res, next) => {
-    try {
-      const { id } = req.params;
-
-      const { data: partner, error } = await supabase
-        .from('delivery_partners')
-        .select('id, phone, kyc_status, is_online, avg_rating, total_deliveries')
-        .eq('id', id)
-        .single();
-
-      if (error || !partner) {
-        logger.warn('Partner not found', { id });
-        return res.status(404).json(
-          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
-        );
-      }
-
-      logger.info('Partner retrieved', { partnerId: id });
-
-      res.json(successResponse(partner));
-    } catch (err) {
-      logger.error('Get partner error', { error: err.message });
-      next(err);
-    }
-  }
-);
-
-// ────────────────────────────────────────────────────────────────────────────────
-// GET /delivery-partners/:id/stats
-// Fetch detailed stats for a delivery partner (authenticated, self-only)
-// ────────────────────────────────────────────────────────────────────────────────
-
 router.get(
   '/delivery-partners/:id/stats',
   authenticate,
