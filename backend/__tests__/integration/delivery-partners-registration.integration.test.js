@@ -4,11 +4,24 @@ import { supabase } from '../../src/services/supabase.js';
 import { redis } from '../../src/services/redis.js';
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
+// Helper to clear Supabase mock storage
+function clearSupabaseStorage() {
+  if (supabase.__clear) {
+    supabase.__clear();
+  }
+}
+
 describe('POST /api/v1/auth/partner/register', () => {
   const testPhone = '9876543210';
   const testOtp = '123456';
 
   beforeEach(async () => {
+    // Clear Redis before each test
+    redis.__clear();
+    
+    // Clear Supabase storage before each test
+    clearSupabaseStorage();
+    
     // Set test OTP in Redis
     await redis.setex(`otp:code:${testPhone}`, 300, testOtp);
     await redis.del(`otp:attempts:${testPhone}`);
@@ -16,14 +29,15 @@ describe('POST /api/v1/auth/partner/register', () => {
   });
 
   afterEach(async () => {
-    // Clean up Redis
-    await redis.del(`otp:code:${testPhone}`);
-    await redis.del(`otp:attempts:${testPhone}`);
-    await redis.del(`otp:lockout:${testPhone}`);
+    // Clear Redis
+    redis.__clear();
     
-    // Clean up Supabase test data if created
+    // Clear Supabase storage
+    clearSupabaseStorage();
+    
+    // Clean up test data if created
     try {
-      await supabase.from('delivery_partners').delete().eq('user_phone', `+91${testPhone}`);
+      await supabase.from('delivery_partners').delete().eq('phone', `+91${testPhone}`);
       await supabase.from('profiles').delete().eq('phone', `+91${testPhone}`);
     } catch (err) {
       // Ignore cleanup errors
@@ -130,10 +144,10 @@ describe('POST /api/v1/auth/partner/register', () => {
     });
 
     it('should increment failed attempts on wrong OTP', async () => {
-      // Attempt 1
+      // Attempt 1 - send 6-digit invalid OTP (not matching '123456')
       await request(app)
         .post('/api/v1/auth/partner/register')
-        .send({ phone: testPhone, otp: 'wrong1' });
+        .send({ phone: testPhone, otp: '000001' });
 
       const attempts1 = await redis.get(`otp:attempts:${testPhone}`);
       expect(parseInt(attempts1 || '0')).toBe(1);
@@ -141,7 +155,7 @@ describe('POST /api/v1/auth/partner/register', () => {
       // Attempt 2
       await request(app)
         .post('/api/v1/auth/partner/register')
-        .send({ phone: testPhone, otp: 'wrong2' });
+        .send({ phone: testPhone, otp: '000002' });
 
       const attempts2 = await redis.get(`otp:attempts:${testPhone}`);
       expect(parseInt(attempts2 || '0')).toBe(2);
@@ -151,17 +165,17 @@ describe('POST /api/v1/auth/partner/register', () => {
       // Attempt 1
       await request(app)
         .post('/api/v1/auth/partner/register')
-        .send({ phone: testPhone, otp: 'wrong1' });
+        .send({ phone: testPhone, otp: '000001' });
 
       // Attempt 2
       await request(app)
         .post('/api/v1/auth/partner/register')
-        .send({ phone: testPhone, otp: 'wrong2' });
+        .send({ phone: testPhone, otp: '000002' });
 
       // Attempt 3 should lock out
       const response = await request(app)
         .post('/api/v1/auth/partner/register')
-        .send({ phone: testPhone, otp: 'wrong3' });
+        .send({ phone: testPhone, otp: '000003' });
 
       expect(response.status).toBe(429);
       expect(response.body.error.code).toMatch(/OTP_LOCKED|LOCKED/i);

@@ -191,13 +191,15 @@ router.post('/partner/register', async (req, res, next) => {
       .single();
 
     let userId;
+    const now = new Date().toISOString();
+    
     if (existingProfile) {
       // User exists — update role to delivery if customer
       userId = existingProfile.id;
       if (existingProfile.role !== 'delivery') {
         await supabase
           .from('profiles')
-          .update({ role: 'delivery', updated_at: new Date().toISOString() })
+          .update({ role: 'delivery', updated_at: now })
           .eq('id', userId);
       }
       logger.info('Partner register: Updated existing customer profile to delivery', {
@@ -212,6 +214,9 @@ router.post('/partner/register', async (req, res, next) => {
           id: userId,
           phone: normalizedPhone,
           role: 'delivery',
+          display_name: null,
+          created_at: now,
+          updated_at: now,
         });
 
       if (profileError) {
@@ -235,6 +240,10 @@ router.post('/partner/register', async (req, res, next) => {
         user_id: userId,
         phone: normalizedPhone,
         kyc_status: 'pending_kyc',
+        is_online: false,
+        avg_rating: 0,
+        total_deliveries: 0,
+        updated_at: now,
       });
 
     if (partnerCreateError) {
