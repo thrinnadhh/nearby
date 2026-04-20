@@ -771,4 +771,96 @@ router.patch(
   }
 );
 
+// ────────────────────────────────────────────────────────────────────────────────
+// GET /delivery-partners/:id
+// Get delivery partner info by ID
+// ────────────────────────────────────────────────────────────────────────────────
+
+router.get(
+  '/delivery-partners/:id',
+  validatePartnerUUID,
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const { data: partner, error } = await supabase
+        .from('delivery_partners')
+        .select('id, phone, kyc_status, is_online, avg_rating, total_deliveries')
+        .eq('id', id)
+        .single();
+
+      if (error || !partner) {
+        return res.status(404).json(
+          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
+        );
+      }
+
+      res.json(successResponse(partner));
+    } catch (err) {
+      logger.error('Get partner error', { error: err.message });
+      next(err);
+    }
+  }
+);
+
+// ────────────────────────────────────────────────────────────────────────────────
+// PATCH /delivery-partners/:id/toggle-online
+// Toggle delivery partner online/offline status (authenticated)
+// ────────────────────────────────────────────────────────────────────────────────
+
+router.patch(
+  '/delivery-partners/:id/toggle-online',
+  authenticate,
+  validatePartnerUUID,
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { isOnline } = req.body;
+
+      // Validate input
+      if (typeof isOnline !== 'boolean') {
+        return res.status(400).json(
+          errorResponse(VALIDATION_ERROR, 'isOnline must be a boolean')
+        );
+      }
+
+      // Verify ownership
+      const { data: partner, error: partnerError } = await supabase
+        .from('delivery_partners')
+        .select('id, user_id')
+        .eq('id', id)
+        .single();
+
+      if (partnerError || !partner) {
+        return res.status(404).json(
+          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
+        );
+      }
+
+      if (partner.user_id !== req.user.userId) {
+        return res.status(403).json(
+          errorResponse(UNAUTHORIZED, 'You do not own this delivery partner record.')
+        );
+      }
+
+      // Update online status
+      const { error: updateError } = await supabase
+        .from('delivery_partners')
+        .update({ is_online: isOnline, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (updateError) {
+        return res.status(500).json(
+          errorResponse('TOGGLE_ONLINE_FAILED', 'Failed to update online status.')
+        );
+      }
+
+      res.json(successResponse({ id, is_online: isOnline }));
+    } catch (err) {
+      logger.error('Toggle online error', { error: err.message });
+      next(err);
+    }
+  }
+);
+
 export default router;
