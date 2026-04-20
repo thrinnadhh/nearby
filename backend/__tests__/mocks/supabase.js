@@ -20,12 +20,8 @@ const createMockQueryBuilder = (table) => {
   const filters = []; // Array of {column, value, op} to support multiple chained filters
   let selectedColumns = null;
   let isDelete = false;
-  let rangeFrom = null;
-  let rangeTo = null;
   let operationType = null; // 'insert', 'update', 'upsert', or null for queries
   let operationData = null; // parameters for the operation
-  let sortColumn = null;
-  let sortAscending = true;
   
   const applyFilters = (tableData) => {
     // Apply all filters in sequence (AND logic)
@@ -44,43 +40,6 @@ const createMockQueryBuilder = (table) => {
         return true;
       });
     });
-  };
-  
-  const applySort = (tableData) => {
-    // Apply sorting if set
-    if (sortColumn) {
-      tableData = tableData.sort((a, b) => {
-        const aVal = a[sortColumn];
-        const bVal = b[sortColumn];
-        
-        // Handle null/undefined values
-        if (aVal == null && bVal == null) return 0;
-        if (aVal == null) return sortAscending ? 1 : -1;
-        if (bVal == null) return sortAscending ? -1 : 1;
-        
-        // Compare values
-        let comparison = 0;
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          comparison = aVal.localeCompare(bVal);
-        } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-          comparison = aVal - bVal;
-        } else {
-          comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-        }
-        
-        return sortAscending ? comparison : -comparison;
-      });
-    }
-    return tableData;
-  };
-  
-  const applyPagination = (tableData) => {
-    // Apply range/pagination if set
-    if (rangeFrom !== null && rangeTo !== null) {
-      // rangeTo is inclusive, so we need to add 1
-      return tableData.slice(rangeFrom, rangeTo + 1);
-    }
-    return tableData;
   };
   
   const executeDelete = () => {
@@ -117,12 +76,6 @@ const createMockQueryBuilder = (table) => {
     if (filters.length > 0) {
       tableData = applyFilters(tableData);
     }
-
-    // Apply sorting
-    tableData = applySort(tableData);
-
-    // Apply pagination
-    tableData = applyPagination(tableData);
 
     // Apply column selection if specified
     if (selectedColumns) {
@@ -295,14 +248,10 @@ const createMockQueryBuilder = (table) => {
     }),
 
     range: jest.fn(function(from, to) {
-      rangeFrom = from;
-      rangeTo = to;
       return this;
     }),
 
     order: jest.fn(function(column, options) {
-      sortColumn = column;
-      sortAscending = !options || options.ascending !== false;
       return this;
     }),
 
@@ -326,9 +275,6 @@ const createMockQueryBuilder = (table) => {
       if (filters.length > 0) {
         tableData = applyFilters(tableData);
       }
-
-      // Apply sorting
-      tableData = applySort(tableData);
 
       const found = tableData[0];
 
