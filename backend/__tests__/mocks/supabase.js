@@ -55,6 +55,43 @@ const createMockQueryBuilder = (table) => {
     };
   };
 
+  const executeSelect = () => {
+    if (!storage.has(table)) {
+      return { data: [], error: null };
+    }
+
+    let tableData = storage.get(table);
+
+    // Apply filter if present
+    if (filterColumn && filterValue !== null) {
+      tableData = tableData.filter(r => {
+        if (filterOp === 'eq') return r[filterColumn] === filterValue;
+        if (filterOp === 'neq') return r[filterColumn] !== filterValue;
+        if (filterOp === 'lt') return r[filterColumn] < filterValue;
+        if (filterOp === 'lte') return r[filterColumn] <= filterValue;
+        if (filterOp === 'gt') return r[filterColumn] > filterValue;
+        if (filterOp === 'gte') return r[filterColumn] >= filterValue;
+        return false;
+      });
+    }
+
+    // Apply column selection if specified
+    if (selectedColumns) {
+      tableData = tableData.map(row => {
+        const selected = {};
+        selectedColumns.forEach(col => {
+          selected[col] = row[col];
+        });
+        return selected;
+      });
+    }
+
+    return {
+      data: tableData,
+      error: null,
+    };
+  };
+
   const executeInsert = (records) => {
     const recordsArray = Array.isArray(records) ? records : [records];
     const inserted = recordsArray.map(record => ({
@@ -140,6 +177,7 @@ const createMockQueryBuilder = (table) => {
 
   const queryBuilder = {
     select: jest.fn(function(columns = '*') {
+      operationType = 'select';
       selectedColumns = columns === '*' ? null : columns.split(',').map(c => c.trim());
       return this;
     }),
@@ -287,7 +325,7 @@ const createMockQueryBuilder = (table) => {
     }),
 
     // Make the query builder thenable so it can be awaited
-    // This executes any pending operation (insert, update, upsert, delete)
+    // This executes any pending operation (insert, update, upsert, delete, select)
     then: function(onFulfilled, onRejected) {
       return new Promise((resolve, reject) => {
         try {
@@ -299,6 +337,8 @@ const createMockQueryBuilder = (table) => {
             result = executeUpdate(operationData);
           } else if (operationType === 'upsert') {
             result = executeUpsert(operationData.records, operationData.options);
+          } else if (operationType === 'select') {
+            result = executeSelect();
           } else if (isDelete) {
             result = executeDelete();
           } else {

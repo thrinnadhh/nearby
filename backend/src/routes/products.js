@@ -242,8 +242,8 @@ router.get(
   authenticate,
   roleGuard(['shop_owner']),
   shopOwnerGuard(),
-  strictLimiter,
   validate(lowStockAlertsQuerySchema, 'query'),
+  strictLimiter,
   async (req, res, next) => {
     try {
       const { shopId } = req.params;

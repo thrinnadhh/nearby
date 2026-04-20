@@ -22,6 +22,7 @@ const router = Router();
 const getMessagesSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(50),
+  offset: Joi.number().integer().min(0), // Allow offset as alternative to page
 });
 
 router.get(
@@ -40,13 +41,41 @@ router.get(
 
       const { page, limit } = value;
       const offset = (page - 1) * limit;
+      const userId = req.user.userId;
+      const role = req.user.role;
 
       logger.info('Get messages endpoint called', {
         orderId,
-        userId: req.user.userId,
+        userId,
+        role,
         page,
         limit,
       });
+
+      // Fetch order to verify authorization
+      const orderQuery = await supabase
+        .from('orders')
+        .select('id, customer_id, shop_id')
+        .eq('id', orderId);
+      
+      const order = Array.isArray(orderQuery.data) ? orderQuery.data[0] : orderQuery.data;
+
+      if (!order) {
+        return res.status(404).json(
+          errorResponse('ORDER_NOT_FOUND', 'Order not found')
+        );
+      }
+
+      // Verify authorization - user must be customer or shop owner of this order
+      const isAuthorized = (role === 'customer' && userId === order.customer_id) ||
+                           (role === 'shop_owner' && userId === order.shop_id);
+
+      if (!isAuthorized) {
+        logger.warn('Get messages: Unauthorized access attempt', { orderId, userId, role });
+        return res.status(403).json(
+          errorResponse('UNAUTHORIZED', 'You are not authorized to view messages for this order')
+        );
+      }
 
       // Fetch messages for this order
       const { data: messages, count, error } = await supabase
@@ -126,11 +155,13 @@ router.post(
       const { orderId, message } = value;
       const userId = req.user.userId;
       const role = req.user.role;
+      const shopId = req.user.shopId; // For shop_owner role, JWT includes shopId
 
       logger.info('Send message endpoint called', {
         orderId,
         userId,
         role,
+        shopId,
         messageLength: message.length,
       });
 
@@ -152,7 +183,7 @@ router.post(
 
       // Verify user is part of this order
       const isAuthorized = (role === 'customer' && userId === order.customer_id) ||
-                           (role === 'shop_owner' && userId === order.shop_id);
+                           (role === 'shop_owner' && shopId === order.shop_id);
 
       if (!isAuthorized) {
         logger.warn('Send message: Unauthorized user', { orderId, userId, role });
@@ -199,7 +230,10 @@ router.post(
         successResponse({
           id: createdMessage.id,
           message: createdMessage.body,
-          createdAt: createdMessage.created_at,
+          sender_type: createdMessage.sender_type,
+          sender_id: createdMessage.sender_id,
+          created_at: createdMessage.created_at,
+          is_read: createdMessage.is_read,
         })
       );
     } catch (err) {
