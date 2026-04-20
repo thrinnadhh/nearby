@@ -169,21 +169,31 @@ const createMockQueryBuilder = (table) => {
 
     const tableData = storage.get(table);
     
-    // Apply filter if present
-    if (filterColumn && filterValue !== null) {
-      const idx = tableData.findIndex(r => {
-        if (filterOp === 'eq') return r[filterColumn] === filterValue;
-        if (filterOp === 'neq') return r[filterColumn] !== filterValue;
-        if (filterOp === 'lt') return r[filterColumn] < filterValue;
-        if (filterOp === 'lte') return r[filterColumn] <= filterValue;
-        if (filterOp === 'gt') return r[filterColumn] > filterValue;
-        if (filterOp === 'gte') return r[filterColumn] >= filterValue;
-        return false;
-      });
+    // Apply filters if present
+    if (filters.length > 0) {
+      const matchingIndices = tableData
+        .map((row, idx) => {
+          const matches = filters.every(filter => {
+            const { column, value, op } = filter;
+            const cellValue = row[column];
+            
+            if (op === 'eq') return cellValue === value;
+            if (op === 'neq') return cellValue !== value;
+            if (op === 'lt') return cellValue < value;
+            if (op === 'lte') return cellValue <= value;
+            if (op === 'gt') return cellValue > value;
+            if (op === 'gte') return cellValue >= value;
+            if (op === 'is') return value === null ? cellValue === null : cellValue !== null;
+            return true;
+          });
+          return matches ? idx : -1;
+        })
+        .filter(idx => idx >= 0);
 
-      if (idx >= 0) {
+      // Update all matching rows
+      matchingIndices.forEach(idx => {
         tableData[idx] = { ...tableData[idx], ...updates };
-      }
+      });
     }
 
     storage.set(table, tableData);
