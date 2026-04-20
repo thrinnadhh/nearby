@@ -7,6 +7,20 @@
 jest.mock('../src/services/redis.js', () => require('./mocks/redis.js'));
 jest.mock('../src/services/supabase.js', () => require('./mocks/supabase.js'));
 
+// Mock BullMQ to prevent Redis connection attempts in tests
+jest.mock('bullmq', () => ({
+  Queue: jest.fn().mockImplementation(() => ({
+    add: jest.fn().mockResolvedValue({}),
+    process: jest.fn().mockResolvedValue({}),
+    on: jest.fn(),
+    close: jest.fn().mockResolvedValue({}),
+  })),
+  Worker: jest.fn().mockImplementation(() => ({
+    on: jest.fn(),
+    close: jest.fn().mockResolvedValue({}),
+  })),
+}));
+
 // Mock external services that require credentials
 jest.mock('../src/services/fcm.js', () => ({
   sendFCM: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
