@@ -12,16 +12,13 @@ import { useProductsStore } from '@/store/products';
 import {
   EditProductFormData,
   EditProductFormErrors,
-  validateEditProductForm,
   validateEditProductField,
   hasProductChanges,
-  rupeesToPaise,
-  paiseToRupees,
-  parsePriceInput,
 } from '@/utils/editProductValidation';
 import { Product } from '@/types/products';
 import { AppError } from '@/types/common';
 import logger from '@/utils/logger';
+import Joi from 'joi';
 
 interface UseEditProductState {
   formData: EditProductFormData;
@@ -48,6 +45,42 @@ const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 const OFFLINE_STORAGE_KEY_PREFIX = 'edit_product_pending_';
 
+// Field-level validators (without the .min(1) object constraint)
+const priceValidator = Joi.number().integer().min(1).max(999999900);
+const stockQtyValidator = Joi.number().integer().min(0);
+const isAvailableValidator = Joi.boolean();
+
+/**
+ * Validate only field-level constraints (not the "at least one field" constraint)
+ * Returns errors object with field-specific messages
+ */
+function validateFieldsOnly(formData: EditProductFormData): EditProductFormErrors {
+  const errors: EditProductFormErrors = {};
+
+  if (formData.price !== undefined) {
+    const { error } = priceValidator.validate(formData.price);
+    if (error) {
+      errors.price = error.message;
+    }
+  }
+
+  if (formData.stockQty !== undefined) {
+    const { error } = stockQtyValidator.validate(formData.stockQty);
+    if (error) {
+      errors.stockQty = error.message;
+    }
+  }
+
+  if (formData.isAvailable !== undefined) {
+    const { error } = isAvailableValidator.validate(formData.isAvailable);
+    if (error) {
+      errors.isAvailable = error.message;
+    }
+  }
+
+  return errors;
+}
+
 /**
  * useEditProduct hook
  * Manage product edit form state and API submission with retry logic
@@ -56,14 +89,16 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
   const shopId = useAuthStore((s) => s.shopId);
   const { updateProduct: updateProductStore } = useProductsStore();
 
-  // Initialize form with current product values
-  const initialFormData: EditProductFormData = {};
+  // Keep ref to latest formData to avoid stale closures
+  const formDataRef = useRef<EditProductFormData>({});
 
-  const [formData, setFormData] = useState<EditProductFormData>(initialFormData);
+  const [formData, setFormData] = useState<EditProductFormData>({});
   const [errors, setErrors] = useState<EditProductFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+
+  formDataRef.current = formData;
 
   // Ref to track field that needs validation after state update
   const fieldToValidateRef = useRef<keyof EditProductFormData | null>(null);
@@ -77,35 +112,35 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
       // Mark field for validation after state update
       fieldToValidateRef.current = field;
 
-      setFormData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
+      setFormData((prev) => {
+        const updated = { ...prev, [field]: value };
+        formDataRef.current = updated;
+        return updated;
+      });
 
       // Clear error for this field when user starts editing
-      if (errors[field]) {
-        setErrors((prev) => ({
-          ...prev,
-          [field]: undefined,
-        }));
-      }
+      setErrors((prev) => {
+        if (prev[field]) {
+          return { ...prev, [field]: undefined };
+        }
+        return prev;
+      });
 
       // Clear submit error when user makes changes
-      if (submitError) {
-        setSubmitError(null);
-      }
+      setSubmitError((prev) => (prev ? null : prev));
 
       logger.debug('Edit form field updated', { field, value });
     },
-    [errors, submitError]
+    []
   );
 
   /**
-   * Validate entire form
+   * Validate entire form (field-level only)
    * Returns true if valid, false otherwise
    */
   const validateForm = useCallback((): boolean => {
-    const validationErrors = validateEditProductForm(formData);
+    const currentFormData = formDataRef.current;
+    const validationErrors = validateFieldsOnly(currentFormData);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -116,7 +151,7 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
     setErrors({});
     logger.info('Edit form validation passed');
     return true;
-  }, [formData]);
+  }, []);
 
   /**
    * Validate single field
@@ -125,7 +160,8 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
    */
   const validateField = useCallback(
     (field: keyof EditProductFormData) => {
-      const error = validateEditProductField(field, formData[field]);
+      const latestValue = formDataRef.current[field];
+      const error = validateEditProductField(field, latestValue);
 
       setErrors((prev) => ({
         ...prev,
@@ -134,7 +170,7 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
 
       logger.debug('Edit field validated', { field, hasError: !!error });
     },
-    [formData]
+    []
   );
 
   /**
@@ -142,16 +178,21 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
    * This validates the field that was just updated via setFormField
    */
   useEffect(() => {
-    if (fieldToValidateRef.current && formData[fieldToValidateRef.current] !== undefined) {
+    if (fieldToValidateRef.current !== null) {
       const field = fieldToValidateRef.current;
-      const error = validateEditProductField(field, formData[field]);
+      const latestValue = formDataRef.current[field];
 
-      setErrors((prev) => ({
-        ...prev,
-        [field]: error || undefined,
-      }));
+      if (latestValue !== undefined) {
+        const error = validateEditProductField(field, latestValue);
 
-      logger.debug('Deferred field validation', { field, hasError: !!error });
+        setErrors((prev) => ({
+          ...prev,
+          [field]: error || undefined,
+        }));
+
+        logger.debug('Deferred field validation', { field, hasError: !!error });
+      }
+
       fieldToValidateRef.current = null;
     }
   }, [formData]);
@@ -166,7 +207,7 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
         storageKey,
         JSON.stringify({
           productId: product.id,
-          formData,
+          formData: formDataRef.current,
           timestamp: Date.now(),
         })
       );
@@ -177,7 +218,7 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
         error: err instanceof Error ? err.message : 'unknown',
       });
     }
-  }, [product.id, formData]);
+  }, [product.id]);
 
   /**
    * Clear pending changes from AsyncStorage
@@ -201,54 +242,57 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
    */
   const buildApiPayload = useCallback((): Record<string, unknown> => {
     const payload: Record<string, unknown> = {};
+    const currentFormData = formDataRef.current;
 
-    if (formData.price !== undefined) {
-      payload.price = formData.price;
+    if (currentFormData.price !== undefined) {
+      payload.price = currentFormData.price;
     }
 
-    if (formData.stockQty !== undefined) {
-      payload.stock_quantity = formData.stockQty;
+    if (currentFormData.stockQty !== undefined) {
+      payload.stock_quantity = currentFormData.stockQty;
     }
-
-    // Note: isAvailable is not part of the backend updateProductSchema
-    // It's handled via is_available column on the product
-    // For Sprint 12.4, we'll skip availability toggle in API
-    // if (formData.isAvailable !== undefined) {
-    //   payload.is_available = formData.isAvailable;
-    // }
 
     return payload;
-  }, [formData]);
+  }, []);
 
   /**
    * Submit product edit form with retry logic
    * Returns updated product on success, null on failure
+   *
+   * Order of checks:
+   * 1. Has changes? (business logic — sets submitError if not)
+   * 2. Field validation passes? (schema — sets errors on fields)
+   * 3. ShopId available? (auth — sets submitError)
+   * 4. Submit with retry
    */
   const submitProduct = useCallback(async (): Promise<Product | null> => {
-    // Validate form before submitting
-    if (!validateForm()) {
-      logger.warn('Cannot submit - form has validation errors');
-      return null;
-    }
+    const currentFormData = formDataRef.current;
 
-    // Check if there are actually changes
+    // 1. Check if there are actually changes FIRST (before field validation)
     const originalValues = {
       price: product.price,
       stockQty: product.stockQty,
       isAvailable: product.isActive,
     };
 
-    if (!hasProductChanges(originalValues, formData)) {
-      const error = 'Please change at least one field';
-      setSubmitError(error);
+    if (!hasProductChanges(originalValues, currentFormData)) {
+      const errorMsg = 'Please change at least one field';
+      setSubmitError(errorMsg);
       logger.warn('Submit cancelled - no changes', { productId: product.id });
       return null;
     }
 
+    // 2. Validate field-level constraints
+    if (!validateForm()) {
+      logger.warn('Cannot submit - form has validation errors');
+      return null;
+    }
+
+    // 3. Check shopId
     if (!shopId) {
-      const error = 'Shop ID not available';
-      setSubmitError(error);
-      logger.error('Submit product failed', { error, productId: product.id });
+      const errorMsg = 'Shop ID not available';
+      setSubmitError(errorMsg);
+      logger.error('Submit product failed', { error: errorMsg, productId: product.id });
       return null;
     }
 
@@ -305,13 +349,14 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
         lastError = err instanceof Error ? err : new Error('Unknown error');
         attempt += 1;
 
-        const isTimeoutError = lastError.message?.includes('timeout') ||
+        const isTimeoutError =
+          lastError.message?.includes('timeout') ||
           lastError.message?.includes('ECONNABORTED');
-        const isNetworkError = lastError.message?.includes('network') ||
+        const isNetworkError =
+          lastError.message?.includes('network') ||
           lastError.message?.includes('ECONNREFUSED');
 
         if ((isTimeoutError || isNetworkError) && attempt < MAX_RETRIES) {
-          // Calculate exponential backoff: 1s, 2s, 4s
           const backoffMs = INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1);
 
           logger.warn('Edit product attempt failed, retrying', {
@@ -323,10 +368,8 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
 
           setRetryCount(attempt);
 
-          // Wait before retrying
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
         } else {
-          // Non-retryable error or max retries reached
           break;
         }
       }
@@ -345,10 +388,7 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
         userFacingError = 'You are not authorized to edit this product.';
       } else if (errorMsg.includes('401')) {
         userFacingError = 'Your session expired. Please log in again.';
-      } else if (
-        errorMsg.includes('timeout') ||
-        errorMsg.includes('network')
-      ) {
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('network')) {
         userFacingError =
           'Network error. Please check your connection and try again.';
       }
@@ -365,7 +405,6 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
     return null;
   }, [
     product,
-    formData,
     shopId,
     validateForm,
     buildApiPayload,
@@ -386,7 +425,9 @@ export function useEditProduct(product: Product): UseEditProductState & UseEditP
    * Used when opening the edit screen
    */
   const resetForm = useCallback((prod: Product) => {
-    setFormData({});
+    const empty: EditProductFormData = {};
+    formDataRef.current = empty;
+    setFormData(empty);
     setErrors({});
     setSubmitError(null);
     setRetryCount(0);

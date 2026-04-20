@@ -38,22 +38,22 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
   onPress,
 }) => {
   const handleDismiss = useCallback(
-    (e: GestureResponderEvent) => {
-      e.stopPropagation();
+    (e?: GestureResponderEvent) => {
+      e?.stopPropagation?.();
       onDismiss?.(product.id);
     },
     [product.id, onDismiss]
   );
 
   const handleUndismiss = useCallback(
-    (e: GestureResponderEvent) => {
-      e.stopPropagation();
+    (e?: GestureResponderEvent) => {
+      e?.stopPropagation?.();
       onUndismiss?.(product.id);
     },
     [product.id, onUndismiss]
   );
 
-  // Format price as rupees
+  // Format price as rupees (currency always in paise internally)
   const priceInRupees = (product.price / 100).toFixed(2);
 
   // Determine stock status color
@@ -61,14 +61,12 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
     if (product.stockQuantity === 0) {
       return colors.error;
     }
-    if (product.stockQuantity <= 3) {
-      return colors.warning;
-    }
     return colors.warning;
   };
 
   return (
     <TouchableOpacity
+      testID="low-stock-item-container"
       style={[
         styles.container,
         isDismissed && styles.containerDismissed,
@@ -78,14 +76,17 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
       activeOpacity={0.7}
     >
       {/* Product Image */}
-      {product.thumbnailUrl && (
+      {product.thumbnailUrl ? (
         <Image
+          testID="low-stock-item-image"
           source={{ uri: product.thumbnailUrl }}
           style={styles.image}
         />
-      )}
-      {!product.thumbnailUrl && (
-        <View style={[styles.image, styles.imagePlaceholder]}>
+      ) : (
+        <View
+          testID="low-stock-item-image-placeholder"
+          style={[styles.image, styles.imagePlaceholder]}
+        >
           <MaterialCommunityIcons
             name="image-off"
             size={24}
@@ -118,7 +119,10 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
 
         {/* Stock Info */}
         <View style={styles.stockInfo}>
-          <View style={[styles.stockBadge, { backgroundColor: getStockStatusColor() }]}>
+          <View
+            testID="stock-badge"
+            style={[styles.stockBadge, { backgroundColor: getStockStatusColor() }]}
+          >
             <MaterialCommunityIcons
               name="alert-circle"
               size={16}
@@ -145,6 +149,7 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
       <View style={styles.actions}>
         {!isDismissed && onDismiss && (
           <TouchableOpacity
+            testID="dismiss-button"
             style={[styles.actionButton, styles.dismissButton]}
             onPress={handleDismiss}
           >
@@ -158,6 +163,7 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
 
         {isDismissed && onUndismiss && (
           <TouchableOpacity
+            testID="undismiss-button"
             style={[styles.actionButton, styles.undismissButton]}
             onPress={handleUndismiss}
           >
@@ -171,6 +177,7 @@ export const LowStockAlertItem: React.FC<LowStockAlertItemProps> = ({
 
         {product.isAvailable && (
           <MaterialCommunityIcons
+            testID="availability-icon"
             name="check-circle"
             size={20}
             color={colors.success}

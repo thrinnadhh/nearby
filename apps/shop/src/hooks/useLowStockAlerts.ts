@@ -44,6 +44,21 @@ interface UseLowStockAlertsActions {
   reset: () => void;
 }
 
+const DEFAULT_PAGINATION = {
+  page: 1,
+  total: 0,
+  pages: 0,
+  lowStockCount: 0,
+  threshold: 5,
+};
+
+const DEFAULT_QUERY_PARAMS: LowStockQueryParams = {
+  threshold: 5,
+  page: 1,
+  limit: 20,
+  sortBy: 'stock',
+};
+
 export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsActions {
   const shopId = useAuthStore((s) => s.shopId);
 
@@ -52,28 +67,21 @@ export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsA
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    total: 0,
-    pages: 0,
-    lowStockCount: 0,
-    threshold: 5,
-  });
+  const [pagination, setPagination] = useState({ ...DEFAULT_PAGINATION });
 
   // Keep track of current query params for "load more" and refresh
-  const queryParamsRef = useRef<LowStockQueryParams>({
-    threshold: 5,
-    page: 1,
-    limit: 20,
-    sortBy: 'stock',
-  });
+  const queryParamsRef = useRef<LowStockQueryParams>({ ...DEFAULT_QUERY_PARAMS });
+
+  // Flag to suppress auto-fetch after an explicit reset()
+  const suppressAutoFetchRef = useRef(false);
 
   // Fetch products
   const fetchProducts = useCallback(
     async (params: LowStockQueryParams = {}) => {
       if (!shopId) {
+        const message = 'Shop ID not available';
         logger.warn('shopId not available for low stock alerts fetch');
-        setError('Shop ID not available');
+        setError(message);
         return;
       }
 
@@ -109,7 +117,9 @@ export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsA
         });
       } catch (err) {
         const message =
-          err instanceof AppError ? err.message : 'Failed to fetch low stock products';
+          err instanceof AppError
+            ? err.message
+            : (err as { message?: string })?.message ?? 'Failed to fetch low stock products';
         setError(message);
         logger.error('Failed to fetch low stock products', { error: message });
       } finally {
@@ -151,7 +161,9 @@ export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsA
       });
     } catch (err) {
       const message =
-        err instanceof AppError ? err.message : 'Failed to load more products';
+        err instanceof AppError
+            ? err.message
+            : (err as { message?: string })?.message ?? 'Failed to load more products';
       setError(message);
       logger.error('Failed to load more products', { error: message });
     } finally {
@@ -165,7 +177,6 @@ export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsA
     setError(null);
 
     try {
-      // Reset to first page
       const response: LowStockAlertsResponse = await getLowStockProducts({
         ...queryParamsRef.current,
         page: 1,
@@ -186,7 +197,9 @@ export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsA
       });
     } catch (err) {
       const message =
-        err instanceof AppError ? err.message : 'Failed to refresh products';
+        err instanceof AppError
+            ? err.message
+            : (err as { message?: string })?.message ?? 'Failed to refresh products';
       setError(message);
       logger.error('Failed to refresh low stock products', { error: message });
     } finally {
@@ -225,34 +238,37 @@ export function useLowStockAlerts(): UseLowStockAlertsState & UseLowStockAlertsA
     await fetchProducts(queryParamsRef.current);
   }, [fetchProducts]);
 
-  // Reset state
+  // Reset state — suppresses auto-fetch to avoid immediate re-trigger
   const reset = useCallback(() => {
+    suppressAutoFetchRef.current = true;
     setProducts([]);
     setLoading(false);
     setRefreshing(false);
     setError(null);
-    setPagination({
-      page: 1,
-      total: 0,
-      pages: 0,
-      lowStockCount: 0,
-      threshold: 5,
-    });
-    queryParamsRef.current = {
-      threshold: 5,
-      page: 1,
-      limit: 20,
-      sortBy: 'stock',
-    };
+    setPagination({ ...DEFAULT_PAGINATION });
+    queryParamsRef.current = { ...DEFAULT_QUERY_PARAMS };
     logger.info('Low stock alerts hook reset');
   }, []);
 
-  // Initial fetch on mount (if no products already)
+  // Initial fetch on mount
+  // - If shopId missing, sets error immediately
+  // - Skipped after an explicit reset() to avoid infinite loops
   useEffect(() => {
-    if (shopId && products.length === 0 && !loading) {
-      fetchProducts();
+    if (suppressAutoFetchRef.current) {
+      suppressAutoFetchRef.current = false;
+      return;
     }
-  }, [shopId, products.length, loading, fetchProducts]);
+
+    if (!shopId) {
+      setError('Shop ID not available');
+      logger.warn('useLowStockAlerts: No shopId on mount');
+      return;
+    }
+
+    fetchProducts();
+    // Run only on mount (shopId stabilises on first render)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     products,

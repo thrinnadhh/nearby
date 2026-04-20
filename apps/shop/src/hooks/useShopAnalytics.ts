@@ -16,7 +16,7 @@ import logger from '@/utils/logger';
 
 interface UseShopAnalyticsResult {
   data: AnalyticsData | null;
-  topProducts: any[];
+  topProducts: unknown[];
   loading: boolean;
   error: string | null;
   dateRange: AnalyticsDateRange;
@@ -86,8 +86,13 @@ export function useShopAnalytics(): UseShopAnalyticsResult {
           productsCount: products.length,
         });
       } catch (err) {
+        // Propagate the original error message so callers can display it
         const message =
-          err instanceof AppError ? err.message : 'Failed to fetch analytics';
+          err instanceof AppError
+            ? err.message
+            : err instanceof Error
+            ? err.message
+            : 'Failed to fetch analytics';
         setError(message);
         logger.error('Analytics fetch failed', {
           shopId,
@@ -102,7 +107,7 @@ export function useShopAnalytics(): UseShopAnalyticsResult {
   );
 
   const retry = useCallback(() => {
-    fetchAnalytics(dateRange);
+    return fetchAnalytics(dateRange);
   }, [fetchAnalytics, dateRange]);
 
   // Initial fetch

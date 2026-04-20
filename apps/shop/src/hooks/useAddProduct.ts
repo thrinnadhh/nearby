@@ -4,7 +4,7 @@
  * Integrates with useProductsStore for real-time updates
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { client } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { useProductsStore } from '@/store/products';
@@ -68,33 +68,36 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<{ uri: string; size: number } | null>(null);
 
+  // Keep a ref to the latest formData for use in callbacks that may have stale closures
+  const formDataRef = useRef<ProductFormData>(INITIAL_FORM_DATA);
+  formDataRef.current = formData;
+
   /**
    * Set a single form field
    * Clears field error when user starts typing
    */
   const setFormField = useCallback(
     <K extends keyof ProductFormData>(field: K, value: ProductFormData[K]) => {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
+      setFormData((prev) => {
+        const updated = { ...prev, [field]: value };
+        formDataRef.current = updated;
+        return updated;
+      });
 
       // Clear error for this field when user starts editing
-      if (errors[field]) {
-        setErrors((prev) => ({
-          ...prev,
-          [field]: undefined,
-        }));
-      }
+      setErrors((prev) => {
+        if (prev[field]) {
+          return { ...prev, [field]: undefined };
+        }
+        return prev;
+      });
 
       // Clear submit error when user makes changes
-      if (submitError) {
-        setSubmitError(null);
-      }
+      setSubmitError((prev) => (prev ? null : prev));
 
       logger.debug('Form field updated', { field, value });
     },
-    [errors, submitError]
+    []
   );
 
   /**
@@ -109,10 +112,11 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
       size: number;
     } | null) => {
       if (!image) {
-        setFormData((prev) => ({
-          ...prev,
-          image: null,
-        }));
+        setFormData((prev) => {
+          const updated = { ...prev, image: null };
+          formDataRef.current = updated;
+          return updated;
+        });
         setImagePreview(null);
         logger.info('Image cleared');
         return;
@@ -137,14 +141,18 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
         });
       }
 
-      setFormData((prev) => ({
-        ...prev,
-        image: {
-          uri: image.uri,
-          name: image.name,
-          type: image.type,
-        },
-      }));
+      setFormData((prev) => {
+        const updated = {
+          ...prev,
+          image: {
+            uri: image.uri,
+            name: image.name,
+            type: image.type,
+          },
+        };
+        formDataRef.current = updated;
+        return updated;
+      });
 
       setImagePreview({
         uri: image.uri,
@@ -152,12 +160,12 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
       });
 
       // Clear image error
-      if (errors.image) {
-        setErrors((prev) => ({
-          ...prev,
-          image: undefined,
-        }));
-      }
+      setErrors((prev) => {
+        if (prev.image) {
+          return { ...prev, image: undefined };
+        }
+        return prev;
+      });
 
       logger.info('Image selected', {
         name: image.name,
@@ -165,7 +173,7 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
         type: image.type,
       });
     },
-    [errors.image]
+    []
   );
 
   /**
@@ -173,7 +181,8 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
    * Returns true if valid, false otherwise
    */
   const validateForm = useCallback((): boolean => {
-    const validationErrors = validateProductForm(formData);
+    const currentFormData = formDataRef.current;
+    const validationErrors = validateProductForm(currentFormData);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -184,15 +193,18 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
     setErrors({});
     logger.info('Form validation passed');
     return true;
-  }, [formData]);
+  }, []);
 
   /**
    * Validate single field
    * Used for field-level validation
+   * Always reads the latest value from formDataRef to avoid stale closure issues
    */
   const validateField = useCallback(
     (field: keyof ProductFormData) => {
-      const error = validateProductField(field, formData[field]);
+      // Use formDataRef to get the most up-to-date value
+      const latestValue = formDataRef.current[field];
+      const error = validateProductField(field, latestValue);
 
       setErrors((prev) => ({
         ...prev,
@@ -201,7 +213,7 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
 
       logger.debug('Field validated', { field, hasError: !!error });
     },
-    [formData]
+    []
   );
 
   /**
@@ -228,25 +240,36 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
     try {
       // Build FormData for multipart upload
       const formDataPayload = new FormData();
+      const currentFormData = formDataRef.current;
 
       // Add text fields
-      const payload = toApiPayload(formData);
+      const payload = toApiPayload(currentFormData);
       Object.entries(payload).forEach(([key, value]) => {
         formDataPayload.append(key, String(value));
       });
 
       // Add image file
-      if (formData.image && imagePreview) {
+      if (currentFormData.image && imagePreview) {
         // Fetch the image file from URI
-        const response = await fetch(formData.image.uri);
+        const response = await fetch(currentFormData.image.uri);
         const blob = await response.blob();
 
         // Create File object (or Blob for React Native)
-        formDataPayload.append('image', blob, `product-${Date.now()}.${formData.image.type === 'image/jpeg' ? 'jpg' : formData.image.type === 'image/png' ? 'png' : 'webp'}`);
+        formDataPayload.append(
+          'image',
+          blob,
+          `product-${Date.now()}.${
+            currentFormData.image.type === 'image/jpeg'
+              ? 'jpg'
+              : currentFormData.image.type === 'image/png'
+              ? 'png'
+              : 'webp'
+          }`
+        );
 
         logger.info('Image added to form data', {
-          name: formData.image.name,
-          type: formData.image.type,
+          name: currentFormData.image.name,
+          type: currentFormData.image.type,
         });
       }
 
@@ -294,12 +317,13 @@ export function useAddProduct(): UseAddProductState & UseAddProductActions {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, shopId, imagePreview, validateForm, updateProduct]);
+  }, [shopId, imagePreview, validateForm, updateProduct]);
 
   /**
    * Clear entire form to initial state
    */
   const clearForm = useCallback(() => {
+    formDataRef.current = INITIAL_FORM_DATA;
     setFormData(INITIAL_FORM_DATA);
     setErrors({});
     setSubmitError(null);

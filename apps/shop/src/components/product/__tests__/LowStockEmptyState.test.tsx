@@ -157,12 +157,13 @@ describe('LowStockEmptyState', () => {
       ).toBeTruthy();
     });
 
-    it('should not show error message when dismissed', () => {
-      const { queryByText } = render(
+    it('should show error message even when dismissed (error takes priority)', () => {
+      const { getByText } = render(
         <LowStockEmptyState isDismissedAllCleared={true} error="Some error" />
       );
 
-      expect(queryByText(/Some error/)).toBeNull();
+      // Error state takes priority over dismissed state
+      expect(getByText(/Some error/)).toBeTruthy();
     });
 
     it('should not show retry button when dismissed', () => {

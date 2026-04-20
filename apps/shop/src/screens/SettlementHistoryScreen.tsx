@@ -92,7 +92,7 @@ export default function SettlementHistoryScreen() {
   const isEmpty = settlements.length === 0 && !loading;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} testID="settlement-history-screen">
       {/* Offline indicator */}
       {isOffline && (
         <View style={styles.offlineIndicator}>
@@ -124,7 +124,7 @@ export default function SettlementHistoryScreen() {
       />
 
       {/* Pagination controls */}
-      {pages > 1 && !isEmpty && (
+      {pages > 0 && !loading && (
         <View style={styles.paginationContainer}>
           <TouchableOpacity
             style={[

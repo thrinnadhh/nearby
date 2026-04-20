@@ -71,28 +71,19 @@ const kycSubmitSchema = Joi.object({
 }).unknown(false);
 
 const bankDetailsSchema = Joi.object({
-  bank_account_number: Joi.string()
+  bankAccountNumber: Joi.string()
     .pattern(/^\d{9,18}$/)
     .required()
     .messages({
       'string.pattern.base': 'Bank account must be 9-18 digits',
     }),
-  bank_ifsc: Joi.string()
+  bankIFSC: Joi.string()
     .pattern(/^[A-Z]{4}0[A-Z0-9]{6}$/)
     .required()
     .messages({
       'string.pattern.base': 'IFSC must be 11 characters (e.g., HDFC0001234)',
     }),
-  bank_account_name: Joi.string().min(3).max(60).required(),
-}).unknown(false);
-
-const vehicleDetailsSchema = Joi.object({
-  vehicle_number: Joi.string()
-    .pattern(/^[A-Z]{2}[\dA-Z]{2}[A-Z]{2}\d{4}$/)
-    .required()
-    .messages({
-      'string.pattern.base': 'Vehicle number must be valid (e.g., DL01AB1234)',
-    }),
+  bankAccountName: Joi.string().min(3).max(60).required(),
 }).unknown(false);
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -367,7 +358,7 @@ router.post(
 // ────────────────────────────────────────────────────────────────────────────────
 
 router.patch(
-  '/delivery-partners/:id/bank',
+  '/delivery-partners/:id',
   authenticate,
   roleGuard(['delivery']),
   validatePartnerUUID,
@@ -377,36 +368,35 @@ router.patch(
       const { error, value } = bankDetailsSchema.validate(req.body);
 
       if (error) {
-        logger.warn('Partner bank update validation failed', { error: error.message });
+        logger.warn('Partner update validation failed', { error: error.message });
         return res.status(400).json(
           errorResponse(VALIDATION_ERROR, error.details[0].message)
         );
       }
 
-      const { bank_account_number, bank_ifsc, bank_account_name } = value;
+      const { bankAccountNumber, bankIFSC, bankAccountName } = value;
 
-      logger.info('Partner bank update requested', { partnerId: id, userId: req.user.userId });
+      logger.info('Partner update requested', { partnerId: id, userId: req.user.userId });
 
-      // ─── Check authorization first (before database lookup for security) ─────
-      if (id !== req.user.userId) {
-        logger.warn('Partner bank update: Unauthorized access attempt', {
-          partnerId: id,
-          userId: req.user.userId,
-        });
-        return res.status(403).json(
-          errorResponse(UNAUTHORIZED, 'Not authorized to update this partner.')
-        );
-      }
-
-      // ─── Verify partner exists ────────────────────────────────────────────────
+      // ─── Verify ownership ────────────────────────────────────────────────────
       const { data: partner, error: partnerError } = await supabase
         .from('delivery_partners')
-        .select('id')
+        .select('id, user_id')
         .eq('id', id)
         .single();
 
       if (partnerError || !partner) {
-        logger.warn('Partner bank update: Partner not found', { id });
+        logger.warn('Partner update: Partner not found', { id });
+        return res.status(404).json(
+          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
+        );
+      }
+
+      if (partner.user_id !== req.user.userId) {
+        logger.warn('Partner update: Unauthorized access attempt', {
+          partnerId: id,
+          userId: req.user.userId,
+        });
         return res.status(404).json(
           errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
         );
@@ -416,9 +406,9 @@ router.patch(
       const { error: updateError } = await supabase
         .from('delivery_partners')
         .update({
-          bank_account_number,
-          bank_ifsc,
-          bank_account_name,
+          bank_account_number: bankAccountNumber,
+          bank_ifsc: bankIFSC,
+          bank_account_name: bankAccountName,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id);
@@ -438,9 +428,9 @@ router.patch(
       res.json(
         successResponse({
           id,
-          bank_account_number,
-          bank_ifsc,
-          bank_account_name,
+          bankAccountNumber,
+          bankIFSC,
+          bankAccountName,
         })
       );
     } catch (err) {
@@ -451,151 +441,6 @@ router.patch(
 );
 
 // ────────────────────────────────────────────────────────────────────────────────
-// PATCH /delivery-partners/:id/vehicle
-// Update vehicle details (vehicle number, etc.)
-// ────────────────────────────────────────────────────────────────────────────────
-
-router.patch(
-  '/delivery-partners/:id/vehicle',
-  authenticate,
-  roleGuard(['delivery']),
-  validatePartnerUUID,
-  async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      const { error, value } = vehicleDetailsSchema.validate(req.body);
-
-      if (error) {
-        logger.warn('Partner vehicle update validation failed', { error: error.message });
-        return res.status(400).json(
-          errorResponse(VALIDATION_ERROR, error.details[0].message)
-        );
-      }
-
-      const { vehicle_number } = value;
-
-      logger.info('Partner vehicle update requested', { partnerId: id, userId: req.user.userId });
-
-      // ─── Check authorization first (before database lookup for security) ─────
-      if (id !== req.user.userId) {
-        logger.warn('Partner vehicle update: Unauthorized access attempt', {
-          partnerId: id,
-          userId: req.user.userId,
-        });
-        return res.status(403).json(
-          errorResponse(UNAUTHORIZED, 'Not authorized to update this partner.')
-        );
-      }
-
-      // ─── Verify partner exists ────────────────────────────────────────────────
-      const { data: partner, error: partnerError } = await supabase
-        .from('delivery_partners')
-        .select('id')
-        .eq('id', id)
-        .single();
-
-      if (partnerError || !partner) {
-        logger.warn('Partner vehicle update: Partner not found', { id });
-        return res.status(404).json(
-          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
-        );
-      }
-
-      // ─── Update vehicle details ──────────────────────────────────────────────
-      const { error: updateError } = await supabase
-        .from('delivery_partners')
-        .update({
-          vehicle_number,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        logger.error('Partner vehicle update: Failed to update', {
-          error: updateError.message,
-          partnerId: id,
-        });
-        return res.status(500).json(
-          errorResponse('VEHICLE_UPDATE_FAILED', 'Failed to update vehicle details. Please try again.')
-        );
-      }
-
-      logger.info('Partner vehicle updated', { partnerId: id });
-
-      res.json(
-        successResponse({
-          id,
-          vehicle_number,
-        })
-      );
-    } catch (err) {
-      logger.error('Partner vehicle update error', { error: err.message });
-      next(err);
-    }
-  }
-);
-
-// ────────────────────────────────────────────────────────────────────────────────
-// GET /delivery-partners/:id/stats
-// Get delivery partner statistics (total deliveries, earnings, ratings, etc.)
-// ────────────────────────────────────────────────────────────────────────────────
-
-router.get(
-  '/delivery-partners/:id/stats',
-  authenticate,
-  roleGuard(['delivery']),
-  validatePartnerUUID,
-  async (req, res, next) => {
-    try {
-      const { id } = req.params;
-
-      logger.info('Partner stats requested', { partnerId: id, userId: req.user.userId });
-
-      // ─── Check authorization first (before database lookup for security) ─────
-      if (id !== req.user.userId) {
-        logger.warn('Partner stats: Unauthorized access attempt', {
-          partnerId: id,
-          userId: req.user.userId,
-        });
-        return res.status(403).json(
-          errorResponse(UNAUTHORIZED, 'Not authorized to view these stats.')
-        );
-      }
-
-      // ─── Verify partner exists ────────────────────────────────────────────────
-      const { data: partner, error: partnerError } = await supabase
-        .from('delivery_partners')
-        .select(
-          'id, total_deliveries, avg_rating, total_earnings, active_orders'
-        )
-        .eq('id', id)
-        .single();
-
-      if (partnerError || !partner) {
-        logger.warn('Partner stats: Partner not found', { id });
-        return res.status(404).json(
-          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
-        );
-      }
-
-      logger.info('Partner stats retrieved', { partnerId: id });
-
-      res.json(
-        successResponse({
-          totalDeliveries: partner.total_deliveries || 0,
-          avgRating: partner.avg_rating || 0,
-          totalEarnings: partner.total_earnings || 0,
-          activeOrders: partner.active_orders || 0,
-          earnings: partner.total_earnings || 0,
-        })
-      );
-    } catch (err) {
-      logger.error('Partner stats error', { error: err.message });
-      next(err);
-    }
-  }
-);
-
 // PATCH /delivery-partners/:id/toggle-online
 // Toggle online/offline status
 // Rate limited: max 10 toggles per minute
@@ -619,58 +464,19 @@ router.patch(
   async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { is_online, latitude, longitude } = req.body;
+      const { isOnline } = req.body;
 
-      if (typeof is_online !== 'boolean') {
+      if (typeof isOnline !== 'boolean') {
         return res.status(400).json(
-          errorResponse(VALIDATION_ERROR, 'is_online must be a boolean')
+          errorResponse(VALIDATION_ERROR, 'isOnline must be a boolean')
         );
-      }
-
-      // Validate coordinates if provided
-      if (is_online && (latitude !== undefined || longitude !== undefined)) {
-        if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-          return res.status(400).json(
-            errorResponse(VALIDATION_ERROR, 'Latitude and longitude must be numbers')
-          );
-        }
-
-        // Validate India geographic bounds
-        const INDIA_LAT_MIN = 8.4;
-        const INDIA_LAT_MAX = 37.6;
-        const INDIA_LON_MIN = 68.7;
-        const INDIA_LON_MAX = 97.4;
-
-        if (
-          latitude < INDIA_LAT_MIN ||
-          latitude > INDIA_LAT_MAX ||
-          longitude < INDIA_LON_MIN ||
-          longitude > INDIA_LON_MAX
-        ) {
-          return res.status(400).json(
-            errorResponse(VALIDATION_ERROR, 'Coordinates must be within India bounds')
-          );
-        }
       }
 
       logger.info('Partner toggle-online requested', {
         partnerId: id,
         userId: req.user.userId,
-        isOnline: is_online,
-        latitude,
-        longitude,
+        isOnline,
       });
-
-      // ─── Check authorization first (before database lookup for security) ─────
-      if (id !== req.user.userId) {
-        logger.warn('Partner toggle: Unauthorized access attempt', {
-          partnerId: id,
-          userId: req.user.userId,
-        });
-        return res.status(403).json(
-          errorResponse(UNAUTHORIZED, 'Not authorized to toggle this partner.')
-        );
-      }
 
       // ─── Check rate limit ────────────────────────────────────────────────────
       const allowed = await toggleRateLimiter(id);
@@ -681,10 +487,10 @@ router.patch(
         );
       }
 
-      // ─── Verify partner exists and get KYC status ─────────────────────────────
+      // ─── Verify ownership ────────────────────────────────────────────────────
       const { data: partner, error: partnerError } = await supabase
         .from('delivery_partners')
-        .select('id, kyc_status')
+        .select('id, user_id, kyc_status')
         .eq('id', id)
         .single();
 
@@ -695,13 +501,23 @@ router.patch(
         );
       }
 
+      if (partner.user_id !== req.user.userId) {
+        logger.warn('Partner toggle: Unauthorized access attempt', {
+          partnerId: id,
+          userId: req.user.userId,
+        });
+        return res.status(404).json(
+          errorResponse(PARTNER_NOT_FOUND, 'Delivery partner not found.')
+        );
+      }
+
       // ─── Check KYC status ────────────────────────────────────────────────────
-      if (is_online && partner.kyc_status !== 'approved') {
+      if (isOnline && partner.kyc_status !== 'approved') {
         logger.warn('Partner toggle: Cannot go online — KYC not approved', {
           partnerId: id,
           kycStatus: partner.kyc_status,
         });
-        return res.status(403).json(
+        return res.status(400).json(
           errorResponse(
             'KYC_NOT_APPROVED',
             'You must complete KYC verification before going online.'
@@ -709,33 +525,12 @@ router.patch(
         );
       }
 
-      // ─── Store location in Redis if going online ─────────────────────────────
-      if (is_online && latitude !== undefined && longitude !== undefined) {
-        const locationKey = `delivery:${id}:location`;
-        await redis.setex(
-          locationKey,
-          86400, // 24 hours TTL
-          JSON.stringify({
-            latitude,
-            longitude,
-            timestamp: new Date().toISOString(),
-          })
-        );
-        logger.info('Partner location stored in Redis', { partnerId: id });
-      }
-
       // ─── Update online status ────────────────────────────────────────────────
       const updateData = {
-        is_online,
-        last_online_at: is_online ? new Date().toISOString() : null,
+        is_online: isOnline,
+        last_online_at: isOnline ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       };
-
-      // Update latitude and longitude if provided
-      if (latitude !== undefined && longitude !== undefined) {
-        updateData.latitude = latitude;
-        updateData.longitude = longitude;
-      }
 
       const { error: updateError } = await supabase
         .from('delivery_partners')
@@ -754,14 +549,14 @@ router.patch(
 
       logger.info('Partner online status toggled', {
         partnerId: id,
-        isOnline: is_online,
+        isOnline,
       });
 
       res.json(
         successResponse({
           id,
-          is_online,
-          last_online_at: is_online ? new Date().toISOString() : null,
+          is_online: isOnline,
+          last_online_at: isOnline ? new Date().toISOString() : null,
         })
       );
     } catch (err) {

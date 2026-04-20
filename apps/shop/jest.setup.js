@@ -9,6 +9,9 @@ process.env.EXPO_PUBLIC_SOCKET_URL = 'http://localhost:3001';
 // React Native global
 global.__DEV__ = true;
 
+// Register @testing-library/react-native custom matchers (toHaveStyle, toHaveTextContent, etc.)
+require('@testing-library/react-native/extend-expect');
+
 // Mock expo-secure-store before any imports
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
@@ -51,6 +54,12 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn().mockResolvedValue(undefined),
   removeItem: jest.fn().mockResolvedValue(undefined),
   clear: jest.fn().mockResolvedValue(undefined),
+  useAsyncStorage: jest.fn(() => ({
+    getItem: jest.fn().mockResolvedValue(null),
+    setItem: jest.fn().mockResolvedValue(undefined),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+    mergeItem: jest.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 // Mock NetInfo
@@ -62,16 +71,25 @@ jest.mock('@react-native-community/netinfo', () => ({
   }),
 }));
 
-// Mock socket.io-client
-jest.mock('socket.io-client', () => ({
-  io: jest.fn(() => ({
+// Mock socket.io-client — this factory is used by tests that do NOT call
+// jest.mock('socket.io-client') themselves. Tests that DO call
+// jest.mock('socket.io-client') without a factory will use __mocks__/socket.io-client.js.
+jest.mock('socket.io-client', () => {
+  const mockSocket = {
     on: jest.fn(),
     off: jest.fn(),
     emit: jest.fn(),
+    connect: jest.fn(),
     disconnect: jest.fn(),
     id: 'mock-socket-id',
-  })),
-}));
+    connected: true,
+  };
+  const mockIo = jest.fn(() => mockSocket);
+  // Support both default import (import io from ...) and named import (import { io } from ...)
+  mockIo.default = mockIo;
+  mockIo.io = mockIo;
+  return mockIo;
+});
 
 // Mock @react-navigation/native
 jest.mock('@react-navigation/native', () => {
@@ -87,6 +105,61 @@ jest.mock('@react-navigation/native', () => {
     })),
   };
 });
+
+// Mock react-native-date-picker — not installed, use virtual mock
+jest.mock(
+  'react-native-date-picker',
+  () => {
+    const React = require('react');
+    return function DatePicker({ testID }) {
+      return React.createElement('View', { testID: testID || 'date-picker' });
+    };
+  },
+  { virtual: true }
+);
+
+// Mock @react-native-community/slider — not installed, use virtual mock
+jest.mock(
+  '@react-native-community/slider',
+  () => {
+    const React = require('react');
+    return function Slider(props) {
+      return React.createElement('View', { testID: props.testID || 'slider' });
+    };
+  },
+  { virtual: true }
+);
+
+// Mock expo-file-system — native module not available in test environment
+jest.mock('expo-file-system', () => ({
+  downloadAsync: jest.fn().mockResolvedValue({ uri: '/tmp/test.pdf', status: 200 }),
+  getInfoAsync: jest.fn().mockResolvedValue({ exists: true, size: 1024 }),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+  makeDirectoryAsync: jest.fn().mockResolvedValue(undefined),
+  readAsStringAsync: jest.fn().mockResolvedValue(''),
+  writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
+  documentDirectory: '/tmp/documents/',
+  cacheDirectory: '/tmp/cache/',
+  EncodingType: { UTF8: 'utf8', Base64: 'base64' },
+}));
+
+// Mock expo-document-picker
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn().mockResolvedValue({
+    type: 'cancel',
+  }),
+  DocumentPickerResult: {},
+}));
+
+// Mock expo-sharing — not installed, use virtual mock
+jest.mock(
+  'expo-sharing',
+  () => ({
+    shareAsync: jest.fn().mockResolvedValue(undefined),
+    isAvailableAsync: jest.fn().mockResolvedValue(true),
+  }),
+  { virtual: true }
+);
 
 // Suppress console.log/warn in tests for clean output
 const originalConsoleError = console.error;
@@ -112,7 +185,7 @@ afterEach(() => {
   jest.clearAllMocks();
   jest.clearAllTimers();
   // jest.resetModules(); // Disabled - breaks React hook dispatcher between tests
-  
+
   // Reset Zustand earnings store state between tests
   // This prevents state leakage across test suites
   const { useEarningsStore } = require('@/store/earnings');

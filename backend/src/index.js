@@ -144,14 +144,15 @@ app.get('/readiness', async (req, res) => {
 });
 
 // 7. Mount all route files under /api/v1/
+// NOTE: productsRouter mounted FIRST before /shops routes to ensure specific routes match first
+// e.g., /api/v1/shops/:shopId/products/low-stock must match productsRouter, not be caught by shopsRouter
+app.use('/api/v1', productsRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/auth', deliveryPartnersRouter);
 app.use('/api/v1/shops', shopsRouter);
 app.use('/api/v1/shops', analyticsProductsRouter);
 app.use('/api/v1/shops', chatsRouter);
 app.use('/api/v1/shops', earningsRouter);
-// Product routes include both nested shop creation/bulk endpoints and product update endpoints.
-app.use('/api/v1', productsRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/delivery', deliveryRouter);
 app.use('/api/v1', deliveryPartnersRouter);

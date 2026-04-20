@@ -226,56 +226,6 @@ router.post(
 );
 
 /**
- * GET /api/v1/shops/:shopId/products
- * List all products for a shop with pagination.
- * Requires: Authentication + shop_owner role + ownership of shop
- * Query params: page (1-indexed, default 1), limit (1-100, default 50)
- * Response: 200 with paginated products list
- */
-router.get(
-  '/shops/:shopId/products',
-  authenticate,
-  roleGuard(['shop_owner']),
-  shopOwnerGuard(),
-  async (req, res, next) => {
-    try {
-      const { shopId } = req.params;
-      const { userId } = req.user;
-      const page = req.query.page ? Math.max(1, parseInt(req.query.page, 10)) : 1;
-      const limit = req.query.limit ? Math.max(1, Math.min(100, parseInt(req.query.limit, 10))) : 50;
-
-      const result = await ProductService.listShopProducts(userId, shopId, page, limit);
-
-      logger.info('List products endpoint success', {
-        userId,
-        shopId,
-        page,
-        limit,
-        count: result.products.length,
-        total: result.total,
-      });
-
-      return res.status(200).json(
-        successResponse(result.products, {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          pages: result.pages,
-        })
-      );
-    } catch (err) {
-      logger.error('List products endpoint error', {
-        error: err.message,
-        shopId: req.params.shopId,
-        userId: req.user?.userId,
-      });
-      return next(err);
-    }
-  }
-);
-
-
-/**
  * GET /api/v1/shops/:shopId/products/low-stock
  * List products below low stock threshold for a shop.
  * Requires: Authentication + shop_owner role + ownership of shop
@@ -330,6 +280,55 @@ router.get(
       );
     } catch (err) {
       logger.error('Low stock alerts endpoint error', {
+        error: err.message,
+        shopId: req.params.shopId,
+        userId: req.user?.userId,
+      });
+      return next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/shops/:shopId/products
+ * List all products for a shop with pagination.
+ * Requires: Authentication + shop_owner role + ownership of shop
+ * Query params: page (1-indexed, default 1), limit (1-100, default 50)
+ * Response: 200 with paginated products list
+ */
+router.get(
+  '/shops/:shopId/products',
+  authenticate,
+  roleGuard(['shop_owner']),
+  shopOwnerGuard(),
+  async (req, res, next) => {
+    try {
+      const { shopId } = req.params;
+      const { userId } = req.user;
+      const page = req.query.page ? Math.max(1, parseInt(req.query.page, 10)) : 1;
+      const limit = req.query.limit ? Math.max(1, Math.min(100, parseInt(req.query.limit, 10))) : 50;
+
+      const result = await ProductService.listShopProducts(userId, shopId, page, limit);
+
+      logger.info('List products endpoint success', {
+        userId,
+        shopId,
+        page,
+        limit,
+        count: result.products.length,
+        total: result.total,
+      });
+
+      return res.status(200).json(
+        successResponse(result.products, {
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+          pages: result.pages,
+        })
+      );
+    } catch (err) {
+      logger.error('List products endpoint error', {
         error: err.message,
         shopId: req.params.shopId,
         userId: req.user?.userId,

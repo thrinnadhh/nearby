@@ -81,7 +81,10 @@
       "Bash(grep -n \"semibold\\\\|semiBold\" /Users/trinadh/projects/nearby/apps/customer/app/chat/[shopId].tsx)",
       "Bash(grep -n \"semibold\" /Users/trinadh/projects/nearby/apps/customer/app/chat/[shopId].tsx)",
       "Bash(grep -n \"fontFamily\\\\.semibold\" /Users/trinadh/projects/nearby/apps/customer/app/chat/[shopId].tsx)",
-      "mcp__code-review-graph__semantic_search_nodes_tool"
+      "mcp__code-review-graph__semantic_search_nodes_tool",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('jest', {}\\), indent=2\\)\\); print\\(json.dumps\\(list\\(d.get\\('dependencies',{}\\).keys\\(\\)\\) + list\\(d.get\\('devDependencies',{}\\).keys\\(\\)\\), indent=2\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('version'\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('jest', {}\\), indent=2\\)\\)\")"
     ],
     "additionalDirectories": [
       "/Users/trinadh/.claude",

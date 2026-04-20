@@ -33,14 +33,15 @@ export const LowStockEmptyState: React.FC<LowStockEmptyStateProps> = ({
   onRetry,
   error,
 }) => {
-  const showError = error && !isDismissedAllCleared;
+  const showError = !!error; // Error state always takes priority
 
   return (
-    <View style={styles.container}>
+    <View testID="empty-state-container" style={styles.container}>
       <View style={styles.content}>
         {showError ? (
           <>
             <MaterialCommunityIcons
+              testID="empty-state-error-icon"
               name="alert-circle"
               size={64}
               color={colors.error}
@@ -50,6 +51,7 @@ export const LowStockEmptyState: React.FC<LowStockEmptyStateProps> = ({
             <Text style={styles.message}>{error}</Text>
             {onRetry && (
               <TouchableOpacity
+                testID="retry-button"
                 style={styles.button}
                 onPress={onRetry}
               >
@@ -66,6 +68,7 @@ export const LowStockEmptyState: React.FC<LowStockEmptyStateProps> = ({
         ) : isDismissedAllCleared ? (
           <>
             <MaterialCommunityIcons
+              testID="empty-state-info-icon"
               name="information"
               size={64}
               color={colors.info}
@@ -79,6 +82,7 @@ export const LowStockEmptyState: React.FC<LowStockEmptyStateProps> = ({
         ) : (
           <>
             <MaterialCommunityIcons
+              testID="empty-state-success-icon"
               name="check-all"
               size={64}
               color={colors.success}
@@ -88,10 +92,11 @@ export const LowStockEmptyState: React.FC<LowStockEmptyStateProps> = ({
             <Text style={styles.message}>
               No products below{' '}
               <Text style={styles.threshold}>{threshold} {threshold === 1 ? 'unit' : 'units'}</Text>.
-              All inventory levels are healthy.
+              {' '}All inventory levels are healthy.
             </Text>
             {onAdjustThreshold && (
               <TouchableOpacity
+                testID="adjust-threshold-button"
                 style={styles.button}
                 onPress={onAdjustThreshold}
               >

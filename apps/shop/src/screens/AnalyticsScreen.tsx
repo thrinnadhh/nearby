@@ -71,7 +71,7 @@ export default function AnalyticsScreen() {
   }
 
   const isEmpty = !data || (!data.today && data.topProducts?.length === 0);
-  const showError = error && !isEmpty;
+  const showError = !!error; // Error always takes priority over empty state
   const showOffline = isOffline && isEmpty;
 
   return (

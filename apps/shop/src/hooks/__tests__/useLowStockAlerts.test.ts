@@ -159,6 +159,11 @@ describe('useLowStockAlerts hook', () => {
     });
 
     it('AC3: pagination should work with page and limit', async () => {
+      // Initial mock must have pages > 1 so loadMore is not blocked
+      const page1Response = {
+        ...MOCK_RESPONSE,
+        meta: { page: 1, total: 40, pages: 2, lowStockCount: 40, threshold: 5 },
+      };
       const page2Response = {
         ...MOCK_RESPONSE,
         data: [],
@@ -166,7 +171,7 @@ describe('useLowStockAlerts hook', () => {
       };
 
       (lowStockService.getLowStockProducts as jest.Mock).mockResolvedValue(
-        MOCK_RESPONSE
+        page1Response
       );
 
       const { result } = renderHook(() => useLowStockAlerts());
@@ -469,15 +474,18 @@ describe('useLowStockAlerts hook', () => {
         refreshPromise
       );
 
-      const refreshPromiseFromHook = act(async () => {
-        const p = result.current.refresh();
+      // Start the refresh without awaiting - check refreshing state after state flush
+      act(() => {
+        result.current.refresh();
+      });
+
+      // After act, refreshing should be true (state has been flushed)
+      await waitFor(() => {
         expect(result.current.refreshing).toBe(true);
-        return p;
       });
 
       resolveRefresh(MOCK_RESPONSE);
 
-      await refreshPromiseFromHook;
       await waitFor(() => {
         expect(result.current.refreshing).toBe(false);
       });
