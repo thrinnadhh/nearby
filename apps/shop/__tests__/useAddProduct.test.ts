@@ -323,7 +323,10 @@ describe('useAddProduct', () => {
     test('should validate individual field', () => {
       const { result } = renderHook(() => useAddProduct());
 
-      act(() => {        result.current.setFormField('name', 'Fresh Tomatoes');        result.current.validateField('name');
+      // Use an invalid (too short) name to trigger validation error
+      act(() => {
+        result.current.setFormField('name', 'x');
+        result.current.validateField('name');
       });
 
       expect(result.current.errors.name).toBeTruthy();

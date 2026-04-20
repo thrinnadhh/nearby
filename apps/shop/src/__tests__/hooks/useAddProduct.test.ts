@@ -285,8 +285,13 @@ describe('useAddProduct hook', () => {
         result.current.validateForm(); // create errors
       });
 
+      // Separate acts: first update the field, then validate
+      // (setFormField updater runs during state flush, not synchronously)
       act(() => {
         result.current.setFormField('name', 'Valid Product Name');
+      });
+
+      act(() => {
         result.current.validateField('name');
       });
 

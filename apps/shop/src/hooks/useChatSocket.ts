@@ -19,6 +19,11 @@ interface UseChatSocketResult {
 // Socket instance (singleton to prevent multiple connections)
 let socketInstance: Socket | null = null;
 
+/** Reset socket instance — used in tests to prevent stale singleton across test runs */
+export function _resetSocketInstance(): void {
+  socketInstance = null;
+}
+
 export function useChatSocket(shopId?: string): UseChatSocketResult {
   const userId = useAuthStore((s) => s.userId);
   const token = useAuthStore((s) => s.token);

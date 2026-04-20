@@ -53,8 +53,8 @@ describe('SettlementItem', () => {
       <SettlementItem settlement={MOCK_SETTLEMENT} />
     );
 
-    expect(getByText(/Apr 10/)).toBeTruthy();
-    expect(getByText(/Apr 16/)).toBeTruthy();
+    expect(getByText(/10 Apr/)).toBeTruthy();
+    expect(getByText(/16 Apr/)).toBeTruthy();
   });
 
   it('should show breakdown amounts', () => {
@@ -133,11 +133,12 @@ describe('SettlementItem', () => {
   });
 
   it('should format net amount correctly', () => {
-    const { getByText } = render(
+    const { getAllByText } = render(
       <SettlementItem settlement={MOCK_SETTLEMENT} />
     );
 
-    // formatCurrency converts paise to rupees
-    expect(getByText(/₹/)).toBeTruthy();
+    // formatCurrency converts paise to rupees — multiple ₹ symbols present
+    const rupeeElements = getAllByText(/₹/);
+    expect(rupeeElements.length).toBeGreaterThan(0);
   });
 });

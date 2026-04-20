@@ -101,7 +101,7 @@ export function useShopSettings(): UseShopSettingsReturn {
           error: errorMessage,
         });
 
-        throw err; // Re-throw for caller to handle UI feedback
+        // Error state is set above; do not re-throw to avoid unhandled promise rejections in callers
       } finally {
         setSaving(false);
       }

@@ -4,7 +4,7 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useChat } from '@/hooks/useChat';
-import { useChatSocket } from '@/hooks/useChatSocket';
+import { useChatSocket, _resetSocketInstance } from '@/hooks/useChatSocket';
 import { useAuthStore } from '@/store/auth';
 import { useChatStore } from '@/store/chat';
 import { getConversations, getMessages } from '@/services/chat';
@@ -189,6 +189,8 @@ describe('useChatSocket', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset module-level socket singleton to prevent stale state across tests
+    _resetSocketInstance();
     mockSocket = {
       connected: true,
       id: 'socket123',

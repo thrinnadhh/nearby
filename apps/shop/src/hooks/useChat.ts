@@ -98,7 +98,9 @@ export function useChat(): UseChatResult {
         });
       } catch (err) {
         const message =
-          err instanceof AppError ? err.message : 'Failed to fetch conversations';
+          err instanceof AppError
+            ? err.message
+            : (err as Error)?.message ?? 'Failed to fetch conversations';
         setError(message);
         logger.error('Conversations fetch failed', {
           shopId,
@@ -147,7 +149,9 @@ export function useChat(): UseChatResult {
         });
       } catch (err) {
         const message =
-          err instanceof AppError ? err.message : 'Failed to fetch messages';
+          err instanceof AppError
+            ? err.message
+            : (err as Error)?.message ?? 'Failed to fetch messages';
         setError(message);
         logger.error('Messages fetch failed', {
           shopId,

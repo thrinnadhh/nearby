@@ -121,17 +121,13 @@ describe('useShopSettings', () => {
       expect(result.current.settings).toBeTruthy();
     });
 
-    try {
-      act(() => {
-        result.current.updateSettings({ deliveryRadiusKm: 8 });
-      });
+    await act(async () => {
+      await result.current.updateSettings({ deliveryRadiusKm: 8 });
+    });
 
-      await waitFor(() => {
-        expect(result.current.error).toBeTruthy();
-      });
-    } catch {
-      // Expected
-    }
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
   });
 
   it('should provide default settings when none loaded', async () => {

@@ -129,8 +129,10 @@ describe('Earnings Endpoints', () => {
       expect(response.status).toBe(200);
       const data = response.body.data;
       
-      // Verify commission exists in response
-      expect(data).toHaveProperty('gross_revenue') || expect(data).toHaveProperty('total_paise');
+      // Verify commission exists in response - endpoint returns _paise properties
+      expect(data).toHaveProperty('gross_revenue_paise');
+      expect(data).toHaveProperty('commission_paise');
+      expect(data).toHaveProperty('net_revenue_paise');
     });
 
     it('should support date filtering with date_from', async () => {
@@ -359,15 +361,15 @@ describe('Earnings Endpoints', () => {
 
   describe('POST /api/v1/shops/:shopId/earnings/withdraw', () => {
     beforeEach(async () => {
-      // Create bank account for shop
-      await supabase.from('delivery_partners').upsert({
-        id: shopOwnerId,
-        user_id: shopOwnerId,
-        kyc_status: 'approved',
-        bank_account_number: '1234567890',
-        bank_ifsc: 'HDFC0000123',
-        bank_account_name: 'Test Account',
-      });
+      // Update shop with bank account for withdrawal
+      await supabase
+        .from('shops')
+        .update({
+          bank_account_number: '1234567890',
+          bank_ifsc: 'HDFC0000123',
+          bank_account_name: 'Test Account',
+        })
+        .eq('id', shopId);
     });
 
     it('should initiate withdrawal request', async () => {

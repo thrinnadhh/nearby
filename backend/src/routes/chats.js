@@ -12,6 +12,7 @@ import { authenticate } from '../middleware/auth.js';
 import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
 import { supabase } from '../services/supabase.js';
 import { AppError, INTERNAL_ERROR } from '../utils/errors.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -253,6 +254,115 @@ router.get(
         error: err.message,
         shopId: req.params.shopId,
         customerId: req.params.customerId,
+        userId: req.user?.userId,
+      });
+      next(err);
+    }
+  }
+);
+
+// ────────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/chats
+// Send a message (customer or shop owner)
+// ────────────────────────────────────────────────────────────────────────────────
+
+const sendMessageSchema = Joi.object({
+  orderId: Joi.string().uuid().required(),
+  message: Joi.string().min(1).max(500).required(),
+});
+
+router.post(
+  '/',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const { error: validationError, value } = sendMessageSchema.validate(req.body);
+      if (validationError) {
+        return res.status(400).json(
+          errorResponse('VALIDATION_ERROR', validationError.details[0].message)
+        );
+      }
+
+      const { orderId, message } = value;
+      const userId = req.user.userId;
+      const role = req.user.role;
+
+      logger.info('Send message endpoint called', {
+        orderId,
+        userId,
+        role,
+        messageLength: message.length,
+      });
+
+      // Get order to find shop and customer
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, shop_id, customer_id')
+        .eq('id', orderId)
+        .single();
+
+      if (orderError || !order) {
+        logger.warn('Send message: Order not found', { orderId });
+        return res.status(404).json(
+          errorResponse('ORDER_NOT_FOUND', 'Order not found')
+        );
+      }
+
+      // Verify user is part of this order
+      const isAuthorized = (role === 'customer' && userId === order.customer_id) ||
+                           (role === 'shop_owner' && userId === order.shop_id);
+
+      if (!isAuthorized) {
+        logger.warn('Send message: Unauthorized user', { orderId, userId, role });
+        return res.status(403).json(
+          errorResponse('UNAUTHORIZED', 'You are not authorized to send messages for this order')
+        );
+      }
+
+      // Create message
+      const messageId = uuidv4();
+      const { data: createdMessage, error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          id: messageId,
+          order_id: orderId,
+          shop_id: order.shop_id,
+          customer_id: order.customer_id,
+          sender_type: role === 'customer' ? 'customer' : 'shop',
+          sender_id: userId,
+          body: message,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (messageError) {
+        logger.error('Send message: Failed to create message', {
+          error: messageError.message,
+          orderId,
+          userId,
+        });
+        throw new AppError(INTERNAL_ERROR, 'Failed to send message', 500);
+      }
+
+      logger.info('Send message endpoint success', {
+        orderId,
+        userId,
+        messageId,
+      });
+
+      res.status(201).json(
+        successResponse({
+          id: createdMessage.id,
+          message: createdMessage.body,
+          createdAt: createdMessage.created_at,
+        })
+      );
+    } catch (err) {
+      logger.error('Send message endpoint error', {
+        error: err.message,
+        orderId: req.body?.orderId,
         userId: req.user?.userId,
       });
       next(err);
