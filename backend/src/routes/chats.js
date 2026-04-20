@@ -94,13 +94,13 @@ router.get(
         throw new AppError(INTERNAL_ERROR, 'Failed to fetch messages', 500);
       }
 
-      // Format messages
+      // Format messages - return with original snake_case field names to match API contract
       const formatted = (messages || []).map((m) => ({
-        messageId: m.id,
-        senderType: m.sender_type,
+        id: m.id,
+        sender_type: m.sender_type,
         body: m.body,
-        createdAt: m.created_at,
-        isRead: m.is_read,
+        created_at: m.created_at,
+        is_read: m.is_read,
       }));
 
       logger.info('Get messages endpoint success', {
