@@ -219,7 +219,26 @@ const createMockQueryBuilder = (table) => {
       return this;
     }),
 
+    range: jest.fn(function(from, to) {
+      return this;
+    }),
+
     order: jest.fn(function(column, options) {
+      return this;
+    }),
+
+    // is() filter — handles IS NULL / IS NOT NULL checks
+    is: jest.fn(function(column, value) {
+      // For IS NULL check: filter out records where column is not null
+      // For IS NOT NULL: filter out records where column is null
+      // We store this as an additional filter (simple implementation)
+      // This overrides the previous filter — limitation of single-filter mock
+      if (value === null) {
+        // is null — keep records where the column IS null
+        filterColumn = column;
+        filterValue = null;
+        filterOp = 'is_null';
+      }
       return this;
     }),
 
