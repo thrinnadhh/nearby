@@ -17,33 +17,43 @@ const storage = new Map();
  */
 const createMockQueryBuilder = (table) => {
   // State for this specific query builder instance
-  let filterColumn = null;
-  let filterValue = null;
-  let filterOp = null;
+  const filters = []; // Array of {column, value, op} to support multiple chained filters
   let selectedColumns = null;
   let isDelete = false;
   let operationType = null; // 'insert', 'update', 'upsert', or null for queries
   let operationData = null; // parameters for the operation
+  
+  const applyFilters = (tableData) => {
+    // Apply all filters in sequence (AND logic)
+    return tableData.filter(row => {
+      return filters.every(filter => {
+        const { column, value, op } = filter;
+        const cellValue = row[column];
+        
+        if (op === 'eq') return cellValue === value;
+        if (op === 'neq') return cellValue !== value;
+        if (op === 'lt') return cellValue < value;
+        if (op === 'lte') return cellValue <= value;
+        if (op === 'gt') return cellValue > value;
+        if (op === 'gte') return cellValue >= value;
+        if (op === 'is') return value === null ? cellValue === null : cellValue !== null;
+        return true;
+      });
+    });
+  };
   
   const executeDelete = () => {
     if (!storage.has(table)) {
       return { data: [], error: null };
     }
 
-    const tableData = storage.get(table);
+    let tableData = storage.get(table);
 
-    // Apply filter if present
-    if (filterColumn && filterValue !== null) {
-      const filtered = tableData.filter(r => {
-        if (filterOp === 'eq') return r[filterColumn] !== filterValue;
-        if (filterOp === 'neq') return r[filterColumn] === filterValue;
-        if (filterOp === 'lt') return r[filterColumn] >= filterValue;
-        if (filterOp === 'lte') return r[filterColumn] > filterValue;
-        if (filterOp === 'gt') return r[filterColumn] <= filterValue;
-        if (filterOp === 'gte') return r[filterColumn] < filterValue;
-        return true;
-      });
-      storage.set(table, filtered);
+    // Apply all filters and then delete matching rows
+    if (filters.length > 0) {
+      const filtered = applyFilters(tableData);
+      const remainingData = tableData.filter(row => !filtered.includes(row));
+      storage.set(table, remainingData);
     } else {
       // No filter = clear entire table
       storage.delete(table);
@@ -62,17 +72,9 @@ const createMockQueryBuilder = (table) => {
 
     let tableData = storage.get(table);
 
-    // Apply filter if present
-    if (filterColumn && filterValue !== null) {
-      tableData = tableData.filter(r => {
-        if (filterOp === 'eq') return r[filterColumn] === filterValue;
-        if (filterOp === 'neq') return r[filterColumn] !== filterValue;
-        if (filterOp === 'lt') return r[filterColumn] < filterValue;
-        if (filterOp === 'lte') return r[filterColumn] <= filterValue;
-        if (filterOp === 'gt') return r[filterColumn] > filterValue;
-        if (filterOp === 'gte') return r[filterColumn] >= filterValue;
-        return false;
-      });
+    // Apply all filters
+    if (filters.length > 0) {
+      tableData = applyFilters(tableData);
     }
 
     // Apply column selection if specified
@@ -207,44 +209,32 @@ const createMockQueryBuilder = (table) => {
 
     // Filter operators - all return 'this' to enable chaining
     eq: jest.fn(function(column, value) {
-      filterColumn = column;
-      filterValue = value;
-      filterOp = 'eq';
+      filters.push({ column, value, op: 'eq' });
       return this;
     }),
 
     neq: jest.fn(function(column, value) {
-      filterColumn = column;
-      filterValue = value;
-      filterOp = 'neq';
+      filters.push({ column, value, op: 'neq' });
       return this;
     }),
 
     lt: jest.fn(function(column, value) {
-      filterColumn = column;
-      filterValue = value;
-      filterOp = 'lt';
+      filters.push({ column, value, op: 'lt' });
       return this;
     }),
 
     lte: jest.fn(function(column, value) {
-      filterColumn = column;
-      filterValue = value;
-      filterOp = 'lte';
+      filters.push({ column, value, op: 'lte' });
       return this;
     }),
 
     gt: jest.fn(function(column, value) {
-      filterColumn = column;
-      filterValue = value;
-      filterOp = 'gt';
+      filters.push({ column, value, op: 'gt' });
       return this;
     }),
 
     gte: jest.fn(function(column, value) {
-      filterColumn = column;
-      filterValue = value;
-      filterOp = 'gte';
+      filters.push({ column, value, op: 'gte' });
       return this;
     }),
 
@@ -267,16 +257,9 @@ const createMockQueryBuilder = (table) => {
 
     // is() filter — handles IS NULL / IS NOT NULL checks
     is: jest.fn(function(column, value) {
-      // For IS NULL check: filter out records where column is not null
-      // For IS NOT NULL: filter out records where column is null
-      // We store this as an additional filter (simple implementation)
-      // This overrides the previous filter — limitation of single-filter mock
-      if (value === null) {
-        // is null — keep records where the column IS null
-        filterColumn = column;
-        filterValue = null;
-        filterOp = 'is_null';
-      }
+      // For IS NULL check: keep records where column is null
+      // For IS NOT NULL: keep records where column is not null
+      filters.push({ column, value, op: 'is' });
       return this;
     }),
 
@@ -286,23 +269,14 @@ const createMockQueryBuilder = (table) => {
         return { data: null, error: null };
       }
 
-      const tableData = storage.get(table) || [];
-      let filtered = tableData;
+      let tableData = storage.get(table) || [];
 
-      // Apply filter if present
-      if (filterColumn && filterValue !== null) {
-        filtered = tableData.filter(record => {
-          if (filterOp === 'eq') return record[filterColumn] === filterValue;
-          if (filterOp === 'neq') return record[filterColumn] !== filterValue;
-          if (filterOp === 'lt') return record[filterColumn] < filterValue;
-          if (filterOp === 'lte') return record[filterColumn] <= filterValue;
-          if (filterOp === 'gt') return record[filterColumn] > filterValue;
-          if (filterOp === 'gte') return record[filterColumn] >= filterValue;
-          return false;
-        });
+      // Apply all filters
+      if (filters.length > 0) {
+        tableData = applyFilters(tableData);
       }
 
-      const found = filtered[0];
+      const found = tableData[0];
 
       // Apply column selection if needed
       if (found && selectedColumns) {
