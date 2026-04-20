@@ -362,6 +362,10 @@ const supabase = {
     storage.clear();
   },
 
+  __clearTable: (table) => {
+    storage.delete(table);
+  },
+
   __getStorage: () => storage,
 };
 
