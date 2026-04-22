@@ -26,7 +26,7 @@ export const useAssignmentStore = create<AssignmentState & AssignmentActions>(
 
     setCurrentAssignment: (assignment) => {
       logger.info('Current assignment updated', {
-        orderId: assignment?.id,
+        orderId: assignment?.orderId,
       });
       set({
         currentAssignment: assignment,

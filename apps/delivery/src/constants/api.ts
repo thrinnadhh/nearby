@@ -21,3 +21,7 @@ export const PARTNER_ENDPOINTS = {
   UPDATE_PROFILE: '/delivery-partners/:id',
   TOGGLE_ONLINE: '/delivery-partners/:id/toggle-online',
 };
+
+export const SOCKET_URL = isDev
+  ? 'http://localhost:3001'
+  : 'https://api.nearby.app';

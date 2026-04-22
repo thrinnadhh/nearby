@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   infoRowBorder: {
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingTopL: 16,
+    paddingTop: 16,
     marginTop: 16,
   },
   label: {

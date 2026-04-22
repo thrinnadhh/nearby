@@ -4,25 +4,12 @@
 
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '@/constants/api';
+import { SocketAssignmentEvent } from '@/types/assignment';
 import logger from '@/utils/logger';
 
 // Global socket instance
 let socket: Socket | null = null;
-
-interface SocketAssignmentEvent {
-  orderId: string;
-  orderData: {
-    id: string;
-    shopName: string;
-    totalAmount: number;
-    customerPhone: string;
-    deliveryAddress: string;
-    items: Array<{ productName: string; quantity: number }>;
-  };
-  distanceKm: number;
-  estimatedPickupTime: number;
-  estimatedDeliveryTime: number;
-}
+let deliveryAssignedCallback: ((assignment: SocketAssignmentEvent) => void) | null = null;
 
 /**
  * Initialize Socket.IO connection with JWT authentication
@@ -74,6 +61,7 @@ export function disconnectSocket(): void {
     socket.disconnect();
     socket = null;
   }
+  deliveryAssignedCallback = null;
 }
 
 /**
@@ -160,6 +148,8 @@ export function onDeliveryAssigned(
     return;
   }
 
+  deliveryAssignedCallback = callback;
+
   socket.on('delivery:assigned', (assignment: SocketAssignmentEvent) => {
     logger.info('New delivery assignment received', {
       orderId: assignment.orderId,
@@ -170,51 +160,72 @@ export function onDeliveryAssigned(
 }
 
 /**
- * Remove listener for delivery assignments
+ * Stop listening for delivery assignments
  */
 export function offDeliveryAssigned(): void {
-  if (!socket) return;
-  socket.off('delivery:assigned');
-}
-
-/**
- * Listen for assignment rejections from other partners
- * Event: 'delivery:assignment-rejected'
- */
-export function onAssignmentRejected(
-  callback: (data: { orderId: string; reason: string }) => void
-): void {
-  if (!socket) {
-    logger.error('Socket.IO not initialized');
+  if (!socket || !deliveryAssignedCallback) {
     return;
   }
 
-  socket.on('delivery:assignment-rejected', callback);
+  socket.off('delivery:assigned', deliveryAssignedCallback);
+  deliveryAssignedCallback = null;
 }
 
 /**
- * Remove listener for assignment rejections
+ * Accept a delivery assignment
  */
-export function offAssignmentRejected(): void {
-  if (!socket) return;
-  socket.off('delivery:assignment-rejected');
-}
-
-/**
- * Send GPS location to backend
- */
-export function sendGPS(partnerId: string, lat: number, lng: number): void {
+export function emitAcceptAssignment(
+  orderId: string,
+  callback?: (error?: Error) => void
+): void {
   if (!socket) {
-    logger.error('Socket.IO not initialized');
+    callback?.(new Error('Socket.IO not initialized'));
+    return;
+  }
+
+  socket.emit('delivery:accept', { orderId }, (response?: {
+    success: boolean;
+    error?: string;
+  }) => {
+    if (response?.success) {
+      logger.info('Assignment accepted', { orderId });
+      callback?.();
+    } else {
+      logger.error('Failed to accept assignment', {
+        orderId,
+        error: response?.error,
+      });
+      callback?.(new Error(response?.error || 'Failed to accept assignment'));
+    }
+  });
+}
+
+/**
+ * Reject a delivery assignment
+ */
+export function emitRejectAssignment(
+  orderId: string,
+  reason: string,
+  callback?: (error?: Error) => void
+): void {
+  if (!socket) {
+    callback?.(new Error('Socket.IO not initialized'));
     return;
   }
 
   socket.emit(
-    'delivery:gps',
-    { partnerId, latitude: lat, longitude: lng },
-    (error?: { code: string; message: string }) => {
-      if (error) {
-        logger.error('Failed to send GPS', { error: error.message });
+    'delivery:reject',
+    { orderId, reason },
+    (response?: { success: boolean; error?: string }) => {
+      if (response?.success) {
+        logger.info('Assignment rejected', { orderId, reason });
+        callback?.();
+      } else {
+        logger.error('Failed to reject assignment', {
+          orderId,
+          error: response?.error,
+        });
+        callback?.(new Error(response?.error || 'Failed to reject assignment'));
       }
     }
   );

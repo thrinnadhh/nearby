@@ -169,7 +169,7 @@ describe('AssignmentNotificationBanner', () => {
     const { getByTestId } = render(
       <AssignmentNotificationBanner
         onPress={mockOnPress}
-        testID="error-banner"
+        // testID="error-banner" (not a valid prop)
       />
     );
 
