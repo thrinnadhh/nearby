@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Broadcast Endpoints (13.7.1-13.7.2)', () => {
   let adminToken;
+  let customerToken;
 
   const makeToken = (role = 'admin') =>
     jwt.sign(
@@ -15,6 +16,7 @@ describe('Admin Broadcast Endpoints (13.7.1-13.7.2)', () => {
 
   beforeAll(async () => {
     adminToken = makeToken('admin');
+    customerToken = makeToken('customer');
   });
   
   describe('13.7.1: POST /admin/broadcast (send campaign)', () => {
@@ -174,7 +176,7 @@ describe('Admin Broadcast Endpoints (13.7.1-13.7.2)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .post('/api/v1/admin/broadcast')
-        .set('Authorization', `Bearer mock-customer-token`)
+        .set('Authorization', `Bearer ${customerToken}`)
         .send({
           title: 'Good Title',
           body: 'This is a message',
@@ -353,7 +355,7 @@ describe('Admin Broadcast Endpoints (13.7.1-13.7.2)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/broadcast/history')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });

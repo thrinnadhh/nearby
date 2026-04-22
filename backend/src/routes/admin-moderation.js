@@ -187,7 +187,7 @@ router.post('/:id/remove', authenticate, roleGuard(['admin']), async (req, res, 
     // Remove from Typesense if applicable
     if (content_type === 'product') {
       try {
-        await typesense.deleteDocument('products', id);
+        await typesense.collections('products').documents(id).delete();
       } catch (e) {
         logger.error('Typesense delete failed', { error: e.message });
       }
@@ -241,7 +241,7 @@ router.post('/schema/setup', authenticate, roleGuard(['admin']), async (req, res
     
     try {
       // Try to create collection (will fail if exists, which is fine)
-      await typesense.createCollection(schema);
+      await typesense.collections().create(schema);
       logger.info('Moderation schema created');
     } catch (e) {
       if (!e.message.includes('already exists')) {

@@ -198,6 +198,17 @@ router.get('/:id/earnings', authenticate, roleGuard(['admin']), async (req, res,
     const { days = 30 } = req.query;
     const daysNum = Math.min(365, Math.max(1, parseInt(days) || 30));
     
+    // Verify partner exists
+    const { data: partner, error: fetchError } = await supabase
+      .from('delivery_partners')
+      .select('id')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError || !partner) {
+      return next(new AppError(NOT_FOUND, 'Delivery partner not found', 404));
+    }
+    
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysNum);
     

@@ -382,6 +382,7 @@ describe('Earnings Endpoints', () => {
           amount_paise: 50000, // ₹500
         });
 
+      console.log('Withdrawal response:', { status: response.status, body: response.body });
       expect([200, 201, 202]).toContain(response.status);
       expect(response.body).toHaveProperty('success');
     });

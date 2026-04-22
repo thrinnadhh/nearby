@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
   let adminToken;
+  let customerToken;
 
   const makeToken = (role = 'admin') =>
     jwt.sign(
@@ -15,6 +16,7 @@ describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
 
   beforeAll(async () => {
     adminToken = makeToken('admin');
+    customerToken = makeToken('customer');
   });
   
   describe('13.6.4: GET /admin/delivery-partners (list with pagination, search, sort)', () => {
@@ -114,7 +116,7 @@ describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/delivery-partners')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });
@@ -177,7 +179,7 @@ describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .patch('/api/v1/admin/delivery-partners/dp-123/suspend')
-        .set('Authorization', `Bearer mock-customer-token`)
+        .set('Authorization', `Bearer ${customerToken}`)
         .send({ reason: 'Multiple complaints' });
       
       expect(res.status).toBe(403);
@@ -235,7 +237,7 @@ describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .patch('/api/v1/admin/delivery-partners/dp-123/reinstate')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });
@@ -328,7 +330,7 @@ describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/delivery-partners/dp-123/earnings')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });

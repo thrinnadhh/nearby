@@ -5,16 +5,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Integration Tests (13.7.6-13.7.8)', () => {
   let adminToken;
+  let shopToken;
+  let shopPendingKycToken;
 
-  const makeToken = (role = 'admin') =>
+  const makeToken = (role = 'admin', shopId = null) =>
     jwt.sign(
-      { userId: uuidv4(), phone: '+919999999999', role },
+      { 
+        userId: uuidv4(), 
+        phone: '+919999999999', 
+        role,
+        ...(shopId && { shopId }) // Add shopId for shop_owner role
+      },
       process.env.JWT_SECRET || 'test-secret',
       { expiresIn: '24h' }
     );
 
   beforeAll(async () => {
     adminToken = makeToken('admin');
+    shopToken = makeToken('shop_owner', 'shop-001');
+    shopPendingKycToken = makeToken('shop_owner', 'shop-pending-001');
   });
   
   describe('13.7.6: Integration - KYC flow (end-to-end)', () => {
@@ -22,7 +31,7 @@ describe('Admin Integration Tests (13.7.6-13.7.8)', () => {
       // Step 1: Shop registration (POST /shops)
       const shopRes = await request(app)
         .post('/api/v1/shops')
-        .set('Authorization', `Bearer mock-shop-jwt`)
+        .set('Authorization', `Bearer ${shopToken}`)
         .send({
           name: 'Test Kirana Store',
           category: 'kirana',
@@ -68,7 +77,7 @@ describe('Admin Integration Tests (13.7.6-13.7.8)', () => {
       // Step 5: Shop can now access orders (GET /orders with role check)
       const ordersRes = await request(app)
         .get('/api/v1/orders')
-        .set('Authorization', `Bearer mock-shop-jwt`);
+        .set('Authorization', `Bearer ${shopToken}`);
       
       // Should have shop access to orders endpoint
       expect([200, 403]).toContain(ordersRes.status);
@@ -89,7 +98,7 @@ describe('Admin Integration Tests (13.7.6-13.7.8)', () => {
       // Shop with pending KYC should not access orders
       const res = await request(app)
         .get('/api/v1/orders')
-        .set('Authorization', `Bearer mock-shop-pending-kyc-jwt`);
+        .set('Authorization', `Bearer ${shopPendingKycToken}`);
       
       // Depending on implementation, may be 403 or empty list
       expect([200, 403]).toContain(res.status);

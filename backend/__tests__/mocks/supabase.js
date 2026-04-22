@@ -379,6 +379,12 @@ const createMockQueryBuilder = (table) => {
       return this;
     }),
 
+    distinct: jest.fn(function() {
+      // For now, just return this - distinct is a no-op in the mock
+      // In real Supabase, this would remove duplicate rows based on selected columns
+      return this;
+    }),
+
     single: jest.fn(function() {
       // If we have a pending select result from insert().select(), use it
       if (this._pendingSelectResult) {
@@ -390,27 +396,38 @@ const createMockQueryBuilder = (table) => {
       return new Promise((resolve) => {
         let result;
         
-        if (operationType === 'select' || selectedColumns) {
-          const selectResult = executeSelect();
-          const found = selectResult.data[0] || null;
-          
-          // Don't filter columns if we have relationships - pass through all data
-          if (found) {
-            result = {
-              data: found,
-              error: null,
-            };
+        // If we have an insert operation, execute it and return the inserted record
+        if (operationType === 'insert') {
+          const insertResult = executeInsert(operationData);
+          result = {
+            data: Array.isArray(insertResult.data) ? insertResult.data[0] : insertResult.data,
+            error: insertResult.error,
+          };
+        } else {
+          // If we have filters applied, treat this as an implicit select
+          const hasFilters = filters.length > 0;
+          if (operationType === 'select' || selectedColumns || hasFilters) {
+            const selectResult = executeSelect();
+            const found = selectResult.data[0] || null;
+            
+            // Don't filter columns if we have relationships - pass through all data
+            if (found) {
+              result = {
+                data: found,
+                error: null,
+              };
+            } else {
+              result = {
+                data: null,
+                error: { message: 'No rows found' },
+              };
+            }
           } else {
             result = {
               data: null,
-              error: { message: 'No rows found' },
+              error: { message: 'No operation specified' },
             };
           }
-        } else {
-          result = {
-            data: null,
-            error: { message: 'No operation specified' },
-          };
         }
 
         resolve(result);
@@ -496,6 +513,33 @@ const supabase = {
       getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://example.com/file' } })),
     })),
   },
+
+  // Test helper methods for clearing and seeding data
+  __clear: jest.fn(function() {
+    storage.clear();
+  }),
+
+  __clearTable: jest.fn(function(tableName) {
+    if (storage.has(tableName)) {
+      storage.get(tableName).length = 0;
+    }
+  }),
+
+  __insertTestData: jest.fn(function(tableName, records) {
+    if (!storage.has(tableName)) {
+      storage.set(tableName, []);
+    }
+    const table = storage.get(tableName);
+    if (Array.isArray(records)) {
+      table.push(...records);
+    } else {
+      table.push(records);
+    }
+  }),
+
+  __getStorage: jest.fn(function() {
+    return storage;
+  }),
 };
 
 export { supabase };

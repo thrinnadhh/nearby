@@ -5,7 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../../src/services/supabase.js';
 
 describe('Admin Analytics Endpoints (13.6.1-13.6.3)', () => {
-  
+  let adminToken;
+  let customerToken;
 
   const makeToken = (role = 'admin') =>
     jwt.sign(
@@ -14,10 +15,9 @@ describe('Admin Analytics Endpoints (13.6.1-13.6.3)', () => {
       { expiresIn: '24h' }
     );
 
-  let adminToken;
-
   beforeAll(async () => {
     adminToken = makeToken('admin');
+    customerToken = makeToken('customer');
   });
   
   describe('13.6.1: GET /admin/analytics (summary metrics)', () => {
@@ -51,7 +51,7 @@ describe('Admin Analytics Endpoints (13.6.1-13.6.3)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/analytics')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });
@@ -157,7 +157,7 @@ describe('Admin Analytics Endpoints (13.6.1-13.6.3)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/analytics/daily')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });
@@ -235,7 +235,7 @@ describe('Admin Analytics Endpoints (13.6.1-13.6.3)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/analytics/top-shops')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });

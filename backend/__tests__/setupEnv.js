@@ -65,6 +65,33 @@ jest.mock('../src/services/r2.js', () => ({
   }),
 }));
 
+jest.mock('../src/services/typesense.js', () => {
+  const mockCollectionsWithName = (collectionName) => ({
+    create: jest.fn().mockResolvedValue({ name: collectionName || 'moderation' }),
+    documents: jest.fn(docId => ({
+      delete: jest.fn().mockResolvedValue({ id: docId }),
+    })),
+  });
+
+  return {
+    typesense: {
+      collections: jest.fn((name) => {
+        if (name) {
+          return mockCollectionsWithName(name);
+        }
+        return {
+          create: jest.fn().mockResolvedValue({ name: 'test-collection' }),
+          retrieve: jest.fn().mockResolvedValue([]),
+        };
+      }),
+    },
+    ensureTypesenseCollections: jest.fn().mockResolvedValue({
+      created: [],
+      existing: [],
+    }),
+  };
+});
+
 // Set test environment variables
 process.env.JWT_SECRET = 'test-secret-key';
 process.env.SUPABASE_URL = 'http://localhost:54321';

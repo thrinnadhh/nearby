@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
   let adminToken;
+  let customerToken;
 
   const makeToken = (role = 'admin') =>
     jwt.sign(
@@ -15,6 +16,7 @@ describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
 
   beforeAll(async () => {
     adminToken = makeToken('admin');
+    customerToken = makeToken('customer');
   });
   
   describe('13.6.8: GET /admin/moderation/queue (flagged content)', () => {
@@ -92,7 +94,7 @@ describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .get('/api/v1/admin/moderation/queue')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`);
       
       expect(res.status).toBe(403);
     });
@@ -148,7 +150,7 @@ describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .post('/api/v1/admin/moderation/review-123/approve')
-        .set('Authorization', `Bearer mock-customer-token`)
+        .set('Authorization', `Bearer ${customerToken}`)
         .send({ content_type: 'review' });
       
       expect(res.status).toBe(403);
@@ -233,7 +235,7 @@ describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
     it('should require admin role', async () => {
       const res = await request(app)
         .post('/api/v1/admin/moderation/review-123/remove')
-        .set('Authorization', `Bearer mock-customer-token`)
+        .set('Authorization', `Bearer ${customerToken}`)
         .send({ content_type: 'review' });
       
       expect(res.status).toBe(403);
@@ -263,32 +265,33 @@ describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
       const res = await request(app)
         .post('/api/v1/admin/moderation/schema/setup')
         .set('Authorization', `Bearer ${adminToken}`);
-      
-      expect([200, 404]).toContain(res.status);
-      if (res.status === 200) {
-        expect(res.body.data).toHaveProperty('schema_name', 'moderation');
-        expect(res.body.data).toHaveProperty('status', 'ready');
-        expect(res.body.data).toHaveProperty('fields');
-      }
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('schema_name', 'moderation');
+      expect(res.body.data).toHaveProperty('status', 'ready');
+      expect(res.body.data).toHaveProperty('fields');
     });
     
     it('should be idempotent (can call multiple times)', async () => {
       const res1 = await request(app)
         .post('/api/v1/admin/moderation/schema/setup')
         .set('Authorization', `Bearer ${adminToken}`);
-      
+
       const res2 = await request(app)
         .post('/api/v1/admin/moderation/schema/setup')
         .set('Authorization', `Bearer ${adminToken}`);
-      
-      expect([200, 404]).toContain(res1.status);
-      expect([200, 404]).toContain(res2.status);
+
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+      expect(res1.body.success).toBe(true);
+      expect(res2.body.success).toBe(true);
     });
     
     it('should require admin role', async () => {
       const res = await request(app)
         .post('/api/v1/admin/moderation/schema/setup')
-        .set('Authorization', `Bearer mock-customer-token`);
+        .set('Authorization', `Bearer ${customerToken}`)
       
       expect(res.status).toBe(403);
     });
