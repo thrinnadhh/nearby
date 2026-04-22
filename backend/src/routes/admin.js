@@ -12,6 +12,12 @@ import { refundPayment as cashfreeRefund } from '../services/cashfree.js';
 import { AppError, NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR } from '../utils/errors.js';
 import Joi from 'joi';
 
+// Sprint 13.6-13.7: Import new admin route modules
+import adminAnalyticsRouter from './admin-analytics.js';
+import adminPartnersRouter from './admin-partners.js';
+import adminModerationRouter from './admin-moderation.js';
+import adminBroadcastRouter from './admin-broadcast.js';
+
 const router = Router();
 
 const kycApproveSchema = Joi.object({ notes: Joi.string().max(500).optional() });
@@ -265,5 +271,12 @@ router.patch('/disputes/:id/resolve', authenticate, roleGuard(['admin']), valida
     return next(error);
   }
 });
+
+
+// Mount sub-routers for Sprint 13.6-13.7 endpoints
+router.use('/analytics', adminAnalyticsRouter);
+router.use('/delivery-partners', adminPartnersRouter);
+router.use('/moderation', adminModerationRouter);
+router.use('/broadcast', adminBroadcastRouter);
 
 export default router;
