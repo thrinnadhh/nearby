@@ -21,6 +21,24 @@ jest.mock('bullmq', () => ({
   })),
 }));
 
+// Mock Typesense service
+jest.mock('../src/services/typesense.js', () => {
+  const mockCollectionsMethods = {
+    retrieve: jest.fn().mockResolvedValue([]),
+    create: jest.fn(async (schema) => {
+      // Simulate successful collection creation
+      return { name: schema.name, status: 'ready' };
+    }),
+  };
+  
+  return {
+    typesense: {
+      collections: jest.fn(() => mockCollectionsMethods),
+    },
+    ensureTypesenseCollections: jest.fn().mockResolvedValue({ created: [], existing: [] }),
+  };
+});
+
 // Mock external services that require credentials
 jest.mock('../src/services/fcm.js', () => ({
   fcm: {

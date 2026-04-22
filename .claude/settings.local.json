@@ -88,7 +88,8 @@
     ],
     "additionalDirectories": [
       "/Users/trinadh/.claude",
-      "/Users/trinadh/projects/nearby"
+      "/Users/trinadh/projects/nearby",
+      "/Users/trinadh/projects/delivery/src/components"
     ]
   }
 }
