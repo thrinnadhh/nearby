@@ -38,6 +38,7 @@ import { globalLimiter } from './middleware/rateLimit.js';
 import { registerOrderRoom } from './socket/orderRoom.js';
 import { registerGpsTracker } from './socket/gpsTracker.js';
 import { registerChat } from './socket/chat.js';
+import { registerAdmin } from './socket/admin.js';
 import { registerShopStatus } from './socket/index.js';
 import { setRealtimeServer } from './socket/ioRegistry.js';
 
@@ -251,6 +252,7 @@ io.on('connection', (socket) => {
   registerGpsTracker(io, socket);
   registerChat(io, socket);
   registerShopStatus(io, socket);
+  registerAdmin(io, socket);
 
   socket.on('disconnect', () => {
     logger.debug('Socket.IO client disconnected', {

@@ -7,6 +7,7 @@
  * - Proper state tracking for filter chaining (eq, neq, lt, gt, gte, lte)
  * - RPC method support with JSON-RPC style responses
  * - Async/await for all operations (mimics real Supabase behavior)
+ * - Proper handling of .insert().select() chains
  */
 
 const storage = new Map();
@@ -26,6 +27,7 @@ const createMockQueryBuilder = (table) => {
   let operationData = null; // parameters for the operation
   let sortColumn = null;
   let sortAscending = true;
+  let pendingInsertData = null; // Track if insert().select() is chained
   
   const applyFilters = (tableData) => {
     // Apply all filters in sequence (AND logic)
@@ -49,56 +51,64 @@ const createMockQueryBuilder = (table) => {
   const applySort = (tableData) => {
     // Apply sorting if set
     if (sortColumn) {
-      tableData = tableData.sort((a, b) => {
+      return tableData.sort((a, b) => {
         const aVal = a[sortColumn];
         const bVal = b[sortColumn];
-        
-        // Handle null/undefined values
-        if (aVal == null && bVal == null) return 0;
-        if (aVal == null) return sortAscending ? 1 : -1;
-        if (bVal == null) return sortAscending ? -1 : 1;
-        
-        // Compare values
-        let comparison = 0;
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          comparison = aVal.localeCompare(bVal);
-        } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-          comparison = aVal - bVal;
-        } else {
-          comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-        }
-        
+        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
         return sortAscending ? comparison : -comparison;
       });
     }
     return tableData;
   };
-  
+
   const applyPagination = (tableData) => {
-    // Apply range/pagination if set
+    // Apply range limits if set
     if (rangeFrom !== null && rangeTo !== null) {
-      // rangeTo is inclusive, so we need to add 1
       return tableData.slice(rangeFrom, rangeTo + 1);
     }
     return tableData;
   };
-  
+
   const executeDelete = () => {
     if (!storage.has(table)) {
-      return { data: [], error: null };
+      return {
+        data: [],
+        error: null,
+      };
     }
 
     let tableData = storage.get(table);
 
-    // Apply all filters and then delete matching rows
     if (filters.length > 0) {
-      const filtered = applyFilters(tableData);
-      const remainingData = tableData.filter(row => !filtered.includes(row));
-      storage.set(table, remainingData);
-    } else {
-      // No filter = clear entire table
-      storage.delete(table);
+      const matchingIndices = tableData
+        .map((row, idx) => {
+          const matches = filters.every(filter => {
+            const { column, value, op } = filter;
+            const cellValue = row[column];
+            
+            if (op === 'eq') return cellValue === value;
+            if (op === 'neq') return cellValue !== value;
+            if (op === 'lt') return cellValue < value;
+            if (op === 'lte') return cellValue <= value;
+            if (op === 'gt') return cellValue > value;
+            if (op === 'gte') return cellValue >= value;
+            if (op === 'is') return value === null ? cellValue === null : cellValue !== null;
+            return true;
+          });
+          return matches ? idx : -1;
+        })
+        .filter(idx => idx >= 0);
+
+      const toDelete = matchingIndices.map(idx => tableData[idx]);
+      tableData = tableData.filter((_, idx) => !matchingIndices.includes(idx));
+      storage.set(table, tableData);
+      return {
+        data: toDelete,
+        error: null,
+      };
     }
+
+    storage.delete(table);
 
     return {
       data: [],
@@ -112,6 +122,19 @@ const createMockQueryBuilder = (table) => {
     }
 
     let tableData = storage.get(table);
+    
+    // Add relationship joins before filtering
+    if (table === 'disputes') {
+      tableData = tableData.map(item => {
+        if (item.order_id) {
+          const order = (storage.get('orders') || []).find(o => o.id === item.order_id);
+          if (order) {
+            item.orders = [{ id: order.id, total_amount: order.total_amount, payment_id: order.payment_id }];
+          }
+        }
+        return item;
+      });
+    }
 
     // Apply all filters
     if (filters.length > 0) {
@@ -124,13 +147,19 @@ const createMockQueryBuilder = (table) => {
     // Apply pagination
     tableData = applyPagination(tableData);
 
-    // Apply column selection if specified
+    // Apply column selection if specified (but preserve relationship arrays)
     if (selectedColumns) {
       tableData = tableData.map(row => {
         const selected = {};
         selectedColumns.forEach(col => {
           selected[col] = row[col];
         });
+        // Always include relationship arrays even if not explicitly selected
+        if (Array.isArray(row.orders)) selected.orders = row.orders;
+        if (Array.isArray(row.customers)) selected.customers = row.customers;
+        if (Array.isArray(row.shops)) selected.shops = row.shops;
+        if (Array.isArray(row.products)) selected.products = row.products;
+        if (Array.isArray(row.order_items)) selected.order_items = row.order_items;
         return selected;
       });
     }
@@ -236,6 +265,27 @@ const createMockQueryBuilder = (table) => {
 
   const queryBuilder = {
     select: jest.fn(function(columns = '*') {
+      // If there's a pending insert, we need to handle .insert().select() chain
+      if (pendingInsertData !== null && operationType === 'insert') {
+        // Execute insert first, then apply select to the result
+        const insertResult = executeInsert(pendingInsertData);
+        pendingInsertData = null;
+        operationType = 'select';
+        // For insert().select(), return the inserted data with selected columns
+        if (selectedColumns) {
+          const inserted = Array.isArray(insertResult.data) ? insertResult.data : [insertResult.data];
+          const selected = inserted.map(row => {
+            const result = {};
+            selectedColumns.forEach(col => {
+              result[col] = row[col];
+            });
+            return result;
+          });
+          return { ...this, _pendingSelectResult: { data: selected, error: null } };
+        }
+        return { ...this, _pendingSelectResult: insertResult };
+      }
+      
       operationType = 'select';
       selectedColumns = columns === '*' ? null : columns.split(',').map(c => c.trim());
       return this;
@@ -244,6 +294,7 @@ const createMockQueryBuilder = (table) => {
     insert: jest.fn(function(records) {
       operationType = 'insert';
       operationData = records;
+      pendingInsertData = records; // Store for insert().select() chains
       return this;
     }),
 
@@ -295,12 +346,25 @@ const createMockQueryBuilder = (table) => {
       return this;
     }),
 
-    // Pagination and ordering
-    limit: jest.fn(function(count) {
+    is: jest.fn(function(column, value) {
+      filters.push({ column, value, op: 'is' });
       return this;
     }),
 
-    offset: jest.fn(function(count) {
+    or: jest.fn(function(filter) {
+      // Simple OR implementation - store as special filter
+      // For now, ignore complex OR queries
+      return this;
+    }),
+
+    order: jest.fn(function(column, options = {}) {
+      sortColumn = column;
+      sortAscending = !options.ascending || options.ascending !== false;
+      return this;
+    }),
+
+    limit: jest.fn(function(count) {
+      rangeTo = Math.max(0, count - 1);
       return this;
     }),
 
@@ -310,56 +374,47 @@ const createMockQueryBuilder = (table) => {
       return this;
     }),
 
-    order: jest.fn(function(column, options) {
-      sortColumn = column;
-      sortAscending = !options || options.ascending !== false;
+    offset: jest.fn(function(count) {
+      rangeFrom = count;
       return this;
     }),
 
-    // is() filter — handles IS NULL / IS NOT NULL checks
-    is: jest.fn(function(column, value) {
-      // For IS NULL check: keep records where column is null
-      // For IS NOT NULL: keep records where column is not null
-      filters.push({ column, value, op: 'is' });
-      return this;
-    }),
-
-    // Fetch single record or null
-    single: jest.fn(async function() {
-      if (!storage.has(table)) {
-        return { data: null, error: null };
+    single: jest.fn(function() {
+      // If we have a pending select result from insert().select(), use it
+      if (this._pendingSelectResult) {
+        const result = this._pendingSelectResult;
+        delete this._pendingSelectResult;
+        return Promise.resolve(result);
       }
 
-      let tableData = storage.get(table) || [];
-
-      // Apply all filters
-      if (filters.length > 0) {
-        tableData = applyFilters(tableData);
-      }
-
-      // Apply sorting
-      tableData = applySort(tableData);
-
-      const found = tableData[0];
-
-      // Apply column selection if needed
-      if (found && selectedColumns) {
-        const selected = {};
-        selectedColumns.forEach(col => {
-          if (col in found) {
-            selected[col] = found[col];
+      return new Promise((resolve) => {
+        let result;
+        
+        if (operationType === 'select' || selectedColumns) {
+          const selectResult = executeSelect();
+          const found = selectResult.data[0] || null;
+          
+          // Don't filter columns if we have relationships - pass through all data
+          if (found) {
+            result = {
+              data: found,
+              error: null,
+            };
+          } else {
+            result = {
+              data: null,
+              error: { message: 'No rows found' },
+            };
           }
-        });
-        return {
-          data: selected,
-          error: null,
-        };
-      }
+        } else {
+          result = {
+            data: null,
+            error: { message: 'No operation specified' },
+          };
+        }
 
-      return {
-        data: found || null,
-        error: found ? null : { message: 'No rows found' },
-      };
+        resolve(result);
+      });
     }),
 
     // Make the query builder thenable so it can be awaited
@@ -369,8 +424,10 @@ const createMockQueryBuilder = (table) => {
         try {
           let result;
           
-          if (operationType === 'insert') {
+          // Handle .insert().select() chain - if we have pending insert and select is next
+          if (operationType === 'insert' && operationData) {
             result = executeInsert(operationData);
+            pendingInsertData = null;
           } else if (operationType === 'update') {
             result = executeUpdate(operationData);
           } else if (operationType === 'upsert') {
@@ -428,42 +485,17 @@ const supabase = {
 
   // Auth methods (mocked)
   auth: {
-    getSession: jest.fn().mockResolvedValue({
-      data: { session: { user: { id: 'mock-user' } } },
-      error: null,
-    }),
-    signInWithPassword: jest.fn().mockResolvedValue({
-      data: { user: { id: 'mock-user' } },
-      error: null,
-    }),
-    signOut: jest.fn().mockResolvedValue({
-      error: null,
-    }),
+    signInWithPassword: jest.fn(async () => ({ user: null, error: null })),
   },
 
-  // Test helpers - used by setupEnv.js
-  __insertTestData: (table, records) => {
-    if (!storage.has(table)) {
-      storage.set(table, []);
-    }
-    const tableData = storage.get(table);
-    const withIds = (Array.isArray(records) ? records : [records]).map(r => ({
-      id: r.id || require('uuid').v4(),
-      ...r,
-    }));
-    tableData.push(...withIds);
-    storage.set(table, tableData);
+  // Storage methods (mocked)
+  storage: {
+    from: jest.fn((bucket) => ({
+      upload: jest.fn(async () => ({ data: null, error: null })),
+      download: jest.fn(async () => ({ data: null, error: null })),
+      getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://example.com/file' } })),
+    })),
   },
-
-  __clear: () => {
-    storage.clear();
-  },
-
-  __clearTable: (table) => {
-    storage.delete(table);
-  },
-
-  __getStorage: () => storage,
 };
 
 export { supabase };

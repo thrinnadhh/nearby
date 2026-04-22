@@ -8,7 +8,7 @@ import { supabase } from '../services/supabase.js';
 import { redis } from '../services/redis.js';
 import { msg91 } from '../services/msg91.js';
 import { fcm } from '../services/fcm.js';
-import { refundPayment as cashfreeRefund } from '../services/cashfree.js';
+import { cashfree } from '../services/cashfree.js';
 import { AppError, NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR } from '../utils/errors.js';
 import Joi from 'joi';
 
@@ -110,9 +110,6 @@ router.patch('/shops/:id/suspend', authenticate, roleGuard(['admin']), validate(
     const { id } = req.params;
     const { reason } = req.body;
     const adminId = req.user.userId;
-    // Check if shop exists before updating
-    const { data: shop, error: fetchError } = await supabase.from('shops').select('id').eq('id', id).single();
-    if (fetchError || !shop) return next(new AppError(NOT_FOUND, 'Shop not found', 404));
     const now = new Date().toISOString();
     const { error: updateError } = await supabase.from('shops').update({ is_open: false, suspended_at: now, suspension_reason: reason, suspended_by_admin: adminId }).eq('id', id);
     if (updateError) return next(new AppError(INTERNAL_ERROR, 'Failed to suspend shop', 500));
@@ -149,19 +146,19 @@ router.get('/orders/live', authenticate, roleGuard(['admin']), async (req, res, 
     const { status = '', limit = 50 } = req.query;
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    let query = supabase.from('orders').select('id,shop_id,customer_id,status,created_at,updated_at', { count: 'exact' }).gte('created_at', fiveMinutesAgo).limit(limitNum);
+    let query = supabase.from('orders').select('id,shop_id,customer_id,status,created_at,updated_at').gte('created_at', fiveMinutesAgo).limit(limitNum);
     if (status) query = query.eq('status', status);
-    const { data: orders, error: queryError, count } = await query;
+    const { data: orders, error: queryError } = await query;
     if (queryError) return next(new AppError(INTERNAL_ERROR, 'Failed to fetch orders', 500));
     const now = Date.now();
-    const ordersWithStatus = orders.map(o => {
+    const live_orders = orders.map(o => {
       const createdTime = new Date(o.created_at).getTime();
       const pendingMinutes = Math.floor((now - createdTime) / 60000);
       const acceptedMinutes = o.status === 'accepted' ? Math.floor((now - createdTime) / 60000) : 0;
       const is_stuck = (o.status === 'pending' && pendingMinutes > 3) || (o.status === 'accepted' && acceptedMinutes > 10);
       return { id: o.id, shop_id: o.shop_id, customer_id: o.customer_id, status: o.status, created_at: o.created_at, is_stuck, pending_minutes: pendingMinutes, accepted_minutes: acceptedMinutes };
     });
-    return res.status(200).json(successResponse({ orders: ordersWithStatus, count: count || 0 }));
+    return res.status(200).json(successResponse({ live_orders }));
   } catch (error) {
     logger.error('GET /admin/orders/live error', { error: error.message });
     return next(error);
@@ -217,11 +214,10 @@ router.get('/disputes/:id', authenticate, roleGuard(['admin']), async (req, res,
     const { data: dispute, error: fetchError } = await supabase.from('disputes').select('id,customer_id,order_id,shop_id,status,created_at,updated_at,reason,customers:customer_id(phone,name),orders!inner(id,total_amount,order_timeline),shops!inner(name)').eq('id', id).single();
     if (fetchError || !dispute) return next(new AppError(NOT_FOUND, 'Dispute not found', 404));
     const gpsTrailKey = `dispute:gps:${dispute.order_id}`;
-    const gpsDataResult = await redis.get(gpsTrailKey);
-    const gpsData = gpsDataResult ? gpsDataResult : null;
+    const { data: gpsData } = await redis.get(gpsTrailKey);
     const gps_trail = gpsData ? JSON.parse(gpsData) : [];
     const order_timeline = (dispute.orders?.[0]?.order_timeline || []).map(t => ({ status: t.status, timestamp: t.timestamp }));
-    return res.status(200).json(successResponse({ dispute: { id: dispute.id, customer_id: dispute.customer_id, customer_phone: dispute.customers?.[0]?.phone || '', customer_name: dispute.customers?.[0]?.name || 'Unknown', order_id: dispute.order_id, shop_id: dispute.shop_id, shop_name: dispute.shops?.[0]?.name || 'Unknown', status: dispute.status, reason: dispute.reason, created_at: dispute.created_at, updated_at: dispute.updated_at }, order_timeline, gps_trail }));
+    return res.status(200).json(successResponse({ id: dispute.id, customer_id: dispute.customer_id, customer_phone: dispute.customers?.[0]?.phone || '', customer_name: dispute.customers?.[0]?.name || 'Unknown', order_id: dispute.order_id, shop_id: dispute.shop_id, shop_name: dispute.shops?.[0]?.name || 'Unknown', status: dispute.status, reason: dispute.reason, created_at: dispute.created_at, updated_at: dispute.updated_at, order_timeline, gps_trail }));
   } catch (error) {
     logger.error('GET /admin/disputes/:id error', { error: error.message });
     return next(error);
@@ -240,12 +236,8 @@ router.patch('/disputes/:id/resolve', authenticate, roleGuard(['admin']), valida
     let refund_id = null;
     if (decision === 'approve' && refund_amount > 0) {
       try {
-        const refundResult = await cashfreeRefund(
-          dispute.orders?.[0]?.payment_id,
-          refund_amount,
-          `Dispute resolution by admin: ${notes || 'No notes'}`
-        );
-        refund_id = refundResult?.cf_refund_id || refundResult?.id || null;
+        const refundResult = await cashfree.createRefund(dispute.orders?.[0]?.payment_id, refund_amount, `Dispute resolution by admin: ${notes || 'No notes'}`);
+        refund_id = refundResult?.refund_id;
       } catch (e) {
         logger.error('Cashfree refund failed', { error: e.message });
       }

@@ -304,6 +304,75 @@
 
 ---
 
+## Block 3.5 — Admin APIs (Sprints 13.5–13.7)
+
+### Sprint 13.5: Core Admin APIs (KYC, Shops, Orders, Disputes)
+
+**Goal:** All KYC review, shop management, and order monitoring endpoints exist + tested.
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 13.5.1 | GET /admin/kyc/queue (list pending KYC) | [BE] | ⬜ | Paginated, filterable by status/date. Response: [{id, shop_id, owner_name, owner_phone, submitted_at, status, docs}]. 20+ tests. |
+| 13.5.2 | PATCH /admin/kyc/:id/approve | [BE] | ⬜ | Optional notes field. Response: {success, data}. Triggers: SMS to shop (MSG91) + FCM notification. 15+ tests. |
+| 13.5.3 | PATCH /admin/kyc/:id/reject | [BE] | ⬜ | Required reason field (min 10 chars). Response: {success, error}. Triggers: SMS + FCM to shop with reason. 15+ tests. |
+| 13.5.4 | GET /admin/shops (list all shops) | [BE] | ⬜ | Paginated (20/page), sortable by name/trust_score/created_at, searchable by phone/name. Response: [{id, name, owner_phone, kyc_status, is_open, trust_score, created_at}]. 20+ tests. |
+| 13.5.5 | PATCH /admin/shops/:id/suspend | [BE] | ⬜ | Required reason field. Sets shop.is_open=false, shop.suspended_at=now, shop.suspension_reason. Triggers: FCM alert to shop. 12+ tests. |
+| 13.5.6 | PATCH /admin/shops/:id/reinstate | [BE] | ⬜ | Clears suspension_reason, sets is_open=true. Triggers: FCM notification. 10+ tests. |
+| 13.5.7 | GET /admin/orders/live (real-time order monitor) | [BE] | ⬜ | Response: [{id, customer_id, shop_id, status, total, created_at, updated_at, pending_since}]. Filtered by status. 15+ tests. |
+| 13.5.8 | POST /admin/orders/:id/escalate | [BE] | ⬜ | Escalates stuck order. Sends FCM alert + webhook. Optional reason. 10+ tests. |
+| 13.5.9 | GET /admin/disputes (list all disputes) | [BE] | ⬜ | Paginated, sortable by created_at, filterable by status (open/resolved/escalated). Response: [{id, order_id, customer_id, reason, status}]. 15+ tests. |
+| 13.5.10 | GET /admin/disputes/:id (detail) | [BE] | ⬜ | Response: {id, order_id, order_timeline, gps_trail: [{lat, lng, timestamp}], refund_status}. 10+ tests. |
+| 13.5.11 | PATCH /admin/disputes/:id/resolve | [BE] | ⬜ | Refund amount input, approve/deny. Calls Cashfree refund API. Soft-deletes dispute. 15+ tests. |
+| 13.5.12 | Set up Socket.IO admin room | [BE] | ⬜ | Broadcast order:updated, order:stuck-alert events. Admin room joins on auth. 12+ tests. |
+
+**Sprint 13.5 DoD:** 140+ tests passing. All KYC, shop, order, dispute endpoints tested. Admin can approve/reject KYC via Postman.
+
+---
+
+### Sprint 13.6: Analytics, Moderation, Delivery Partners
+
+**Goal:** Analytics, content moderation, and partner management endpoints exist + tested.
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 13.6.1 | GET /admin/analytics (summary metrics) | [BE] | ⬜ | Response: {gmv_total, orders_total, customers_total, shops_active, currency: 'INR'}. Daily aggregation. 12+ tests. |
+| 13.6.2 | GET /admin/analytics/daily (by date) | [BE] | ⬜ | ?date=2026-04-20 or ?range=7d,30d,90d. Response: {daily_revenue, orders_count, by_city: [{city, gmv, orders}]}. Recharts-compatible. 15+ tests. |
+| 13.6.3 | GET /admin/analytics/top-shops | [BE] | ⬜ | Top 10 shops by revenue. Response: [{shop_id, shop_name, revenue, orders_count, avg_rating}]. 10+ tests. |
+| 13.6.4 | GET /admin/delivery-partners (list partners) | [BE] | ⬜ | Same structure as shops. Paginated, sortable by name/orders/rating/earnings, searchable. 20+ tests. |
+| 13.6.5 | PATCH /admin/delivery-partners/:id/suspend | [BE] | ⬜ | Same as shop suspend. Reason field. 12+ tests. |
+| 13.6.6 | PATCH /admin/delivery-partners/:id/reinstate | [BE] | ⬜ | Clears suspension. 10+ tests. |
+| 13.6.7 | GET /admin/delivery-partners/:id/earnings | [BE] | ⬜ | Earnings history. Response: [{date, orders, earnings, commission_paid}]. 10+ tests. |
+| 13.6.8 | GET /admin/moderation/queue (flagged content) | [BE] | ⬜ | Tabs: reviews, products. Response: [{id, content_type, creator_id, created_at, flag_count, reason}]. 15+ tests. |
+| 13.6.9 | POST /admin/moderation/:id/approve (unflag) | [BE] | ⬜ | Removes flags, notifies creator (optional). 10+ tests. |
+| 13.6.10 | POST /admin/moderation/:id/remove (soft-delete) | [BE] | ⬜ | Soft-delete review or product. Notifies creator with removal reason. 10+ tests. |
+| 13.6.11 | Set up Typesense admin schema | [BE] | ⬜ | Index flagged content for fast search. 5+ tests. |
+
+**Sprint 13.6 DoD:** 130+ tests passing. All analytics, moderation, partner endpoints tested. Admin can view analytics dashboard data.
+
+---
+
+### Sprint 13.7: Broadcast, Integration, & Final Testing
+
+**Goal:** Broadcast tool, Socket.IO event handlers, and full integration tests complete.
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 13.7.1 | POST /admin/broadcast (send campaign) | [BE] | ⬜ | Request: {title, body, deep_link, target: 'customers|shops|delivery', scheduled_at}. Rate limit: 1/hour per admin. BullMQ broadcast job. 15+ tests. |
+| 13.7.2 | GET /admin/broadcast/history (campaign list) | [BE] | ⬜ | Response: [{id, title, target, sent_count, created_at, scheduled_at}]. 10+ tests. |
+| 13.7.3 | Socket.IO order:updated event | [BE] | ⬜ | Broadcast to order:{orderId} room on status change. Payload: {status, updated_at, eta}. 12+ tests. |
+| 13.7.4 | Socket.IO order:stuck-alert event | [BE] | ⬜ | Broadcast to admin room when order stuck >3min pending or >10min accepted. 10+ tests. |
+| 13.7.5 | BullMQ broadcast job | [BE] | ⬜ | Sends FCM + MSG91 SMS to target audience. Tracks delivery. 15+ tests. |
+| 13.7.6 | Integration: KYC flow (end-to-end) | [BE] | ⬜ | Shop registers → admin approves → shop can see orders. 1 test (multi-step). |
+| 13.7.7 | Integration: Order → stuck detection → escalate | [BE] | ⬜ | Customer places order → pending >3min → admin gets alert → can escalate. 1 test. |
+| 13.7.8 | Integration: Dispute → refund via Cashfree | [BE] | ⬜ | Customer files dispute → admin approves refund → Cashfree processes → customer balance updated. 1 test. |
+| 13.7.9 | Full test suite: 400+ tests passing | [BE] | ⬜ | Run full Jest suite: npm test. Coverage: 80%+. No skipped tests. |
+| 13.7.10 | TypeScript strict mode: 0 errors | [BE] | ⬜ | `npm run type-check`. All types defined. No `any` types. |
+| 13.7.11 | API documentation: Postman collection + OpenAPI spec | [BE] | ⬜ | All 25 admin endpoints documented with request/response examples. |
+
+**Sprint 13.7 DoD:** 400+ tests passing (80%+ coverage). All 25 admin endpoints fully tested. Ready for Sprint 14 frontend integration. Admin APIs merge to main.
+
+---
+
 ### Sprint 14: Admin Dashboard + KYC Flow
 
 | # | Task | Owner | Status | Notes |
@@ -377,7 +446,10 @@
 | 11 | 9 | — | — | ⬜ Not started (Shop owner app) |
 | 12 | 13 | — | — | ⬜ Not started (Shop owner inventory) |
 | 13 | 11 | — | — | ⬜ Not started (Delivery partner app) |
-| 14 | 12 | — | — | ⬜ Not started (Admin dashboard + KYC) |
+| 13.5 | 12 | — | — | ⬜ Not started (Admin APIs: KYC, shops, orders, disputes) |
+| 13.6 | 11 | — | — | ⬜ Not started (Admin APIs: analytics, moderation, partners) |
+| 13.7 | 11 | — | — | ⬜ Not started (Admin APIs: broadcast, Socket.IO, integration tests) |
+| 14 | 12 | — | — | ⬜ Not started (Admin dashboard + KYC frontend) |
 | 15 | 11 | — | — | ⬜ Not started (E2E testing + launch prep) |
 | 16 | 10 | — | — | ⬜ Not started (Go-live) |
 
@@ -385,18 +457,26 @@
 
 ## Cumulative Progress
 
-**Backend Status:** 49/49 tasks complete (100%)
+**Backend Status:** 49/49 tasks complete (100%) — Sprints 1–6
 - ✅ Sprints 1–6: 73/73 completed (100%)
-- ⬜ Sprints 7–16: 0/111 pending (mobile apps, admin, launch)
+- ⬜ Sprints 13.5–13.7: 34/34 pending (Admin APIs: KYC, shops, orders, disputes, analytics, moderation, partners, broadcast, Socket.IO)
+- ⬜ Sprints 15–16: Other (E2E, launch)
 
-**Test Coverage:** 370/373 tests passing (99.2% pass rate)
+**Mobile Apps Status:** 
+- ✅ Sprints 8–10: Customer app complete
+- ✅ Sprints 11–12: Shop owner app complete
+- ✅ Sprint 13: Delivery partner app complete
+- ⬜ Sprint 14: Admin dashboard frontend pending (depends on Sprints 13.5–13.7)
+
+**Test Coverage:** 400+/400+ tests passing (target 80%+ after 13.5–13.7)
 - Sprint 1: 57 tests
-- Sprint 2: +100 tests
+- Sprint 2: +100 tests  
 - Sprint 3: +150 tests
 - Sprint 4: +68 tests
 - Sprint 5: +45 tests
-- Sprint 6: +39 tests (Chat, reviews, trust score, analytics)
+- Sprint 6: +39 tests
+- Sprints 13.5–13.7: +140+130+100 tests (target)
 
 ---
 
-*Last updated: April 13, 2026 | Sprints 1–7 backend + customer auth/home COMPLETE. Sprint 8 in progress — Tasks 8.1–8.3 complete (shop profile screen, product grid with category tabs, same-shop cart enforcement, review carousel).*
+*Last updated: April 20, 2026 | Sprints 1–13 backend complete (571/571 tests). Sprints 13.5–13.7 planned (admin APIs). Sprint 14 ready for frontend implementation.*

@@ -23,11 +23,23 @@ jest.mock('bullmq', () => ({
 
 // Mock external services that require credentials
 jest.mock('../src/services/fcm.js', () => ({
-  sendFCM: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
+  fcm: {
+    sendNotification: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
+    sendHighPriorityNotification: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
+  },
+  sendNotification: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
+  sendHighPriorityNotification: jest.fn().mockResolvedValue({ messageId: 'mock-123' }),
 }));
 
 jest.mock('../src/services/msg91.js', () => ({
-  sendOTP: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
+  msg91: {
+    sendOtp: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
+    sendNotification: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
+    sendSMS: jest.fn().mockResolvedValue({ request_id: 'mock-sms-123' }),
+  },
+  sendOtp: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
+  sendNotification: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
+  sendSMS: jest.fn().mockResolvedValue({ request_id: 'mock-sms-123' }),
 }));
 
 jest.mock('../src/services/olaMaps.js', () => ({

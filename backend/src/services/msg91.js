@@ -114,4 +114,9 @@ function maskPhone(phone) {
   return `+91****${digits.slice(-4)}`;
 }
 
+export const msg91 = {
+  sendOtp,
+  sendNotification,
+};
+
 export { sendOtp, sendNotification };
