@@ -17,7 +17,7 @@ import { authenticate, generateToken } from '../middleware/auth.js';
 import { roleGuard } from '../middleware/roleGuard.js';
 import { supabase } from '../services/supabase.js';
 import { redis } from '../services/redis.js';
-import { r2 } from '../services/r2.js';
+import { s3Client, uploadFile } from '../services/r2.js';
 import { v4 as uuidv4 } from 'uuid';
 import { promisify } from 'util';
 

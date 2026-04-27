@@ -168,4 +168,8 @@ if (assignDeliveryWorker.on) {
       error: error.message,
     });
   });
+
+  assignDeliveryWorker.on('error', (err) => {
+    logger.error('Assign-delivery worker error', { error: err.message });
+  });
 }

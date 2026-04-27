@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NearBy — Shop Owner App Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Serif+Display&family=Instrument+Serif:ital@0;1&family=Hind:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; padding: 0; height: 100%;
+    background: #1f1a14; font-family: 'Hind', system-ui, sans-serif; color: #f3ead9; }
+  * { box-sizing: border-box; }
+  .nb-backdrop {
+    background:
+      radial-gradient(1200px 700px at 20% 0%, #2a1e14 0%, transparent 60%),
+      radial-gradient(1000px 600px at 90% 100%, #221912 0%, transparent 60%),
+      #17120d;
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- shared frames + canvas + tweaks -->
+<script type="text/babel" src="frames/ios-frame.jsx"></script>
+<script type="text/babel" src="frames/android-frame.jsx"></script>
+<script type="text/babel" src="frames/design-canvas.jsx"></script>
+<script type="text/babel" src="frames/tweaks-panel.jsx"></script>
+
+<!-- shared tokens + UI atoms from customer app -->
+<script type="text/babel" src="app/tokens.jsx"></script>
+<script type="text/babel" src="app/ui.jsx"></script>
+
+<!-- shop-owner code -->
+<script type="text/babel" src="shop/data.jsx"></script>
+<script type="text/babel" src="shop/screens.jsx"></script>
+<script type="text/babel" src="shop/app.jsx"></script>
+
+</head>
+<body class="nb-backdrop">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { DesignCanvas, DCSection, DCArtboard,
+        IOSDevice, AndroidDevice,
+        TweaksPanel, TweakSection, TweakRadio, useTweaks,
+        NBShopApp, NEARBY_PALETTES, NEARBY_TYPE } = window;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "mixed",
+  "typePair": "instrument-manrope",
+  "urgency": "strict",
+  "density": "cozy"
+}/*EDITMODE-END*/;
+
+function PhoneRow({ t, startScreen }) {
+  const shared = {
+    palette: t.palette, typePair: t.typePair,
+    urgency: t.urgency, density: t.density,
+    startScreen,
+  };
+  return (
+    <div style={{ display: 'flex', gap: 40, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#c9b89a', letterSpacing: 0.4,
+          textTransform: 'uppercase', fontFamily: 'Hind, sans-serif',
+        }}>iOS</div>
+        <IOSDevice width={390} height={844}>
+          <NBShopApp width={390} height={844} scope={`shop-ios-${startScreen}`} topSafe={44} {...shared} />
+        </IOSDevice>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#c9b89a', letterSpacing: 0.4,
+          textTransform: 'uppercase', fontFamily: 'Hind, sans-serif',
+        }}>Android</div>
+        <AndroidDevice width={412} height={868}>
+          <NBShopApp width={412} height={868} scope={`shop-and-${startScreen}`} topSafe={32} {...shared} />
+        </AndroidDevice>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [t, setT] = useTweaks(TWEAK_DEFAULTS);
+  const typeName    = NEARBY_TYPE[t.typePair]?.name || "";
+  const paletteName = NEARBY_PALETTES[t.palette]?.name || "";
+
+  return (
+    <>
+      <DesignCanvas title="NearBy · Shop Owner App"
+        subtitle={`For Kumar's Kirana and 10,000 more. ${paletteName} · ${typeName}. Tap the giant toggle to open/close shop. Accept orders before the 3-minute timer runs out. Manage inventory with one-tap availability. Live analytics with revenue chart and peak-hours heatmap.`}>
+
+        <DCSection id="dashboard" title="1 · Dashboard" subtitle="The giant open/close toggle is the hero — a shopkeeper should know at a glance whether they're live. Today's stats + pending-orders banner drive the rest of the flow.">
+          <DCArtboard id="dashboard" label="Dashboard · Open/Close Hero" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="dashboard" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="inbox" title="2 · Order Inbox" subtitle="The most critical screen. 3-minute countdown per order turns red under 1 minute (or 1:30 on strict urgency). Accept asks for prep time; reject asks why. Active tab shows what's cooking.">
+          <DCArtboard id="inbox" label="Inbox · 3 orders pending" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="inbox" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="products" title="3 · Products" subtitle="Inventory list with one-tap availability toggle. Low-stock and out-of-stock states. Add-product bottom sheet with photo, price, unit, qty. CSV bulk upload for catalog migration.">
+          <DCArtboard id="products" label="Products · 12 items" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="products" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="analytics" title="4 · Analytics" subtitle="7-day revenue chart, top products leaderboard, a peak-hours heatmap (shows the 10am + 7pm rush), and trust-score breakdown so owners understand what drives their rating.">
+          <DCArtboard id="analytics" label="Analytics · Heatmap + Chart" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="analytics" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Shop Owner Tweaks">
+        <TweakSection label="Color palette" />
+        <TweakRadio value={t.palette}
+          options={[
+            { value: "saffron", label: "Saffron Market" },
+            { value: "emerald", label: "Fresh Emerald" },
+            { value: "mixed",   label: "Turmeric & Leaf" },
+          ]}
+          onChange={(v) => setT('palette', v)} />
+
+        <TweakSection label="Typography" />
+        <TweakRadio value={t.typePair}
+          options={[
+            { value: "fraunces-hind",      label: "Fraunces × Hind" },
+            { value: "dm-hind",            label: "DM Serif × Hind" },
+            { value: "instrument-manrope", label: "Instrument × Manrope" },
+          ]}
+          onChange={(v) => setT('typePair', v)} />
+
+        <TweakSection label="Inbox timer urgency" />
+        <TweakRadio value={t.urgency}
+          options={[
+            { value: "normal", label: "Normal · red under 1 min" },
+            { value: "strict", label: "Strict · red under 1:30" },
+          ]}
+          onChange={(v) => setT('urgency', v)} />
+
+        <TweakSection label="Density" />
+        <TweakRadio value={t.density}
+          options={[
+            { value: "cozy",    label: "Cozy · easier to tap" },
+            { value: "compact", label: "Compact · more per screen" },
+          ]}
+          onChange={(v) => setT('density', v)} />
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

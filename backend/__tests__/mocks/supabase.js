@@ -542,4 +542,4 @@ const supabase = {
   }),
 };
 
-export { supabase };
+module.exports = { supabase };

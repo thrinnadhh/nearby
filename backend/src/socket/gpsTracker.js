@@ -1,6 +1,6 @@
 import { redis } from '../services/redis.js';
 import { supabase } from '../services/supabase.js';
-import { getETA } from '../services/olaMaps.js';
+import { getETA } from '../services/tomTom.js';
 import logger from '../utils/logger.js';
 
 // India bounding box — hard validation boundary
@@ -100,7 +100,7 @@ export function registerGpsTracker(io, socket) {
       );
       await redis.expire(`delivery:${orderId}`, 30);
 
-      // 6. Best-effort ETA via Ola Maps Distance Matrix (destination = shop for pickup ETA)
+      // 6. Best-effort ETA via Tom Tom Distance Matrix (destination = shop for pickup ETA)
       let eta = null;
       try {
         const { data: shop } = await supabase

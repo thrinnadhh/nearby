@@ -81,6 +81,10 @@ if (analyticsWorker) {
       error: err.message,
     });
   });
+
+  analyticsWorker.on('error', (err) => {
+    logger.error('Analytics worker error', { error: err.message });
+  });
 }
 
 export default analyticsAggregateQueue;

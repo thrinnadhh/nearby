@@ -319,7 +319,11 @@ if (process.env.NODE_ENV !== 'test') {
 
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection', { reason });
-  process.exit(1);
+  // Don't exit on unhandled rejection during development
+  // This allows the app to continue running even if Redis/external services fail
+  if (NODE_ENV === 'production') {
+    process.exit(1);
+  }
 });
 
 process.on('uncaughtException', (err) => {

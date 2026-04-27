@@ -18,6 +18,7 @@
     "@react-native-community/netinfo": "^11.0.0",
     "axios": "^1.7.0",
     "expo": "~53.0.0",
+    "expo-document-picker": "^13.0.0",
     "expo-font": "~13.3.0",
     "expo-notifications": "^0.29.14",
     "expo-router": "~4.0.0",
@@ -25,13 +26,14 @@
     "expo-splash-screen": "~0.29.0",
     "expo-status-bar": "~2.2.0",
     "joi": "^18.1.2",
+    "nativewind": "^4.2.3",
+    "papaparse": "^5.4.1",
     "react": "18.3.1",
     "react-native": "0.76.9",
     "react-test-renderer": "^18.3.1",
     "socket.io-client": "^4.7.0",
-    "zustand": "^5.0.0",
-    "papaparse": "^5.4.1",
-    "expo-document-picker": "^13.0.0"
+    "tailwindcss": "^4.2.4",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

@@ -59,4 +59,8 @@ if (notifyCustomerWorker.on) {
       error: error.message,
     });
   });
+
+  notifyCustomerWorker.on('error', (err) => {
+    logger.error('Notify-customer worker error', { error: err.message });
+  });
 }

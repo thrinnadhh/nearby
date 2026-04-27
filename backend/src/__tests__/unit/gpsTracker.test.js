@@ -14,7 +14,7 @@ jest.mock('../../services/supabase.js', () => ({
   supabase: { from: jest.fn() },
 }));
 
-jest.mock('../../services/olaMaps.js', () => ({
+jest.mock('../../services/tomTom.js', () => ({
   getETA: jest.fn().mockResolvedValue(420),
   geocode: jest.fn(),
   reverseGeocode: jest.fn(),
@@ -52,7 +52,7 @@ let mockGetETA;
 beforeAll(async () => {
   ({ redis: mockRedis } = await import('../../services/redis.js'));
   ({ supabase: mockSupabase } = await import('../../services/supabase.js'));
-  ({ getETA: mockGetETA } = await import('../../services/olaMaps.js'));
+  ({ getETA: mockGetETA } = await import('../../services/tomTom.js'));
 });
 
 beforeEach(() => {

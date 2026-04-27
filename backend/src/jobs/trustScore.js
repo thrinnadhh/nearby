@@ -190,6 +190,10 @@ if (trustScoreWorker) {
       error: err.message,
     });
   });
+
+  trustScoreWorker.on('error', (err) => {
+    logger.error('Trust score worker error', { error: err.message });
+  });
 }
 
 export default trustScoreQueue;

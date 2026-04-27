@@ -134,6 +134,10 @@ if (earningsWorker) {
       error: err.message,
     });
   });
+
+  earningsWorker.on('error', (err) => {
+    logger.error('Earnings summary worker error', { error: err.message });
+  });
 }
 
 export default earningsSummaryQueue;

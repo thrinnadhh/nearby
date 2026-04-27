@@ -87,20 +87,32 @@ export const notifyShopQueue = process.env.NODE_ENV === 'test'
       },
     });
 
-export const notifyShopWorker = process.env.NODE_ENV === 'test'
-  ? {}
-  : new Worker(
-      'notify-shop',
-      processNotifyShopJob,
-      { connection, concurrency: 5 }
-    );
+let notifyShopWorker;
+try {
+  notifyShopWorker = process.env.NODE_ENV === 'test'
+    ? {}
+    : new Worker(
+        'notify-shop',
+        processNotifyShopJob,
+        { connection, concurrency: 5 }
+      );
 
-if (notifyShopWorker.on) {
-  notifyShopWorker.on('failed', (job, error) => {
-    logger.error('Notify-shop job failed', {
-      jobId: job?.id,
-      orderId: job?.data?.orderId,
-      error: error.message,
+  if (notifyShopWorker.on) {
+    notifyShopWorker.on('failed', (job, error) => {
+      logger.error('Notify-shop job failed', {
+        jobId: job?.id,
+        orderId: job?.data?.orderId,
+        error: error.message,
+      });
     });
-  });
+
+    notifyShopWorker.on('error', (err) => {
+      logger.error('Notify-shop worker error', { error: err.message });
+    });
+  }
+} catch (err) {
+  logger.warn('Notify-shop worker failed to initialize', { error: err.message });
+  notifyShopWorker = {};
 }
+
+export { notifyShopWorker };

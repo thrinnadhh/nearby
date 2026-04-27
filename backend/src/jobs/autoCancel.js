@@ -165,4 +165,8 @@ if (autoCancelWorker.on) {
       error: error.message,
     });
   });
+
+  autoCancelWorker.on('error', (err) => {
+    logger.error('Auto-cancel worker error', { error: err.message });
+  });
 }

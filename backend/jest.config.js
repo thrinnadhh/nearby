@@ -21,7 +21,7 @@ export default {
     '!src/socket/**/*.js',
     '!src/services/fcm.js',
     '!src/services/msg91.js',
-    '!src/services/olaMaps.js',
+    '!src/services/tomTom.js',
     '!src/services/redis.js',
     '!src/services/r2.js',
     '!src/services/supabase.js',
