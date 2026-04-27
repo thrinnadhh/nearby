@@ -176,6 +176,62 @@ export const slowLimiter = rateLimitLib({
   },
 });
 
+/**
+ * SMS broadcast rate limiter per phone number
+ * Prevents spamming the same user with multiple SMS notifications
+ * 
+ * Limits:
+ * - 5 SMS per user per hour (shared across all admin actions)
+ * - 1 SMS per action type per user per hour (no duplicate notifications)
+ */
+export const createSmsBroadcastLimiter = () => {
+  return async (req, phone, actionType = 'general') => {
+    if (!phone || !redis) return true; // Allow if no phone or Redis unavailable
+    
+    // Key format: sms:broadcast:{phone}:{actionType}
+    const smsLimitKey = `sms:broadcast:${phone}:${actionType}`;
+    
+    // Check if we've already sent this type of SMS in the last hour
+    const lastSentTime = await redis.get(smsLimitKey);
+    
+    if (lastSentTime) {
+      // SMS was already sent to this user for this action type
+      logger.warn('SMS rate limit exceeded (duplicate action)', {
+        phone: maskPhone(phone),
+        actionType,
+      });
+      return false; // Don't send duplicate
+    }
+    
+    // Check total SMS count for this user (all action types)
+    const totalSmsKey = `sms:broadcast:${phone}:total`;
+    const smsCount = await redis.incr(totalSmsKey);
+    
+    // Set TTL if this is first SMS in this hour
+    if (smsCount === 1) {
+      await redis.expire(totalSmsKey, 3600); // 1 hour
+    }
+    
+    // Allow if under limit (5 SMS/hour)
+    if (smsCount > 5) {
+      logger.warn('SMS rate limit exceeded (hourly limit)', {
+        phone: maskPhone(phone),
+        smsCount,
+        limit: 5,
+      });
+      return false; // Rate limit exceeded
+    }
+    
+    // Mark this specific action as sent
+    await redis.setex(smsLimitKey, 3600, Date.now()); // 1 hour TTL
+    
+    return true; // Allow SMS to be sent
+  };
+};
+
+// Create singleton instance
+export const checkSmsBroadcastLimit = createSmsBroadcastLimiter();
+
 export default {
   rateLimit,
   globalLimiter,
@@ -183,4 +239,6 @@ export default {
   strictLimiter,
   searchLimiter,
   slowLimiter,
+  checkSmsBroadcastLimit,
+  createSmsBroadcastLimiter,
 };

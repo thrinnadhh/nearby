@@ -6,6 +6,7 @@ import { successResponse } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import { supabase } from '../services/supabase.js';
 import { fcm } from '../services/fcm.js';
+import { maskPhone } from '../utils/security.js';
 import { AppError, INTERNAL_ERROR, NOT_FOUND, VALIDATION_ERROR } from '../utils/errors.js';
 import Joi from 'joi';
 
@@ -50,7 +51,7 @@ router.get('/', authenticate, roleGuard(['admin']), async (req, res, next) => {
       delivery_partners: (partners || []).map(p => ({
         id: p.id,
         name: p.name,
-        phone: p.phone,
+        phone: maskPhone(p.phone),
         status: p.status,
         total_earnings: p.total_earnings || 0,
         rating: p.rating || 0,

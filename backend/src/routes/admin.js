@@ -10,6 +10,8 @@ import { msg91 } from '../services/msg91.js';
 import { fcm } from '../services/fcm.js';
 import { refundPayment as cashfreeRefund } from '../services/cashfree.js';
 import { AppError, NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR } from '../utils/errors.js';
+import { maskPhone } from '../utils/security.js';
+import { checkSmsBroadcastLimit } from '../middleware/rateLimit.js';
 import Joi from 'joi';
 
 // Sprint 13.6-13.7: Import new admin route modules
@@ -37,7 +39,7 @@ router.get('/kyc/queue', authenticate, roleGuard(['admin']), async (req, res, ne
     query = query.order(sort === 'shop_name' ? 'shops(name)' : sort, { ascending: !['submitted_at', 'updated_at'].includes(sort) }).range(offset, offset + limitNum - 1);
     const { data: kycQueue, error: queryError, count } = await query;
     if (queryError) return next(new AppError(INTERNAL_ERROR, 'Failed to fetch KYC queue', 500));
-    return res.status(200).json(successResponse({ kyc_queue: kycQueue.map(s => ({ id: s.id, shop_id: s.shop_id, shop_name: s.shops?.name || 'Unknown', owner_id: s.owner_id, owner_name: s.shops?.owner_phone?.[0]?.name || 'Unknown', owner_phone: s.shops?.owner_phone?.[0]?.phone || '', status: s.status, submitted_at: s.submitted_at, updated_at: s.updated_at, documents: { aadhaar: s.aadhaar_doc_url, gst: s.gst_doc_url, shop_photo: s.shop_photo_url }, rejection_reason: s.rejection_reason })), meta: { page: pageNum, total: count || 0, pages: Math.ceil((count || 0) / limitNum), limit: limitNum } }));
+    return res.status(200).json(successResponse({ kyc_queue: kycQueue.map(s => ({ id: s.id, shop_id: s.shop_id, shop_name: s.shops?.name || 'Unknown', owner_id: s.owner_id, owner_name: s.shops?.owner_phone?.[0]?.name || 'Unknown', owner_phone: maskPhone(s.shops?.owner_phone?.[0]?.phone), status: s.status, submitted_at: s.submitted_at, updated_at: s.updated_at, documents: { aadhaar: s.aadhaar_doc_url, gst: s.gst_doc_url, shop_photo: s.shop_photo_url }, rejection_reason: s.rejection_reason })), meta: { page: pageNum, total: count || 0, pages: Math.ceil((count || 0) / limitNum), limit: limitNum } }));
   } catch (error) {
     logger.error('GET /admin/kyc/queue error', { error: error.message });
     return next(error);
@@ -57,7 +59,15 @@ router.patch('/kyc/:id/approve', authenticate, roleGuard(['admin']), validate(ky
     const { error: shopError } = await supabase.from('shops').update({ kyc_status: 'approved' }).eq('id', kycData.shop_id);
     if (shopError) return next(new AppError(INTERNAL_ERROR, 'Failed to update shop status', 500));
     const phone = kycData.shops?.owner_phone?.[0]?.phone;
-    if (phone) msg91.sendSMS(phone, 'Congratulations! Your KYC has been approved. Start accepting orders.').catch(e => logger.error('SMS send failed', { error: e.message }));
+    if (phone) {
+      // Check SMS rate limit before sending
+      const canSendSms = await checkSmsBroadcastLimit(req, phone, 'kyc_approval');
+      if (canSendSms) {
+        msg91.sendSMS(phone, 'Congratulations! Your KYC has been approved. Start accepting orders.').catch(e => logger.error('SMS send failed', { error: e.message }));
+      } else {
+        logger.warn('SMS rate limit exceeded for KYC approval', { phone: maskPhone(phone) });
+      }
+    }
     if (fcm && fcm.sendNotification) fcm.sendNotification({ title: 'KYC Approved', body: 'Your shop is now active. Start accepting orders!', topic: `shop_${kycData.shop_id}` }).catch(e => logger.error('FCM send failed', { error: e.message }));
     logger.info('KYC approved', { kycId: id, shopId: kycData.shop_id, adminId });
     return res.status(200).json(successResponse({ kyc_id: id, shop_id: kycData.shop_id, status: 'approved', approved_at: now, admin_id: adminId }));
@@ -79,7 +89,15 @@ router.patch('/kyc/:id/reject', authenticate, roleGuard(['admin']), validate(kyc
     const { error: updateError } = await supabase.from('kyc_submissions').update({ status: 'rejected', rejected_at: now, rejected_reason: reason, rejected_by_admin: adminId }).eq('id', id);
     if (updateError) return next(new AppError(INTERNAL_ERROR, 'Failed to reject KYC', 500));
     const phone = kycData.shops?.owner_phone?.[0]?.phone;
-    if (phone) msg91.sendSMS(phone, `Your KYC has been rejected. Reason: ${reason}`).catch(e => logger.error('SMS send failed', { error: e.message }));
+    if (phone) {
+      // Check SMS rate limit before sending
+      const canSendSms = await checkSmsBroadcastLimit(req, phone, 'kyc_rejection');
+      if (canSendSms) {
+        msg91.sendSMS(phone, `Your KYC has been rejected. Reason: ${reason}`).catch(e => logger.error('SMS send failed', { error: e.message }));
+      } else {
+        logger.warn('SMS rate limit exceeded for KYC rejection', { phone: maskPhone(phone) });
+      }
+    }
     if (fcm && fcm.sendNotification) fcm.sendNotification({ title: 'KYC Rejected', body: `Reason: ${reason}`, topic: `shop_${kycData.shop_id}` }).catch(e => logger.error('FCM send failed', { error: e.message }));
     logger.info('KYC rejected', { kycId: id, shopId: kycData.shop_id, reason });
     return res.status(200).json(successResponse({ kyc_id: id, shop_id: kycData.shop_id, status: 'rejected', rejected_at: now, reason }));
@@ -209,7 +227,7 @@ router.get('/disputes', authenticate, roleGuard(['admin']), async (req, res, nex
     query = query.order(sort, { ascending: sort === 'created_at' }).range(offset, offset + limitNum - 1);
     const { data: disputes, error: queryError, count } = await query;
     if (queryError) return next(new AppError(INTERNAL_ERROR, 'Failed to fetch disputes', 500));
-    return res.status(200).json(successResponse({ disputes: disputes.map(d => ({ id: d.id, customer_id: d.customer_id, customer_phone: d.customers?.[0]?.phone || '', order_id: d.order_id, shop_id: d.shop_id, shop_name: d.shops?.[0]?.name || 'Unknown', status: d.status, reason: d.reason, created_at: d.created_at, updated_at: d.updated_at })), meta: { page: pageNum, total: count || 0, pages: Math.ceil((count || 0) / limitNum), limit: limitNum } }));
+    return res.status(200).json(successResponse({ disputes: disputes.map(d => ({ id: d.id, customer_id: d.customer_id, customer_phone: maskPhone(d.customers?.[0]?.phone), order_id: d.order_id, shop_id: d.shop_id, shop_name: d.shops?.[0]?.name || 'Unknown', status: d.status, reason: d.reason, created_at: d.created_at, updated_at: d.updated_at })), meta: { page: pageNum, total: count || 0, pages: Math.ceil((count || 0) / limitNum), limit: limitNum } }));
   } catch (error) {
     logger.error('GET /admin/disputes error', { error: error.message });
     return next(error);
@@ -227,7 +245,7 @@ router.get('/disputes/:id', authenticate, roleGuard(['admin']), async (req, res,
     const gpsData = gpsDataResult ? gpsDataResult : null;
     const gps_trail = gpsData ? JSON.parse(gpsData) : [];
     const order_timeline = (dispute.orders?.[0]?.order_timeline || []).map(t => ({ status: t.status, timestamp: t.timestamp }));
-    return res.status(200).json(successResponse({ dispute: { id: dispute.id, customer_id: dispute.customer_id, customer_phone: dispute.customers?.[0]?.phone || '', customer_name: dispute.customers?.[0]?.name || 'Unknown', order_id: dispute.order_id, shop_id: dispute.shop_id, shop_name: dispute.shops?.[0]?.name || 'Unknown', status: dispute.status, reason: dispute.reason, created_at: dispute.created_at, updated_at: dispute.updated_at }, order_timeline, gps_trail }));
+    return res.status(200).json(successResponse({ dispute: { id: dispute.id, customer_id: dispute.customer_id, customer_phone: maskPhone(dispute.customers?.[0]?.phone), customer_name: dispute.customers?.[0]?.name || 'Unknown', order_id: dispute.order_id, shop_id: dispute.shop_id, shop_name: dispute.shops?.[0]?.name || 'Unknown', status: dispute.status, reason: dispute.reason, created_at: dispute.created_at, updated_at: dispute.updated_at }, order_timeline, gps_trail }));
   } catch (error) {
     logger.error('GET /admin/disputes/:id error', { error: error.message });
     return next(error);
@@ -262,7 +280,15 @@ router.patch('/disputes/:id/resolve', authenticate, roleGuard(['admin']), valida
     if (updateError) return next(new AppError(INTERNAL_ERROR, 'Failed to resolve dispute', 500));
     const smsText = decision === 'approve' ? `Refund of ₹${refund_amount / 100} will be credited in 24-48 hours.` : 'Your dispute has been denied.';
     const phone = dispute.customers?.[0]?.phone;
-    if (phone) msg91.sendSMS(phone, smsText).catch(e => logger.error('SMS send failed', { error: e.message }));
+    if (phone) {
+      // Check SMS rate limit before sending
+      const canSendSms = await checkSmsBroadcastLimit(req, phone, 'dispute_resolution');
+      if (canSendSms) {
+        msg91.sendSMS(phone, smsText).catch(e => logger.error('SMS send failed', { error: e.message }));
+      } else {
+        logger.warn('SMS rate limit exceeded for dispute resolution', { phone: maskPhone(phone) });
+      }
+    }
     if (fcm && fcm.sendNotification) fcm.sendNotification({ title: 'Dispute Resolved', body: decision === 'approve' ? `Refund approved: ₹${refund_amount / 100}` : 'Dispute denied', topic: `customer_${dispute.customer_id}` }).catch(e => logger.error('FCM send failed', { error: e.message }));
     logger.info('Dispute resolved', { disputeId: id, decision, refund_amount });
     return res.status(200).json(successResponse({ dispute_id: id, decision, refund_amount, refund_id, resolved_at: now }));
