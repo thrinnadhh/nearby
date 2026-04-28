@@ -3,10 +3,7 @@ import logger from '../utils/logger.js';
 
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
 const MSG91_SENDER_ID = process.env.MSG91_SENDER_ID || 'NEARBY';
-
-if (!MSG91_AUTH_KEY) {
-  throw new Error('MSG91_AUTH_KEY is not configured');
-}
+const TEST_MODE = process.env.NODE_ENV === 'development' && !MSG91_AUTH_KEY || process.env.MSG91_TEST_MODE === 'true';
 
 /**
  * Send SMS via MSG91 using POST with Authorization header.
@@ -70,8 +67,17 @@ async function sendSms(phone, message) {
 async function sendOtp(phone, otp) {
   try {
     const message = `Your NearBy OTP is ${otp}. Valid for 5 minutes. Do not share with anyone.`;
-    const response = await sendSms(phone, message);
 
+    if (TEST_MODE) {
+      logger.info('TEST MODE: OTP for testing (not sent via SMS)', {
+        phone: maskPhone(phone),
+        otp,
+        message
+      });
+      return { success: true, testMode: true, otp };
+    }
+
+    const response = await sendSms(phone, message);
     logger.info('OTP sent via MSG91', { phone: maskPhone(phone) });
     return response;
   } catch (err) {

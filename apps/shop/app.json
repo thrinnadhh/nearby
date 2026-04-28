@@ -3,10 +3,18 @@
     "name": "NearBy Shop Owner",
     "slug": "nearby-shop",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "ios": {
+      "buildNumber": "1",
       "supportsTabletMode": true,
       "bundleIdentifier": "com.nearby.shop"
     },

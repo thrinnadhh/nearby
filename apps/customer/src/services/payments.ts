@@ -45,18 +45,17 @@ export async function verifyPayment(orderId: string): Promise<PaymentResult> {
     const response = await api.get<{
       success: boolean;
       data?: {
-        order_id: string;
-        payment_status: 'completed' | 'pending' | 'failed';
-        payment_method: 'upi' | 'card' | 'cod';
-        cashfree_order_id?: string;
-        transaction_id?: string;
-        error_message?: string;
+        orderId: string;
+        paymentStatus: 'completed' | 'pending' | 'failed' | 'refunded';
+        paymentMethod: 'upi' | 'card' | 'cod';
+        cashfreeOrderId?: string | null;
+        paymentId?: string | null;
       };
       error?: {
         code: string;
         message: string;
       };
-    }>(`/api/v1/orders/${orderId}`);
+    }>(`/payments/${orderId}`);
 
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error?.message || 'Failed to verify payment');
@@ -64,25 +63,25 @@ export async function verifyPayment(orderId: string): Promise<PaymentResult> {
 
     const orderData = response.data.data;
 
-    if (orderData.payment_status === 'completed') {
+    if (orderData.paymentStatus === 'completed') {
       return {
         status: 'SUCCESS',
-        orderId: orderData.order_id,
-        transactionId: orderData.transaction_id,
+        orderId: orderData.orderId,
+        transactionId: orderData.paymentId || undefined,
       };
     }
 
-    if (orderData.payment_status === 'failed') {
+    if (orderData.paymentStatus === 'failed') {
       return {
         status: 'FAILED',
-        orderId: orderData.order_id,
-        errorMessage: orderData.error_message || 'Payment failed',
+        orderId: orderData.orderId,
+        errorMessage: 'Payment failed',
       };
     }
 
     return {
       status: 'PENDING',
-      orderId: orderData.order_id,
+      orderId: orderData.orderId,
     };
   } catch (error) {
     logger.error('[PaymentService] Verification error:', { error });
@@ -164,13 +163,13 @@ export async function createPaymentSession(orderId: string): Promise<{
     success: boolean;
     data?: {
       paymentSessionId: string;
-      paymentLink: string;
+      paymentLink: string | null;
     };
     error?: {
       code: string;
       message: string;
     };
-  }>('/api/v1/payments/initiate', { order_id: orderId });
+  }>('/payments/initiate', { order_id: orderId });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to create payment session');
@@ -178,7 +177,7 @@ export async function createPaymentSession(orderId: string): Promise<{
 
   return {
     sessionId: response.data.data.paymentSessionId,
-    paymentLink: response.data.data.paymentLink,
+    paymentLink: response.data.data.paymentLink || '',
   };
 }
 
@@ -195,24 +194,25 @@ export async function getRefundStatus(
   const response = await api.get<{
     success: boolean;
     data?: {
-      refund_status: 'pending' | 'processing' | 'completed' | 'failed' | 'none';
-      refund_amount?: number;
-      refund_date?: string;
+      paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+      updatedAt?: string;
     };
     error?: {
       code: string;
       message: string;
     };
-  }>(`/api/v1/payments/${orderId}/refund`);
+  }>(`/payments/${orderId}`);
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to get refund status');
   }
 
   return {
-    refundStatus: response.data.data.refund_status,
-    refundAmount: response.data.data.refund_amount,
-    refundDate: response.data.data.refund_date,
+    refundStatus:
+      response.data.data.paymentStatus === 'refunded'
+        ? 'completed'
+        : 'none',
+    refundDate: response.data.data.updatedAt,
   };
 }
 
@@ -223,28 +223,32 @@ export async function initiateRefund(
   orderId: string,
   reason: string
 ): Promise<{
-  refundId: string;
+  refundId: string | null;
   amount: number;
   status: string;
 }> {
-  const response = await api.post<{
+  const response = await api.patch<{
     success: boolean;
     data?: {
-      refund_id: string;
-      amount: number;
-      status: string;
+      id: string;
+      totalPaise: number;
+      paymentStatus?: string;
     };
     error?: {
       code: string;
       message: string;
     };
-  }>(`/api/v1/payments/${orderId}/refund`, { reason });
+  }>(`/orders/${orderId}/cancel`, { reason });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to initiate refund');
   }
 
-  return response.data.data;
+  return {
+    refundId: null,
+    amount: response.data.data.totalPaise,
+    status: response.data.data.paymentStatus || 'processing',
+  };
 }
 
 /**

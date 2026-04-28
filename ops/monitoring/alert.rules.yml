@@ -1,0 +1,43 @@
+groups:
+  - name: nearby-platform
+    rules:
+      - alert: NearbyApiDown
+        expr: up{job="nearby-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: NearBy API is unreachable
+          description: Prometheus has not been able to scrape the API metrics endpoint for 2 minutes.
+
+      - alert: NearbyHighErrorRate
+        expr: |
+          sum(rate(nearby_http_requests_total{status_class=~"4xx|5xx"}[5m]))
+            /
+          clamp_min(sum(rate(nearby_http_requests_total[5m])), 1)
+          > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: NearBy API error rate is above 10%
+          description: Check recent deploys, readiness probes, and admin live orders for stuck flows.
+
+      - alert: NearbyHostHighCpu
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host CPU usage is above 80%
+          description: The Docker host has been above 80% CPU for 10 minutes.
+
+      - alert: NearbyHostLowMemory
+        expr: |
+          (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host available memory is below 20%
+          description: The Docker host is running low on free memory.

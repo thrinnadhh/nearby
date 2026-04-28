@@ -9,3 +9,7 @@ export const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
 });
+
+export const api = client;
+
+export default client;

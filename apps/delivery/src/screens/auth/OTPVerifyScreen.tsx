@@ -14,25 +14,24 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '@/store/auth';
 import { verifyOTP } from '@/services/auth';
 import { AppErrorClass } from '@/types/common';
 import logger from '@/utils/logger';
 
-interface OTPVerifyScreenProps {
-  phone: string;
-  onVerified: () => void;
-  onRetry: () => void;
-}
+type OTPVerifyScreenNavigationProp = NativeStackNavigationProp<any, 'OTPVerify'>;
+
+type OTPVerifyScreenProps = NativeStackScreenProps<any, 'OTPVerify'>;
 
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_SECONDS = 300;
 
 export function OTPVerifyScreen({
-  phone,
-  onVerified,
-  onRetry,
+  navigation,
+  route,
 }: OTPVerifyScreenProps): React.ReactElement {
+  const phone = route.params?.phone || '';
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -102,7 +101,8 @@ export function OTPVerifyScreen({
         token: response.token,
       });
 
-      onVerified();
+      // Navigate to next registration screen
+      navigation.navigate('Aadhaar');
     } catch (err) {
       const message =
         err instanceof AppErrorClass
@@ -115,7 +115,7 @@ export function OTPVerifyScreen({
 
       if (err instanceof AppErrorClass && err.code === 'OTP_LOCKED') {
         Alert.alert('Too Many Attempts', message);
-        onRetry();
+        navigation.navigate('Login');
       } else {
         setError(message);
         Alert.alert('Error', message);
@@ -180,7 +180,7 @@ export function OTPVerifyScreen({
 
             {isExpired && (
               <Pressable
-                onPress={onRetry}
+                onPress={() => navigation.navigate('Login')}
                 style={styles.resendButton}
                 accessible
                 accessibilityLabel="Request new OTP"
@@ -210,7 +210,7 @@ export function OTPVerifyScreen({
           </View>
 
           <Pressable
-            onPress={onRetry}
+            onPress={() => navigation.navigate('Login')}
             accessible
             accessibilityLabel="Change phone number"
             accessibilityRole="button"

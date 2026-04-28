@@ -18,14 +18,26 @@ describe('AssignmentNotificationBanner', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default mock to always call the selector with store state
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [],
+        isListening: false,
+        error: null,
+      };
+      return selector(mockState);
+    });
   });
 
   it('should not render when no assignments and not listening', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [],
-      isListening: false,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [],
+        isListening: false,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     const { toJSON } = render(
       <AssignmentNotificationBanner onPress={mockOnPress} />
@@ -35,11 +47,14 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should render when listening', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [],
-      isListening: true,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [],
+        isListening: true,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -47,14 +62,17 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should show pending count', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [
-        { orderId: 'order-1' },
-        { orderId: 'order-2' },
-      ] as any,
-      isListening: true,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [
+          { orderId: 'order-1' },
+          { orderId: 'order-2' },
+        ],
+        isListening: true,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -63,11 +81,14 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should use singular form for single assignment', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [{ orderId: 'order-1' }] as any,
-      isListening: true,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [{ orderId: 'order-1' }],
+        isListening: true,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -75,11 +96,14 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should show error message when error exists', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [],
-      isListening: false,
-      error: 'Connection lost',
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [],
+        isListening: false,
+        error: 'Connection lost',
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -87,11 +111,14 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should call onPress when banner is pressed', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [{ orderId: 'order-1' }] as any,
-      isListening: true,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [{ orderId: 'order-1' }],
+        isListening: true,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -102,11 +129,14 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should show connecting state when listening without pending', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [],
-      isListening: true,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [],
+        isListening: true,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -114,15 +144,18 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should render badge with pending count', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [
-        { orderId: 'order-1' },
-        { orderId: 'order-2' },
-        { orderId: 'order-3' },
-      ] as any,
-      isListening: true,
-      error: null,
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [
+          { orderId: 'order-1' },
+          { orderId: 'order-2' },
+          { orderId: 'order-3' },
+        ],
+        isListening: true,
+        error: null,
+      };
+      return selector(mockState);
+    });
 
     render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -131,28 +164,38 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should update when pending count changes', () => {
+    let currentState = {
+      pendingAssignments: [] as any,
+      isListening: true,
+      error: null,
+    };
+
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      return selector(currentState);
+    });
+
     const { rerender } = render(
       <AssignmentNotificationBanner onPress={mockOnPress} />
     );
 
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [{ orderId: 'order-1' }] as any,
+    currentState = {
+      pendingAssignments: [{ orderId: 'order-1' }],
       isListening: true,
       error: null,
-    } as any);
+    };
 
     rerender(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
     expect(screen.getByText('1 assignment available')).toBeTruthy();
 
-    mockUseAssignmentStore.mockReturnValue({
+    currentState = {
       pendingAssignments: [
         { orderId: 'order-1' },
         { orderId: 'order-2' },
-      ] as any,
+      ],
       isListening: true,
       error: null,
-    } as any);
+    };
 
     rerender(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
@@ -160,18 +203,16 @@ describe('AssignmentNotificationBanner', () => {
   });
 
   it('should show error with red background', () => {
-    mockUseAssignmentStore.mockReturnValue({
-      pendingAssignments: [],
-      isListening: false,
-      error: 'Network error',
-    } as any);
+    mockUseAssignmentStore.mockImplementation((selector: any) => {
+      const mockState = {
+        pendingAssignments: [],
+        isListening: false,
+        error: 'Network error',
+      };
+      return selector(mockState);
+    });
 
-    const { getByTestId } = render(
-      <AssignmentNotificationBanner
-        onPress={mockOnPress}
-        // testID="error-banner" (not a valid prop)
-      />
-    );
+    render(<AssignmentNotificationBanner onPress={mockOnPress} />);
 
     const banner = screen.getByText('Network error');
     expect(banner).toBeTruthy();

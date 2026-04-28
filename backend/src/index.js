@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import logger from './utils/logger.js';
 import { successResponse } from './utils/response.js';
 import { verifyToken } from './middleware/auth.js';
+import { metricsMiddleware, renderMetrics } from './utils/metrics.js';
 
 // Service imports
 import { redis } from './services/redis.js';
@@ -82,6 +83,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(metricsMiddleware);
+
 // 3. Security and parsing middleware
 app.use(helmet());
 app.use(cors({
@@ -141,6 +144,14 @@ app.get('/readiness', async (req, res) => {
     readiness: allReady,
     timestamp: new Date().toISOString(),
     checks,
+  }));
+});
+
+app.get('/metrics', (_req, res) => {
+  res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(renderMetrics({
+    environment: NODE_ENV,
+    version: '1.0.0',
   }));
 });
 

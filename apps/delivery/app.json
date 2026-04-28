@@ -3,10 +3,18 @@
     "name": "NearBy Delivery Partner",
     "slug": "nearby-delivery",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "ios": {
+      "buildNumber": "1",
       "supportsTabletMode": false,
       "bundleIdentifier": "com.nearby.delivery"
     },

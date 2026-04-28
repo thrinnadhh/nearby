@@ -18,14 +18,15 @@ import { useAuthStore } from '@/store/auth';
 import { requestOTP } from '@/services/auth';
 import { AppErrorClass } from '@/types/common';
 import logger from '@/utils/logger';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type LoginScreenNavigationProp = NativeStackNavigationProp<any, 'Login'>;
 
 interface LoginScreenProps {
-  onPhoneSubmitted: (phone: string) => void;
+  navigation: LoginScreenNavigationProp;
 }
 
-export function LoginScreen({
-  onPhoneSubmitted,
-}: LoginScreenProps): React.ReactElement {
+export function LoginScreen({ navigation }: LoginScreenProps): React.ReactElement {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +58,7 @@ export function LoginScreen({
     try {
       await requestOTP({ phone });
       logger.info('OTP request successful', { phone: phone.slice(-4) });
-      onPhoneSubmitted(phone);
+      navigation.navigate('OTPVerify', { phone });
     } catch (err) {
       const message =
         err instanceof AppErrorClass

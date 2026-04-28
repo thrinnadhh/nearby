@@ -1,0 +1,1 @@
+0 1 * * 0 cd /Users/trinadh/projects/nearby && DO_DROPLET_NAME=nearby-api-prod ./ops/backup/create_droplet_snapshot.sh >> /var/log/nearby-snapshot.log 2>&1

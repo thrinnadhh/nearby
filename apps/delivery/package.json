@@ -15,10 +15,13 @@
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.0.0",
     "@react-native-community/netinfo": "^11.0.0",
+    "@react-navigation/bottom-tabs": "^6.5.0",
+    "@react-navigation/native": "^6.1.0",
     "axios": "^1.7.0",
     "expo": "~53.0.0",
     "expo-font": "~13.3.0",
     "expo-image-picker": "^55.0.18",
+    "expo-location": "~18.1.0",
     "expo-notifications": "^0.29.14",
     "expo-router": "~4.0.0",
     "expo-secure-store": "~14.2.4",
@@ -27,6 +30,8 @@
     "joi": "^18.1.2",
     "react": "18.3.1",
     "react-native": "0.76.9",
+    "react-native-gesture-handler": "^2.31.1",
+    "react-native-screens": "^4.24.0",
     "react-test-renderer": "^18.3.1",
     "socket.io-client": "^4.7.0",
     "zustand": "^5.0.0"
@@ -44,8 +49,6 @@
     "jest-environment-jsdom": "^30.3.0",
     "jest-environment-node": "^29.0.0",
     "react-dom": "^18.3.1",
-    "react-native-gesture-handler": "^2.31.1",
-    "react-native-screens": "^4.24.0",
     "ts-jest": "^29.4.9",
     "typescript": "~5.5.0"
   }

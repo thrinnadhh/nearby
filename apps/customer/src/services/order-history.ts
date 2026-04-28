@@ -1,5 +1,41 @@
 import { client } from './api';
 import type { Order } from '@/types';
+import { createOrder, getOrderDetail as fetchOrderDetail } from './orders';
+
+interface BackendOrderItem {
+  productId: string;
+  quantity: number;
+  remainingQuantity?: number;
+  unitPricePaise?: number;
+}
+
+interface BackendOrder {
+  id: string;
+  shopId: string;
+  status: string;
+  totalPaise: number;
+  paymentMethod: 'upi' | 'cod' | 'card';
+  createdAt: string;
+  items?: BackendOrderItem[];
+}
+
+function normalizeOrder(order: BackendOrder): Order {
+  return {
+    id: order.id,
+    shop_id: order.shopId,
+    shop_name: '',
+    status: order.status as Order['status'],
+    total_paise: order.totalPaise,
+    items: (order.items || []).map((item) => ({
+      product_id: item.productId,
+      name: '',
+      price: item.unitPricePaise || 0,
+      qty: item.remainingQuantity ?? item.quantity,
+    })),
+    payment_method: order.paymentMethod === 'card' ? 'upi' : order.paymentMethod,
+    created_at: order.createdAt,
+  };
+}
 
 /**
  * Order History Service (Task 9.7)
@@ -42,16 +78,16 @@ export async function getOrderHistory(
   params: OrderHistoryParams,
   token?: string
 ): Promise<OrderHistoryResponse> {
-  const { data } = await client.get<{ success: boolean } & OrderHistoryResponse>(
+  const response = await client.get<{ success: boolean; data: BackendOrder[] }>(
     '/orders',
     {
       params: {
         page: params.page || 1,
         limit: params.limit || 10,
-        ...(params.status && { 
-          status: Array.isArray(params.status) 
-            ? params.status.join(',') 
-            : params.status 
+        ...(params.status && {
+          status: Array.isArray(params.status)
+            ? params.status.join(',')
+            : params.status,
         }),
         sort_by: params.sort_by || 'created_at',
         sort_order: params.sort_order || 'desc',
@@ -59,7 +95,17 @@ export async function getOrderHistory(
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     }
   );
-  return { data: data.data, meta: data.meta };
+  const orders = (response.data.data || []).map(normalizeOrder);
+  const limit = params.limit || 10;
+  return {
+    data: orders,
+    meta: {
+      page: params.page || 1,
+      limit,
+      total: orders.length,
+      pages: Math.max(1, Math.ceil(orders.length / limit)),
+    },
+  };
 }
 
 /**
@@ -67,10 +113,7 @@ export async function getOrderHistory(
  * Get detailed order information
  */
 export async function getOrderDetail(orderId: string, token?: string): Promise<Order> {
-  const { data } = await client.get(`/orders/${orderId}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  return data.data;
+  return fetchOrderDetail(orderId, token);
 }
 
 /**
@@ -87,17 +130,27 @@ export async function reorderFromHistory(
   },
   token?: string
 ): Promise<{ order_id: string; order_status: string }> {
-  const { data } = await client.post(
-    `/orders/${previousOrderId}/reorder`,
-    {
-      delivery_address: deliveryAddress.address,
-      delivery_coordinates: deliveryAddress.coordinates,
+  const previousOrder = await fetchOrderDetail(previousOrderId, token);
+  const newOrder = await createOrder({
+    shop_id: previousOrder.shop_id,
+    items: previousOrder.items.map((item) => ({
+      product_id: item.product_id,
+      qty: item.qty,
+      name: item.name,
+      price: item.price,
+    })),
+    delivery_address: deliveryAddress.address,
+    delivery_coords: {
+      lat: deliveryAddress.coordinates[0],
+      lng: deliveryAddress.coordinates[1],
     },
-    {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    }
-  );
-  return data.data;
+    payment_method: previousOrder.payment_method,
+  });
+
+  return {
+    order_id: newOrder.id,
+    order_status: newOrder.status,
+  };
 }
 
 export interface OrderStatusResponse {
@@ -110,10 +163,11 @@ export interface OrderStatusResponse {
  * Get current order status (for polling)
  */
 export async function getOrderStatus(orderId: string, token?: string): Promise<OrderStatusResponse> {
-  const { data } = await client.get(`/orders/${orderId}/status`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  return data.data;
+  const order = await getOrderDetail(orderId, token);
+  return {
+    order_status: order.status,
+    updated_at: order.created_at,
+  };
 }
 
 /**

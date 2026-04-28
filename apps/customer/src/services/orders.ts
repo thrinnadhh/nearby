@@ -1,5 +1,4 @@
-import { api } from './api';
-import { client } from './api';
+import { api, client } from './api';
 import type { Order } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,21 +6,104 @@ interface CreateOrderPayload {
   shop_id: string;
   items: Array<{
     product_id: string;
-    name: string;
     qty: number;
-    price: number; // Will be validated server-side
+    name?: string;
+    price?: number;
   }>;
-  delivery_address: string;
-  delivery_coords: { lat: number; lng: number };
+  delivery_address?: string;
+  delivery_coords?: { lat: number; lng: number };
   payment_method: 'upi' | 'cod';
-  total_paise: number;
-  idempotency_key: string;
+  total_paise?: number;
+  idempotency_key?: string;
 }
 
 interface CreateOrderResponse {
   success: boolean;
-  data?: { id: string; status: string };
+  data?: BackendOrder;
   error?: { code: string; message: string };
+}
+
+interface BackendOrderItem {
+  id?: string;
+  productId: string;
+  quantity: number;
+  remainingQuantity?: number;
+  cancelledQuantity?: number;
+  unitPricePaise?: number;
+  totalPaise?: number;
+}
+
+interface BackendOrder {
+  id: string;
+  customerId?: string;
+  shopId: string;
+  status: string;
+  totalPaise: number;
+  paymentMethod: 'upi' | 'cod' | 'card';
+  paymentStatus?: string;
+  createdAt: string;
+  updatedAt?: string;
+  items: BackendOrderItem[];
+}
+
+function normalizeOrder(order: BackendOrder): Order {
+  return {
+    id: order.id,
+    shop_id: order.shopId,
+    shop_name: '',
+    status: order.status as Order['status'],
+    total_paise: order.totalPaise,
+    items: order.items.map((item) => ({
+      product_id: item.productId,
+      name: '',
+      price: item.unitPricePaise || 0,
+      qty: item.remainingQuantity ?? item.quantity,
+    })),
+    payment_method: order.paymentMethod === 'card' ? 'upi' : order.paymentMethod,
+    created_at: order.createdAt,
+  };
+}
+
+async function createOrderFromExisting(
+  sourceOrderId: string,
+  token?: string
+): Promise<BackendOrder> {
+  const response = await client.get<{
+    success: boolean;
+    data?: BackendOrder;
+    error?: { code: string; message: string };
+  }>(`/orders/${sourceOrderId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || 'Failed to fetch source order');
+  }
+
+  const sourceOrder = response.data.data;
+  const createResponse = await client.post<CreateOrderResponse>(
+    '/orders',
+    {
+      shop_id: sourceOrder.shopId,
+      items: sourceOrder.items.map((item) => ({
+        product_id: item.productId,
+        qty: item.remainingQuantity ?? item.quantity,
+      })),
+      payment_method: sourceOrder.paymentMethod === 'card' ? 'upi' : sourceOrder.paymentMethod,
+    },
+    {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'idempotency-key': uuidv4(),
+      },
+    }
+  );
+
+  if (!createResponse.data.success || !createResponse.data.data) {
+    throw new Error(createResponse.data.error?.message || 'Failed to reorder');
+  }
+
+  return createResponse.data.data;
 }
 
 /**
@@ -29,14 +111,28 @@ interface CreateOrderResponse {
  * @throws Error if API fails
  */
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  const response = await api.post<CreateOrderResponse>('/api/v1/orders', payload);
+  const response = await api.post<CreateOrderResponse>(
+    '/orders',
+    {
+      shop_id: payload.shop_id,
+      items: payload.items.map((item) => ({
+        product_id: item.product_id,
+        qty: item.qty,
+      })),
+      payment_method: payload.payment_method,
+    },
+    {
+      headers: {
+        'idempotency-key': payload.idempotency_key || uuidv4(),
+      },
+    }
+  );
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to create order');
   }
 
-  const { id } = response.data.data;
-  return getOrder(id);
+  return normalizeOrder(response.data.data);
 }
 
 /**
@@ -45,15 +141,15 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
 export async function getOrder(orderId: string): Promise<Order> {
   const response = await api.get<{
     success: boolean;
-    data?: Order;
+    data?: BackendOrder;
     error?: { code: string; message: string };
-  }>(\`/api/v1/orders/${orderId}\`);
+  }>(`/orders/${orderId}`);
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to fetch order');
   }
 
-  return response.data.data;
+  return normalizeOrder(response.data.data);
 }
 
 /**
@@ -67,17 +163,17 @@ export async function getOrderDetail(
   try {
     const response = await client.get<{
       success: boolean;
-      data?: Order;
+      data?: BackendOrder;
       error?: { code: string; message: string };
-    }>(\`/api/v1/orders/${orderId}\`, {
-      headers: token ? { Authorization: \`Bearer ${token}\` } : undefined,
+    }>(`/orders/${orderId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error?.message || 'Order not found');
     }
 
-    return response.data.data;
+    return normalizeOrder(response.data.data);
   } catch (error) {
     if (error instanceof Error) throw error;
     throw new Error('Failed to fetch order details');
@@ -90,15 +186,15 @@ export async function getOrderDetail(
 export async function getOrders(): Promise<Order[]> {
   const response = await api.get<{
     success: boolean;
-    data?: Order[];
+    data?: BackendOrder[];
     error?: { code: string; message: string };
-  }>('/api/v1/orders');
+  }>('/orders');
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to fetch orders');
   }
 
-  return response.data.data;
+  return response.data.data.map(normalizeOrder);
 }
 
 /**
@@ -115,10 +211,10 @@ export async function cancelOrder(
       success: boolean;
       error?: { code: string; message: string };
     }>(
-      \`/api/v1/orders/${orderId}/cancel\`,
+      `/orders/${orderId}/cancel`,
       { reason },
       {
-        headers: token ? { Authorization: \`Bearer ${token}\` } : undefined,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       }
     );
 
@@ -150,43 +246,11 @@ export async function reorderFromOrder(
   }>;
 }> {
   try {
-    const response = await client.post<{
-      success: boolean;
-      data?: {
-        new_order_id?: string;
-        order_id?: string;
-        unavailable_items?: string[];
-        price_changes?: Array<{
-          product_id: string;
-          old_price: number;
-          new_price: number;
-        }>;
-      };
-      error?: { code: string; message: string };
-    }>(
-      \`/api/v1/orders/${orderId}/reorder\`,
-      {
-        delivery_address: deliveryAddress,
-        delivery_coords: deliveryCoords,
-      },
-      {
-        headers: token ? { Authorization: \`Bearer ${token}\` } : undefined,
-      }
-    );
-
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error?.message || 'Failed to reorder');
-    }
-
-    const data = response.data.data;
+    const data = await createOrderFromExisting(orderId, token);
     return {
-      newOrderId: data.new_order_id || data.order_id || '',
-      unavailableItems: data.unavailable_items || [],
-      priceChanges: data.price_changes?.map((pc) => ({
-        productId: pc.product_id,
-        oldPrice: pc.old_price,
-        newPrice: pc.new_price,
-      })) || [],
+      newOrderId: data.id,
+      unavailableItems: [],
+      priceChanges: [],
     };
   } catch (error) {
     if (error instanceof Error) throw error;
@@ -204,15 +268,21 @@ export async function initiatePayment(orderId: string): Promise<{
 }> {
   const response = await api.post<{
     success: boolean;
-    data?: { session_url: string; order_id: string };
+    data?: {
+      orderId: string;
+      paymentLink: string | null;
+    };
     error?: { code: string; message: string };
-  }>(\`/api/v1/payments/initiate\`, { order_id: orderId });
+  }>('/payments/initiate', { order_id: orderId });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to initiate payment');
   }
 
-  return response.data.data;
+  return {
+    session_url: response.data.data.paymentLink || '',
+    order_id: response.data.data.orderId,
+  };
 }
 
 /**
@@ -227,15 +297,32 @@ export async function getPaymentStatus(
 }> {
   const response = await api.get<{
     success: boolean;
-    data?: { status: string; paid: boolean; error?: string };
+    data?: {
+      paymentStatus: 'completed' | 'pending' | 'failed' | 'refunded';
+      gatewayStatus?: { payment_status?: string } | null;
+    };
     error?: { code: string; message: string };
-  }>(\`/api/v1/payments/${orderId}\`);
+  }>(`/payments/${orderId}`);
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to get payment status');
   }
 
-  return response.data.data;
+  const paymentStatus = response.data.data.paymentStatus;
+  const status =
+    paymentStatus === 'completed'
+      ? 'SUCCESS'
+      : paymentStatus === 'failed'
+        ? 'FAILED'
+        : paymentStatus === 'refunded'
+          ? 'REFUNDED'
+          : response.data.data.gatewayStatus?.payment_status || 'PENDING';
+
+  return {
+    status,
+    paid: paymentStatus === 'completed',
+    error: paymentStatus === 'failed' ? 'Payment failed' : undefined,
+  };
 }
 
 /**

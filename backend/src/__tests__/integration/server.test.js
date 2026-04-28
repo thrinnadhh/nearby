@@ -132,6 +132,19 @@ describe('Server Endpoints', () => {
     });
   });
 
+  describe('GET /metrics', () => {
+    it('returns Prometheus-compatible plaintext metrics', async () => {
+      const response = await request(app)
+        .get('/metrics')
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/plain');
+      expect(response.text).toContain('nearby_build_info');
+      expect(response.text).toContain('nearby_http_requests_total');
+      expect(response.text).toContain('nearby_process_uptime_seconds');
+    });
+  });
+
   describe('404 Handler', () => {
     it('should return 404 for non-existent endpoints', async () => {
       const response = await request(app)

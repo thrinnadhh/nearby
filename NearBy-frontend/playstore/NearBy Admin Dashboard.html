@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NearBy — Admin Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #FAFAF7;
+    --surface: #FFFFFF;
+    --line: #E6E4DE;
+    --line-2: #EFEDE6;
+    --ink: #1A1A19;
+    --ink-2: #3F3E3A;
+    --mute: #76746C;
+    --mute-2: #A6A39A;
+    --primary: #1F1F1E;          /* charcoal — admin is internal tooling */
+    --accent: #2563EB;           /* cool blue accent */
+    --success: #15803D;
+    --success-soft: #DCFCE7;
+    --warn: #B45309;
+    --warn-soft: #FEF3C7;
+    --danger: #B91C1C;
+    --danger-soft: #FEE2E2;
+    --highlight: #F4F2EC;
+  }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink);
+    font: 14px/1.45 'Inter', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  .display { font-family: 'Inter Tight', system-ui, sans-serif; letter-spacing: -0.015em; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  button { font-family: inherit; }
+
+  .nb-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+  }
+  /* Sidebar */
+  .side {
+    background: #1B1B1A; color: #E6E4DE;
+    padding: 18px 14px;
+    border-right: 1px solid #25241F;
+    display: flex; flex-direction: column;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px 18px;
+  }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: #FAFAF7; color: #1B1B1A;
+    display: grid; place-items: center;
+    font-family: 'Inter Tight'; font-weight: 800; font-size: 14px;
+  }
+  .brand-name { font-family: 'Inter Tight'; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand-tag { font-size: 10.5px; color: #8C8B85; font-weight: 500; }
+  .nav-section { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #6E6D67; padding: 14px 8px 6px; }
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+    border-radius: 7px; color: #C8C6BE; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .nav-item:hover { background: #25241F; color: #FAFAF7; }
+  .nav-item.active { background: #FAFAF7; color: #1B1B1A; font-weight: 600; }
+  .nav-icon { width: 16px; display: inline-flex; justify-content: center; }
+  .nav-badge { margin-left: auto; font-size: 10px; font-weight: 700;
+    background: #B91C1C; color: #fff; padding: 1px 6px; border-radius: 999px; }
+  .side-footer { margin-top: auto; display: flex; align-items: center; gap: 10px;
+    padding: 12px 8px 4px; border-top: 1px solid #25241F; }
+  .avatar { width: 32px; height: 32px; border-radius: 999px; background: #2563EB;
+    color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; gap: 14px;
+    padding: 14px 28px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .crumbs { font-size: 12px; color: var(--mute); }
+  .crumbs strong { color: var(--ink); font-weight: 600; }
+  .search { display: flex; align-items: center; gap: 8px;
+    margin-left: auto; padding: 7px 12px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--paper); width: 320px; color: var(--mute); font-size: 12.5px; }
+  .search kbd { margin-left: auto; font: 10.5px 'JetBrains Mono'; padding: 1px 5px;
+    border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+  .icon-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface); display: grid; place-items: center; cursor: pointer; }
+
+  /* Main */
+  .main { padding: 24px 28px 60px; }
+  .h1 { font-family: 'Inter Tight'; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .h1-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+    margin-bottom: 18px; }
+  .h1-sub { font-size: 13px; color: var(--mute); margin-top: 4px; }
+
+  /* KPI cards */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; }
+  .kpi-k { font-size: 11.5px; color: var(--mute); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-v { font-family: 'Inter Tight'; font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+    margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi-d { display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-top: 6px; }
+  .kpi-d.up { background: var(--success-soft); color: var(--success); }
+  .kpi-d.down { background: var(--danger-soft); color: var(--danger); }
+  .kpi-d.flat { background: #F1EFE8; color: var(--mute); }
+
+  /* Two-col layout */
+  .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; }
+  .card-hd { display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 8px; }
+  .card-title { font-family: 'Inter Tight'; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .card-sub { font-size: 11.5px; color: var(--mute); margin-top: 1px; }
+  .card-actions { display: flex; gap: 6px; }
+  .seg { display: inline-flex; padding: 2px; background: var(--paper);
+    border: 1px solid var(--line); border-radius: 7px; }
+  .seg button { padding: 4px 10px; border: 0; background: transparent; cursor: pointer;
+    border-radius: 5px; font-size: 11.5px; font-weight: 600; color: var(--mute); }
+  .seg button.on { background: var(--surface); color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .ghost-btn { padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  .ghost-btn:hover { background: var(--paper); }
+  .primary-btn { padding: 7px 12px; border-radius: 7px; border: 1px solid #1B1B1A;
+    background: #1B1B1A; color: #fff; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+  .primary-btn:hover { background: #000; }
+
+  /* Chart */
+  .chart-wrap { padding: 8px 14px 14px; }
+  .legend { display: flex; gap: 14px; padding: 0 16px 8px; font-size: 11.5px; color: var(--mute); }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+    margin-right: 6px; vertical-align: -1px; }
+
+  /* Map / India */
+  .map-wrap { padding: 14px 16px 16px; }
+  .city-row { display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-top: 1px dashed var(--line-2); font-size: 12.5px; }
+  .city-row:first-of-type { border-top: 0; }
+  .city-bar { flex: 1; height: 6px; background: var(--paper); border-radius: 999px; overflow: hidden; }
+  .city-bar > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+  .city-name { width: 110px; font-weight: 600; color: var(--ink); }
+  .city-num { width: 56px; text-align: right; font-variant-numeric: tabular-nums; color: var(--mute); }
+
+  /* Tables */
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { text-align: left; font-size: 11px; font-weight: 700; color: var(--mute);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 10px 16px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    background: var(--paper); }
+  .tbl td { padding: 12px 16px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .shop-cell { display: flex; align-items: center; gap: 10px; }
+  .shop-thumb { width: 34px; height: 34px; border-radius: 7px;
+    display: grid; place-items: center; font-family: 'Inter Tight'; font-weight: 700; color: #fff;
+    font-size: 14px; }
+  .shop-name { font-weight: 600; color: var(--ink); }
+  .shop-loc { font-size: 11.5px; color: var(--mute); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+    border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+  .pill.green { background: var(--success-soft); color: var(--success); }
+  .pill.amber { background: var(--warn-soft); color: var(--warn); }
+  .pill.red { background: var(--danger-soft); color: var(--danger); }
+  .pill.gray { background: var(--paper); color: var(--mute); border: 1px solid var(--line); }
+
+  .toggle { width: 36px; height: 20px; border-radius: 999px; background: var(--line);
+    position: relative; cursor: pointer; border: 0; padding: 0; }
+  .toggle.on { background: var(--success); }
+  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 999px; background: #fff;
+    transition: left .18s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle.on::after { left: 18px; }
+
+  .tab-row { display: flex; gap: 2px; padding: 4px 8px 0; }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--mute);
+    border: 0; background: transparent; border-bottom: 2px solid transparent; }
+  .tab.on { color: var(--ink); border-bottom-color: var(--ink); }
+
+  /* Drawer */
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 460px; background: var(--surface);
+    border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .25s ease;
+    box-shadow: -16px 0 40px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 50; }
+  .drawer.open { transform: translateX(0); }
+  .scrim { position: fixed; inset: 0; background: rgba(20,20,20,0.32); opacity: 0; pointer-events: none;
+    transition: opacity .2s; z-index: 40; }
+  .scrim.show { opacity: 1; pointer-events: auto; }
+
+  /* Featured/Trending pickers */
+  .slot { border: 1.5px dashed var(--line); border-radius: 9px; padding: 10px 12px; min-height: 60px;
+    display: flex; align-items: center; gap: 10px; }
+  .slot.filled { border-style: solid; background: var(--paper); }
+  .slot .x { margin-left: auto; cursor: pointer; color: var(--mute); font-size: 14px;
+    width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; }
+  .slot .x:hover { background: var(--line-2); color: var(--ink); }
+  .grip { color: var(--mute-2); cursor: grab; font-size: 14px; }
+
+  .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .form-row label { font-size: 11.5px; color: var(--mute); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-row input, .form-row select { padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 7px; font: inherit; background: var(--surface); color: var(--ink); outline: none; }
+  .form-row input:focus, .form-row select:focus { border-color: var(--ink); }
+
+  /* Right rail empty state */
+  .empty { padding: 20px; text-align: center; color: var(--mute); font-size: 12px; }
+
+  /* Stat cluster */
+  .stat-cluster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    border-top: 1px solid var(--line-2); }
+  .stat-cluster > div { padding: 12px 16px; border-right: 1px solid var(--line-2); }
+  .stat-cluster > div:last-child { border-right: 0; }
+  .stat-cluster .k { font-size: 11px; color: var(--mute); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-cluster .v { font-family: 'Inter Tight'; font-size: 18px; font-weight: 700; margin-top: 2px;
+    font-variant-numeric: tabular-nums; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="frames/tweaks-panel.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { TweaksPanel, TweakSection, TweakRadio, TweakToggle, useTweaks } = window;
+
+// ─── Mock data ──────────────────────────────────────────────────────────────
+const KPIS = [
+  { k: "Active orders",   v: 3142,  d: "+12.4%", dir: "up",   sub: "vs last hour" },
+  { k: "Online shops",    v: 1846,  d: "+3.1%",  dir: "up",   sub: "of 2,140 total" },
+  { k: "Online riders",   v: 412,   d: "-1.8%",  dir: "down", sub: "of 720 active" },
+  { k: "GMV today (₹L)",  v: 18.4,  d: "+8.2%",  dir: "up",   sub: "vs yesterday" },
+];
+const HOURS = Array.from({ length: 24 }, (_, h) => {
+  const peak1 = Math.exp(-Math.pow((h - 10) / 2.2, 2)) * 0.9;
+  const peak2 = Math.exp(-Math.pow((h - 19.5) / 2.2, 2)) * 1;
+  const base = 0.05 + Math.random() * 0.03;
+  return { h, orders: Math.round(280 * (base + peak1 + peak2)) };
+});
+const CITIES = [
+  { name: "Hyderabad", shops: 624, riders: 188, gmv: 6.2 },
+  { name: "Bengaluru", shops: 510, riders: 142, gmv: 4.9 },
+  { name: "Pune",      shops: 312, riders: 78,  gmv: 2.7 },
+  { name: "Chennai",   shops: 248, riders: 54,  gmv: 1.9 },
+  { name: "Mumbai",    shops: 152, riders: 0,   gmv: 1.4 },
+];
+const ALL_SHOPS = [
+  { id: "s1",  name: "Kumar's Kirana",      area: "Basheerbagh, Hyd",  cat: "Grocery",  trust: 98, orders: 312, rev: 48420, online: true,  hue: "#E35D23" },
+  { id: "s2",  name: "Sri Lakshmi Veg",     area: "Kukatpally, Hyd",   cat: "Vegetables", trust: 96, orders: 287, rev: 31840, online: true, hue: "#0E9F6E" },
+  { id: "s3",  name: "HealthFirst Pharmacy", area: "Madhapur, Hyd",    cat: "Pharmacy", trust: 99, orders: 154, rev: 28190, online: true,  hue: "#2563EB" },
+  { id: "s4",  name: "Annapurna Bakery",    area: "Banjara Hills, Hyd",cat: "Bakery",   trust: 92, orders: 198, rev: 22300, online: true,  hue: "#B45309" },
+  { id: "s5",  name: "Patel Provisions",    area: "Koramangala, Bgl",  cat: "Grocery",  trust: 91, orders: 176, rev: 19850, online: false, hue: "#9333EA" },
+  { id: "s6",  name: "Fresh Bites",         area: "Indiranagar, Bgl",  cat: "Snacks",   trust: 88, orders: 142, rev: 14210, online: true,  hue: "#DC2626" },
+  { id: "s7",  name: "Daily Mart",          area: "Whitefield, Bgl",   cat: "Grocery",  trust: 85, orders: 121, rev: 11870, online: true,  hue: "#0891B2" },
+  { id: "s8",  name: "Sunrise Dairy",       area: "Aundh, Pune",       cat: "Dairy",    trust: 94, orders: 109, rev:  9240, online: true,  hue: "#F4A62A" },
+  { id: "s9",  name: "Spice Road",          area: "Adyar, Chen",       cat: "Grocery",  trust: 79, orders:  88, rev:  7820, online: true,  hue: "#EA580C" },
+  { id: "s10", name: "Khan Stationers",     area: "T Nagar, Chen",     cat: "Stationery", trust: 82, orders: 64, rev: 5610, online: false, hue: "#475569" },
+];
+
+const TRENDING_SEED = ["s1", "s4"];     // initially-trending shop IDs
+const FEATURED_SEED = ["s2", "s3", "s7"];
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function formatINR(n) {
+  if (n == null) return "";
+  const s = Math.round(n).toString();
+  if (s.length <= 3) return "₹" + s;
+  const last3 = s.slice(-3);
+  const rest = s.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+  return "₹" + rest + "," + last3;
+}
+const initial = (s) => (s || "?").trim()[0].toUpperCase();
+
+// ─── Sidebar ────────────────────────────────────────────────────────────────
+function Sidebar({ section, setSection, totalPending }) {
+  const items = [
+    { id: "overview",  label: "Overview",   icon: "◉" },
+    { id: "shops",     label: "Shops",      icon: "▣", count: 2140 },
+    { id: "riders",    label: "Riders",     icon: "◬", count: 720 },
+    { id: "orders",    label: "Orders",     icon: "▤", badge: totalPending },
+    { id: "featured",  label: "Featured",   icon: "★" },
+    { id: "trending",  label: "Trending",   icon: "⤴" },
+  ];
+  const tools = [
+    { id: "verifications", label: "Verifications", icon: "✓", badge: 12 },
+    { id: "moderation",    label: "Moderation",    icon: "⚐", badge: 4 },
+    { id: "settings",      label: "Settings",      icon: "⚙" },
+  ];
+
+  return (
+    <aside className="side">
+      <div className="brand">
+        <div className="brand-mark">N</div>
+        <div>
+          <div className="brand-name">NearBy</div>
+          <div className="brand-tag">Admin · India</div>
+        </div>
+      </div>
+
+      <div className="nav-section">Operations</div>
+      <div className="nav">
+        {items.map(it => (
+          <div key={it.id}
+               className={`nav-item ${section === it.id ? "active" : ""}`}
+               onClick={() => setSection(it.id)}>
+            <span className="nav-icon">{it.icon}</span>
+            <span>{it.label}</span>
+            {it.count != null && <span style={{ marginLeft: "auto", fontSize: 11, color: section === it.id ? "#6E6D67" : "#76746C" }}>{it.count.toLocaleString("en-IN")}</span>}
+            {it.badge ? <span className="nav-badge">{it.badge}</span> : null}
+          </div>
+        ))}
+      </div>
+
+      <div className="nav-section">Tools</div>
+      <div className="nav">
+        {tools.map(it => (
+          <div key={it.id}
+               className={`nav-item ${section === it.id ? "active" : ""}`}
+               onClick={() => setSection(it.id)}>
+            <span className="nav-icon">{it.icon}</span>
+            <span>{it.label}</span>
+            {it.badge ? <span className="nav-badge">{it.badge}</span> : null}
+          </div>
+        ))}
+      </div>
+
+      <div className="side-footer">
+        <div className="avatar">A</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: "#FAFAF7" }}>Anjali Rao</div>
+          <div style={{ fontSize: 11, color: "#8C8B85" }}>Ops · Admin</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Top bar ────────────────────────────────────────────────────────────────
+function TopBar({ section }) {
+  const labels = {
+    overview: "Overview", shops: "Shops", riders: "Riders", orders: "Orders",
+    featured: "Featured shops", trending: "Trending shops",
+    verifications: "Verifications", moderation: "Moderation", settings: "Settings",
+  };
+  return (
+    <div className="topbar">
+      <div className="crumbs">Admin / <strong>{labels[section]}</strong></div>
+      <div className="search">
+        <span>🔍</span><span>Search shops, riders, orders…</span>
+        <kbd>⌘K</kbd>
+      </div>
+      <button className="icon-btn" title="Notifications">🔔</button>
+      <button className="icon-btn" title="Help">?</button>
+    </div>
+  );
+}
+
+// ─── Overview ───────────────────────────────────────────────────────────────
+function Overview() {
+  return (
+    <>
+      <div className="h1-row">
+        <div>
+          <div className="h1">India operations</div>
+          <div className="h1-sub">Live across 24 cities · Tuesday, 28 Apr · 11:42 AM IST</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="ghost-btn">Export CSV</button>
+          <button className="primary-btn">Open Ops Console</button>
+        </div>
+      </div>
+
+      <div className="kpis">
+        {KPIS.map(k => (
+          <div key={k.k} className="kpi">
+            <div className="kpi-k">{k.k}</div>
+            <div className="kpi-v">{typeof k.v === "number" && k.v < 100 ? k.v.toFixed(1) : k.v.toLocaleString("en-IN")}</div>
+            <div className={`kpi-d ${k.dir}`}>
+              {k.dir === "up" ? "▲" : k.dir === "down" ? "▼" : "—"} {k.d}
+              <span style={{ color: "var(--mute)", fontWeight: 500, marginLeft: 4 }}>· {k.sub}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">Orders by hour · today</div>
+              <div className="card-sub">10am peak (school run) · 7:30pm peak (evening rush)</div>
+            </div>
+            <div className="card-actions">
+              <div className="seg">
+                <button className="on">Today</button>
+                <button>7d</button>
+                <button>30d</button>
+              </div>
+            </div>
+          </div>
+          <div className="legend">
+            <span><span className="dot" style={{ background: "#1F1F1E" }}></span>Orders</span>
+            <span><span className="dot" style={{ background: "#2563EB", opacity: .4 }}></span>Avg last 7 days</span>
+          </div>
+          <div className="chart-wrap">
+            <Chart />
+          </div>
+          <div className="stat-cluster">
+            <div><div className="k">Today total</div><div className="v">14,832</div></div>
+            <div><div className="k">vs yesterday</div><div className="v" style={{ color: "var(--success)" }}>+8.2%</div></div>
+            <div><div className="k">Avg ticket</div><div className="v">₹248</div></div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">By city</div>
+              <div className="card-sub">Top 5 by GMV</div>
+            </div>
+            <button className="ghost-btn">View all</button>
+          </div>
+          <div className="map-wrap">
+            {CITIES.map(c => {
+              const max = Math.max(...CITIES.map(x => x.gmv));
+              return (
+                <div key={c.name} className="city-row">
+                  <div className="city-name">{c.name}</div>
+                  <div className="city-bar"><span style={{ width: `${(c.gmv / max) * 100}%` }}></span></div>
+                  <div className="city-num">₹{c.gmv}L</div>
+                </div>
+              );
+            })}
+            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 11.5 }}>
+              <div style={{ padding: 10, background: "var(--paper)", borderRadius: 7 }}>
+                <div style={{ color: "var(--mute)" }}>Hottest</div>
+                <div style={{ fontWeight: 700, color: "var(--ink)", marginTop: 2 }}>HSR Layout, Bgl</div>
+                <div style={{ color: "var(--mute)" }}>+24% wow</div>
+              </div>
+              <div style={{ padding: 10, background: "var(--paper)", borderRadius: 7 }}>
+                <div style={{ color: "var(--mute)" }}>Cooling</div>
+                <div style={{ fontWeight: 700, color: "var(--ink)", marginTop: 2 }}>Andheri W, Mum</div>
+                <div style={{ color: "var(--danger)" }}>−8% wow</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">Top shops · last 7 days</div>
+              <div className="card-sub">Sorted by orders</div>
+            </div>
+            <div className="card-actions">
+              <button className="ghost-btn">View all</button>
+            </div>
+          </div>
+          <ShopsTable shops={ALL_SHOPS.slice(0, 5)} compact />
+        </div>
+
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">Live ops</div>
+              <div className="card-sub">Real-time alerts</div>
+            </div>
+          </div>
+          <div style={{ padding: "0 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+            <Alert kind="red"   title="3 orders breached SLA" sub="Bgl · Whitefield zone · 14 min over" />
+            <Alert kind="amber" title="12 shop verifications pending" sub="Avg wait 2h 14m" />
+            <Alert kind="amber" title="Rider supply low" sub="Pune · Aundh · only 4 online" />
+            <Alert kind="green" title="Hyderabad SLA back to 98%" sub="Recovered 11 min ago" />
+            <Alert kind="gray"  title="Surge ended" sub="Banjara Hills · 1.4× → 1×" />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Alert({ kind, title, sub }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: 10,
+                  border: "1px solid var(--line-2)", borderRadius: 8 }}>
+      <span className={`pill ${kind}`} style={{ marginTop: 2 }}>●</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>{title}</div>
+        <div style={{ fontSize: 11.5, color: "var(--mute)", marginTop: 1 }}>{sub}</div>
+      </div>
+      <button className="ghost-btn">View</button>
+    </div>
+  );
+}
+
+function Chart() {
+  const W = 760, H = 200, PT = 18, PB = 26, PL = 24, PR = 12;
+  const data = HOURS;
+  const max = Math.max(...data.map(d => d.orders)) * 1.1;
+  const stepX = (W - PL - PR) / (data.length - 1);
+  const yFor = v => H - PB - (v / max) * (H - PT - PB);
+  const xFor = i => PL + i * stepX;
+
+  // average band (mock)
+  const avg = data.map((d, i) => ({ x: xFor(i), y: yFor(d.orders * 0.85) }));
+  const pts = data.map((d, i) => ({ x: xFor(i), y: yFor(d.orders) }));
+  const pathLine = pts.map((p, i) => (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" ");
+  const pathAvg = avg.map((p, i) => (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" ");
+  const pathFill = pathLine + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
+      <defs>
+        <linearGradient id="ofill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1F1F1E" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#1F1F1E" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75].map(g => (
+        <line key={g} x1={PL} x2={W-PR}
+              y1={PT + (H - PT - PB) * g} y2={PT + (H - PT - PB) * g}
+              stroke="#EFEDE6" strokeDasharray="3 4" />
+      ))}
+      <path d={pathAvg} fill="none" stroke="#2563EB" strokeOpacity=".5"
+            strokeWidth="1.5" strokeDasharray="4 4" />
+      <path d={pathFill} fill="url(#ofill)" />
+      <path d={pathLine} fill="none" stroke="#1F1F1E" strokeWidth="2"
+            strokeLinejoin="round" strokeLinecap="round" />
+      {[0, 6, 12, 18, 23].map(h => (
+        <text key={h} x={xFor(h)} y={H - 8} textAnchor="middle"
+              fontSize="10.5" fill="#76746C" fontFamily="JetBrains Mono">
+          {h === 0 ? "12a" : h === 12 ? "12p" : h > 12 ? `${h-12}p` : `${h}a`}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+// ─── Shops table ────────────────────────────────────────────────────────────
+function ShopsTable({ shops, compact, onSelect, onToggleOnline }) {
+  return (
+    <table className="tbl">
+      <thead>
+        <tr>
+          <th style={{ paddingLeft: 16 }}>Shop</th>
+          <th>Category</th>
+          <th>Trust</th>
+          <th>7d orders</th>
+          <th>7d revenue</th>
+          {!compact && <th>Online</th>}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {shops.map(s => (
+          <tr key={s.id}>
+            <td>
+              <div className="shop-cell">
+                <div className="shop-thumb" style={{ background: s.hue }}>{initial(s.name)}</div>
+                <div>
+                  <div className="shop-name">{s.name}</div>
+                  <div className="shop-loc">{s.area}</div>
+                </div>
+              </div>
+            </td>
+            <td><span className="pill gray">{s.cat}</span></td>
+            <td>
+              <span className={`pill ${s.trust >= 95 ? "green" : s.trust >= 85 ? "amber" : "red"}`}>
+                {s.trust}
+              </span>
+            </td>
+            <td className="mono" style={{ fontVariantNumeric: "tabular-nums" }}>{s.orders.toLocaleString("en-IN")}</td>
+            <td className="mono" style={{ fontVariantNumeric: "tabular-nums" }}>{formatINR(s.rev)}</td>
+            {!compact && (
+              <td>
+                <button className={`toggle ${s.online ? "on" : ""}`}
+                        onClick={() => onToggleOnline && onToggleOnline(s.id)} />
+              </td>
+            )}
+            <td style={{ textAlign: "right" }}>
+              <button className="ghost-btn" onClick={() => onSelect && onSelect(s)}>{compact ? "View" : "Edit"}</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// ─── Featured / Trending pickers ────────────────────────────────────────────
+function FeaturedTrending({ mode, picks, setPicks, allShops }) {
+  // mode: "featured" (3 slots) | "trending" (5 slots)
+  const SLOTS = mode === "featured" ? 3 : 5;
+  const [filter, setFilter] = React.useState("");
+  const [autoRotate, setAutoRotate] = React.useState(mode === "trending");
+
+  const pickedSet = new Set(picks);
+  const candidates = allShops
+    .filter(s => !pickedSet.has(s.id))
+    .filter(s => filter === "" || (s.name + s.area + s.cat).toLowerCase().includes(filter.toLowerCase()));
+
+  function add(id) {
+    if (picks.length >= SLOTS) return;
+    setPicks([...picks, id]);
+  }
+  function remove(id) { setPicks(picks.filter(p => p !== id)); }
+  function moveUp(i) {
+    if (i === 0) return;
+    const next = [...picks]; [next[i-1], next[i]] = [next[i], next[i-1]]; setPicks(next);
+  }
+  function moveDown(i) {
+    if (i === picks.length - 1) return;
+    const next = [...picks]; [next[i+1], next[i]] = [next[i], next[i+1]]; setPicks(next);
+  }
+
+  const titles = mode === "featured"
+    ? { h1: "Featured shops", sub: "Hand-picked. Appear at the top of every customer's home feed in their city. Rotate weekly for fairness." }
+    : { h1: "Trending shops", sub: "Editorial trending row. Up to 5 slots. Auto-rotation can hand off to the algorithm at midnight." };
+
+  return (
+    <>
+      <div className="h1-row">
+        <div>
+          <div className="h1">{titles.h1}</div>
+          <div className="h1-sub">{titles.sub}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="ghost-btn">Preview in app</button>
+          <button className="primary-btn">Publish · {picks.length}/{SLOTS}</button>
+        </div>
+      </div>
+
+      <div className="grid-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        {/* Left: slots */}
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">Active slots</div>
+              <div className="card-sub">{picks.length} of {SLOTS} filled · drag to reorder</div>
+            </div>
+            {mode === "trending" && (
+              <button className={`toggle ${autoRotate ? "on" : ""}`} onClick={() => setAutoRotate(!autoRotate)} />
+            )}
+          </div>
+          <div style={{ padding: "4px 16px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+            {Array.from({ length: SLOTS }).map((_, i) => {
+              const id = picks[i];
+              const s = id ? allShops.find(x => x.id === id) : null;
+              return (
+                <div key={i} className={`slot ${s ? "filled" : ""}`}>
+                  <span style={{ fontSize: 11, color: "var(--mute)", fontWeight: 700, width: 18 }}>{i + 1}</span>
+                  {s ? (
+                    <>
+                      <span className="grip">⋮⋮</span>
+                      <div className="shop-thumb" style={{ background: s.hue, width: 30, height: 30, fontSize: 12 }}>{initial(s.name)}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="shop-name" style={{ fontSize: 13 }}>{s.name}</div>
+                        <div className="shop-loc">{s.area} · trust {s.trust}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 2, marginLeft: "auto" }}>
+                        <button className="ghost-btn" onClick={() => moveUp(i)} title="Move up">↑</button>
+                        <button className="ghost-btn" onClick={() => moveDown(i)} title="Move down">↓</button>
+                        <span className="x" onClick={() => remove(s.id)} title="Remove">✕</span>
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ color: "var(--mute)", fontSize: 12.5 }}>Empty slot — pick a shop from the right</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="stat-cluster">
+            <div><div className="k">Reach (est.)</div><div className="v">{(picks.length * 84).toLocaleString("en-IN")}k</div></div>
+            <div><div className="k">Last published</div><div className="v" style={{ fontSize: 14 }}>2 days ago</div></div>
+            <div><div className="k">Schedule</div><div className="v" style={{ fontSize: 14 }}>{mode === "trending" ? "Daily 00:00" : "Weekly Mon"}</div></div>
+          </div>
+        </div>
+
+        {/* Right: candidate picker */}
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">Candidates</div>
+              <div className="card-sub">{candidates.length} eligible shops</div>
+            </div>
+          </div>
+          <div style={{ padding: "0 14px 12px" }}>
+            <div className="search" style={{ width: "100%", margin: 0 }}>
+              <span>🔍</span>
+              <input value={filter} onChange={e => setFilter(e.target.value)}
+                     placeholder="Filter by name, city, category…"
+                     style={{ flex: 1, border: 0, outline: 0, background: "transparent", color: "var(--ink)", font: "inherit" }} />
+            </div>
+          </div>
+          <div style={{ maxHeight: 460, overflowY: "auto" }}>
+            {candidates.map(s => (
+              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10,
+                                       padding: "10px 16px", borderTop: "1px solid var(--line-2)" }}>
+                <div className="shop-thumb" style={{ background: s.hue, width: 30, height: 30, fontSize: 12 }}>{initial(s.name)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{s.name}</div>
+                  <div className="shop-loc">{s.area} · {s.cat}</div>
+                </div>
+                <span className={`pill ${s.trust >= 95 ? "green" : s.trust >= 85 ? "amber" : "red"}`}>
+                  {s.trust}
+                </span>
+                <button className="ghost-btn" onClick={() => add(s.id)} disabled={picks.length >= SLOTS}>
+                  {picks.length >= SLOTS ? "Full" : "Add"}
+                </button>
+              </div>
+            ))}
+            {candidates.length === 0 && (
+              <div className="empty">No shops match that filter.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Shops section ──────────────────────────────────────────────────────────
+function ShopsSection({ shops, setShops }) {
+  const [tab, setTab] = React.useState("all");
+  const [drawerShop, setDrawerShop] = React.useState(null);
+  const filtered = tab === "all" ? shops :
+                   tab === "online" ? shops.filter(s => s.online) :
+                   tab === "offline" ? shops.filter(s => !s.online) :
+                   shops.filter(s => s.trust < 90);
+
+  function toggleOnline(id) {
+    setShops(shops.map(s => s.id === id ? { ...s, online: !s.online } : s));
+  }
+
+  return (
+    <>
+      <div className="h1-row">
+        <div>
+          <div className="h1">Shops</div>
+          <div className="h1-sub">2,140 total · 1,846 online · 12 awaiting verification</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="ghost-btn">Export</button>
+          <button className="primary-btn">+ Onboard new shop</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="tab-row">
+          <button className={`tab ${tab==="all" ? "on" : ""}`} onClick={() => setTab("all")}>All · {shops.length}</button>
+          <button className={`tab ${tab==="online" ? "on" : ""}`} onClick={() => setTab("online")}>Online · {shops.filter(s=>s.online).length}</button>
+          <button className={`tab ${tab==="offline" ? "on" : ""}`} onClick={() => setTab("offline")}>Offline · {shops.filter(s=>!s.online).length}</button>
+          <button className={`tab ${tab==="lowtrust" ? "on" : ""}`} onClick={() => setTab("lowtrust")}>Low trust · {shops.filter(s=>s.trust<90).length}</button>
+        </div>
+        <ShopsTable shops={filtered} onSelect={setDrawerShop} onToggleOnline={toggleOnline} />
+      </div>
+
+      <div className={`scrim ${drawerShop ? "show" : ""}`} onClick={() => setDrawerShop(null)} />
+      <div className={`drawer ${drawerShop ? "open" : ""}`}>
+        {drawerShop && (
+          <>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 12 }}>
+              <div className="shop-thumb" style={{ background: drawerShop.hue, width: 42, height: 42, fontSize: 18 }}>{initial(drawerShop.name)}</div>
+              <div style={{ flex: 1 }}>
+                <div className="display" style={{ fontSize: 18, fontWeight: 700 }}>{drawerShop.name}</div>
+                <div style={{ fontSize: 12, color: "var(--mute)" }}>{drawerShop.area} · {drawerShop.cat}</div>
+              </div>
+              <button className="icon-btn" onClick={() => setDrawerShop(null)}>✕</button>
+            </div>
+            <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+              <div className="kpis" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 16 }}>
+                <div className="kpi"><div className="kpi-k">Trust score</div><div className="kpi-v">{drawerShop.trust}</div></div>
+                <div className="kpi"><div className="kpi-k">7d orders</div><div className="kpi-v">{drawerShop.orders}</div></div>
+                <div className="kpi"><div className="kpi-k">7d revenue</div><div className="kpi-v">{formatINR(drawerShop.rev)}</div></div>
+                <div className="kpi"><div className="kpi-k">Status</div><div className="kpi-v" style={{ color: drawerShop.online ? "var(--success)" : "var(--mute)" }}>{drawerShop.online ? "Online" : "Offline"}</div></div>
+              </div>
+
+              <div className="form-row">
+                <label>Display name</label>
+                <input defaultValue={drawerShop.name} />
+              </div>
+              <div className="form-row">
+                <label>Category</label>
+                <select defaultValue={drawerShop.cat}>
+                  {["Grocery","Vegetables","Dairy","Bakery","Snacks","Pharmacy","Stationery"].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="form-row">
+                <label>Area / address</label>
+                <input defaultValue={drawerShop.area} />
+              </div>
+              <div className="form-row">
+                <label>Operational status</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button className={`toggle ${drawerShop.online ? "on" : ""}`}
+                          onClick={() => { toggleOnline(drawerShop.id); setDrawerShop({ ...drawerShop, online: !drawerShop.online }); }} />
+                  <span style={{ fontSize: 12.5, color: "var(--mute)" }}>
+                    {drawerShop.online ? "Visible in app — accepting orders" : "Hidden — not accepting orders"}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14, padding: 14, background: "var(--paper)", borderRadius: 10, border: "1px solid var(--line)" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>Recent flags</div>
+                <div style={{ fontSize: 12, color: "var(--mute)", marginTop: 4 }}>
+                  No active complaints. Last review reply: 3 days ago.
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: 14, borderTop: "1px solid var(--line)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="ghost-btn">Suspend</button>
+              <button className="primary-btn">Save changes</button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─── Root ───────────────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "density": "regular",
+  "showLiveOps": true
+}/*EDITMODE-END*/;
+
+function App() {
+  const [t, setT] = useTweaks(TWEAK_DEFAULTS);
+  const [section, setSection] = React.useState("overview");
+  const [shops, setShops] = React.useState(ALL_SHOPS);
+  const [featured, setFeatured] = React.useState(FEATURED_SEED);
+  const [trending, setTrending] = React.useState(TRENDING_SEED);
+
+  let body;
+  if (section === "overview") body = <Overview />;
+  else if (section === "shops") body = <ShopsSection shops={shops} setShops={setShops} />;
+  else if (section === "featured") body = <FeaturedTrending mode="featured" picks={featured} setPicks={setFeatured} allShops={shops} />;
+  else if (section === "trending") body = <FeaturedTrending mode="trending" picks={trending} setPicks={setTrending} allShops={shops} />;
+  else body = (
+    <>
+      <div className="h1-row">
+        <div>
+          <div className="h1">{section[0].toUpperCase() + section.slice(1)}</div>
+          <div className="h1-sub">This area is wired to the same data layer — pick another section in the sidebar to explore.</div>
+        </div>
+      </div>
+      <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--mute)" }}>
+        <div style={{ fontSize: 38, marginBottom: 8 }}>🛠</div>
+        <div className="display" style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>Coming next</div>
+        <div style={{ marginTop: 6, fontSize: 13 }}>Riders · Orders · Verifications · Moderation · Settings.</div>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="nb-shell">
+      <Sidebar section={section} setSection={setSection} totalPending={4} />
+      <div>
+        <TopBar section={section} />
+        <div className="main">{body}</div>
+      </div>
+
+      <TweaksPanel title="Admin Tweaks">
+        <TweakSection label="Sidebar density" />
+        <TweakRadio value={t.density}
+          options={[
+            { value: "regular", label: "Regular" },
+            { value: "compact", label: "Compact" },
+          ]}
+          onChange={v => setT('density', v)} />
+
+        <TweakSection label="Overview" />
+        <TweakToggle label="Show live-ops alerts" value={t.showLiveOps}
+          onChange={v => setT('showLiveOps', v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -7,9 +7,12 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "seed:typesense": "node src/scripts/seedTypesense.js",
+    "loadtest:orders": "node src/scripts/loadTestOrders.js",
+    "test:e2e:critical": "node src/scripts/e2eCriticalFlow.js",
     "test": "jest --coverage",
     "test:sprint1": "npx jest --runInBand --coverage=false src/__tests__/integration/sprint1.e2e.test.js",
     "test:sprint2": "npx jest --runInBand --coverage=false src/__tests__/integration/shops.test.js src/__tests__/integration/shopsKyc.test.js src/__tests__/integration/products.test.js src/__tests__/integration/search.test.js src/__tests__/unit/productImagePipeline.test.js src/__tests__/unit/typesenseSchema.test.js",
+    "test:sprint15": "npx jest --runInBand --coverage=false src/__tests__/integration/server.test.js",
     "test:e2e:sprint1-2": "npx jest --runInBand --coverage=false src/__tests__/integration/sprint1.e2e.test.js src/__tests__/integration/auth.test.js src/__tests__/integration/server.test.js src/__tests__/integration/shops.test.js src/__tests__/integration/shopsKyc.test.js src/__tests__/integration/products.test.js src/__tests__/integration/search.test.js src/__tests__/unit/productImagePipeline.test.js src/__tests__/unit/typesenseSchema.test.js",
     "lint": "eslint src/"
   },

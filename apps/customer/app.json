@@ -3,6 +3,13 @@
     "name": "NearBy",
     "slug": "nearby-customer",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "scheme": "nearby-customer",
     "icon": "./assets/images/icon.png",
@@ -13,10 +20,12 @@
       "backgroundColor": "#2563EB"
     },
     "ios": {
+      "buildNumber": "1",
       "bundleIdentifier": "app.nearby.customer",
       "supportsTablet": false
     },
     "android": {
+      "versionCode": 1,
       "package": "app.nearby.customer",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -46,6 +55,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "nearby-customer"
+      }
     }
   }
 }

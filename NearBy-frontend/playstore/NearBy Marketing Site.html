@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NearBy — Your neighbourhood, delivered</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --primary: #D35323;
+    --primary-deep: #A03C17;
+    --primary-soft: #FADCC6;
+    --accent: #0E9F6E;
+    --star: #E49B15;
+    --ink: #2A1F17;
+    --ink-mute: #70615A;
+    --paper: #FAF2E3;
+    --paper-deep: #F0E3CB;
+    --card: #FFFFFF;
+    --line: #E7D9BF;
+    --display: 'Fraunces', 'Georgia', serif;
+    --body: 'Hind', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--body); color: var(--ink); background: var(--paper);
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: var(--body); cursor: pointer; border: none; }
+  img { display: block; max-width: 100%; }
+
+  .display { font-family: var(--display); font-weight: 600; letter-spacing: -0.02em; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--primary-deep); }
+
+  /* ───── Navbar ───── */
+  .nav {
+    position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px);
+    background: rgba(250, 242, 227, 0.85); border-bottom: 1px solid transparent;
+    transition: border-color .2s, background .2s;
+  }
+  .nav.scrolled { border-color: var(--line); background: rgba(255, 253, 248, 0.92); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; }
+  .logo-dot {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--primary);
+    position: relative; flex-shrink: 0;
+  }
+  .logo-dot::after {
+    content: ""; position: absolute; inset: 6px; border-radius: 50%;
+    background: var(--paper); border: 2.5px solid var(--primary);
+  }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a { font-size: 14px; font-weight: 600; color: var(--ink); padding: 6px 0; }
+  .nav-links a:hover { color: var(--primary); }
+  .btn { font-family: var(--body); font-size: 14px; font-weight: 700; padding: 11px 18px; border-radius: 999px; transition: transform .15s, box-shadow .2s; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 18px -8px rgba(211,83,35,0.6); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 22px -8px rgba(211,83,35,0.7); }
+  .btn-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn-ghost:hover { background: var(--card); }
+  .btn-lg { font-size: 15px; padding: 14px 22px; }
+
+  /* ───── Hero ───── */
+  .hero {
+    padding: 56px 0 64px;
+    background:
+      radial-gradient(1000px 480px at 90% 10%, var(--primary-soft) 0%, transparent 60%),
+      radial-gradient(800px 400px at 0% 100%, #F4E5C9 0%, transparent 60%),
+      var(--paper);
+  }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
+  .hero h1 { font-family: var(--display); font-size: clamp(40px, 5.6vw, 76px); font-weight: 600; line-height: 1.02; letter-spacing: -0.025em; color: var(--ink); }
+  .hero h1 em { color: var(--primary); font-style: italic; font-weight: 500; }
+  .hero p.lead { font-size: 17px; color: var(--ink-mute); margin-top: 20px; max-width: 520px; line-height: 1.55; }
+  .hero-ctas { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+  .store-btn {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 14px;
+    transition: transform .15s; white-space: nowrap;
+  }
+  .store-btn:hover { transform: translateY(-1px); }
+  .store-btn .glyph { font-size: 28px; line-height: 1; }
+  .store-btn .top { font-size: 10px; opacity: 0.8; letter-spacing: 0.4px; text-transform: uppercase; }
+  .store-btn .bot { font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.1; white-space: nowrap; }
+  .store-btn .top { white-space: nowrap; }
+
+  .trust-row { display: flex; gap: 24px; margin-top: 32px; flex-wrap: wrap; }
+  .trust-item .num { font-family: var(--display); font-size: 28px; font-weight: 600; color: var(--ink); letter-spacing: -0.5px; }
+  .trust-item .lbl { font-size: 12.5px; color: var(--ink-mute); font-weight: 500; }
+
+  /* Phone mock */
+  .phone-mock {
+    position: relative; width: 320px; height: 640px; margin: 0 auto;
+    background: var(--ink); border-radius: 48px; padding: 12px;
+    box-shadow: 0 40px 80px -30px rgba(42,31,23,0.4), 0 16px 32px -16px rgba(0,0,0,0.2);
+    transform: rotate(-3deg);
+  }
+  .phone-mock-screen { width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: var(--paper); position: relative; }
+  .phone-status { display: flex; justify-content: space-between; padding: 14px 22px 6px; font-size: 11px; font-weight: 700; color: var(--ink); }
+  .phone-content { padding: 8px 16px; }
+  .pm-greeting { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: -0.4px; color: var(--ink); }
+  .pm-loc { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .pm-search {
+    margin-top: 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 14px; font-size: 12px; color: var(--ink-mute); display: flex; align-items: center; gap: 8px;
+  }
+  .pm-chips { display: flex; gap: 6px; margin-top: 12px; overflow: hidden; }
+  .pm-chip { padding: 6px 11px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .pm-chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pm-card { margin-top: 14px; background: #fff; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); }
+  .pm-card-cover { height: 110px; background: linear-gradient(135deg, oklch(0.85 0.12 28), oklch(0.7 0.16 32)); position: relative; }
+  .pm-card-badge {
+    position: absolute; bottom: 8px; left: 8px;
+    padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,0.95);
+    font-size: 10px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 4px;
+  }
+  .pm-card-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .pm-card-body { padding: 12px 14px 14px; }
+  .pm-card-title { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--ink); }
+  .pm-card-meta { display: flex; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--ink-mute); align-items: center; }
+  .pm-card-pill { padding: 2px 7px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-deep); font-weight: 700; font-size: 10px; }
+
+  /* ───── Section base ───── */
+  section { padding: 80px 0; position: relative; }
+  .section-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 36px; max-width: 720px; }
+  .section-head h2 { font-family: var(--display); font-size: clamp(30px, 3.8vw, 48px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; color: var(--ink); }
+  .section-head p { font-size: 16px; color: var(--ink-mute); max-width: 580px; }
+
+  /* ───── Recommended grid ───── */
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .pcard { background: #fff; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); transition: transform .2s, box-shadow .2s; cursor: pointer; }
+  .pcard:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -16px rgba(42,31,23,0.18); }
+  .pcard:hover .pcard-btn { opacity: 1; transform: translateY(0); }
+  .pcard-img { aspect-ratio: 1/1; position: relative; }
+  .pcard-img-fill { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-size: 42px; font-weight: 600; color: rgba(255,255,255,0.6); }
+  .pcard-pill {
+    position: absolute; top: 10px; left: 10px;
+    padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.95);
+    font-size: 10.5px; font-weight: 700; color: var(--ink);
+  }
+  .pcard-body { padding: 14px; }
+  .pcard-shop { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-mute); }
+  .pcard-shop .verified { color: var(--accent); font-weight: 800; }
+  .pcard-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 4px; line-height: 1.3; height: 36px; overflow: hidden; }
+  .pcard-foot { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; }
+  .pcard-price { font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.5px; }
+  .pcard-unit { font-size: 11px; color: var(--ink-mute); margin-left: 4px; font-weight: 500; }
+  .pcard-btn {
+    width: 100%; padding: 9px; border-radius: 10px; background: var(--ink); color: #fff;
+    font-size: 12px; font-weight: 700; margin-top: 10px;
+    opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s;
+  }
+
+  /* ───── Trending row ───── */
+  .trending-section { background: linear-gradient(180deg, var(--paper) 0%, var(--paper-deep) 100%); }
+  .trending-scroll {
+    display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 12px; margin: 0 -24px; padding-left: 24px; padding-right: 24px;
+  }
+  .trending-scroll::-webkit-scrollbar { height: 6px; }
+  .trending-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .tcard {
+    flex: 0 0 360px; background: #fff; border-radius: 20px; padding: 16px; display: flex; gap: 14px;
+    border: 1px solid var(--line); scroll-snap-align: start;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .tcard:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -16px rgba(42,31,23,0.18); }
+  .tcard-img { width: 110px; height: 110px; border-radius: 14px; flex-shrink: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 600; color: rgba(255,255,255,0.6); font-size: 32px; }
+  .tcard-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .tlabel {
+    align-self: flex-start; padding: 4px 10px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px;
+  }
+  .tlabel.hot { background: #FCE0D5; color: #B9431B; }
+  .tlabel.fast { background: #FBE9C2; color: #8C6512; }
+  .tlabel.heart { background: #F8DCE0; color: #A33B4D; }
+  .tcard-name { font-family: var(--display); font-size: 17px; font-weight: 600; color: var(--ink); margin-top: 8px; line-height: 1.2; }
+  .tcard-meta { font-size: 12px; color: var(--ink-mute); margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+  .tcard-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; }
+  .tcard-foot .social { font-size: 11px; color: var(--accent); font-weight: 700; }
+
+  /* ───── Categories ───── */
+  .categories-section { background: var(--paper-deep); }
+  .cat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cat-pill {
+    flex: 1 1 140px; padding: 22px 16px; background: #fff; border-radius: 18px;
+    border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+    transition: transform .2s, box-shadow .2s; cursor: pointer;
+  }
+  .cat-pill:hover { transform: translateY(-3px); box-shadow: 0 14px 26px -14px rgba(42,31,23,0.15); border-color: var(--primary); }
+  .cat-pill .icon { font-size: 32px; }
+  .cat-pill .name { font-family: var(--display); font-size: 17px; font-weight: 600; color: var(--ink); }
+  .cat-pill .count { font-size: 11.5px; color: var(--ink-mute); }
+
+  /* ───── How it works ───── */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; }
+  .steps::before {
+    content: ""; position: absolute; top: 28px; left: 12.5%; right: 12.5%; height: 2px;
+    background: repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 14px);
+    z-index: 0;
+  }
+  .step { position: relative; z-index: 1; text-align: center; }
+  .step-num {
+    width: 56px; height: 56px; border-radius: 50%; background: var(--card);
+    border: 2px solid var(--ink); display: grid; place-items: center; margin: 0 auto 16px;
+    font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--ink);
+  }
+  .step-icon { font-size: 26px; margin-bottom: 6px; }
+  .step h3 { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .step p { font-size: 13.5px; color: var(--ink-mute); line-height: 1.5; padding: 0 8px; }
+
+  /* ───── Shops marquee strip ───── */
+  .shops-marquee { padding: 60px 0; background: var(--ink); color: var(--paper); overflow: hidden; }
+  .marquee-label { font-family: var(--display); font-size: 14px; opacity: 0.7; text-align: center; letter-spacing: 0.5px; }
+  .marquee-track { display: flex; gap: 40px; margin-top: 24px; animation: marquee 40s linear infinite; }
+  .marquee-item { display: flex; align-items: center; gap: 14px; flex-shrink: 0; padding-right: 40px; border-right: 1px solid rgba(255,255,255,0.1); }
+  .marquee-icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
+  .marquee-name { font-family: var(--display); font-size: 18px; font-weight: 600; white-space: nowrap; }
+  .marquee-area { font-size: 12px; color: rgba(255,237,210,0.7); white-space: nowrap; }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ───── For shops ───── */
+  .for-shops {
+    background: linear-gradient(135deg, var(--accent) 0%, #0B7C56 100%);
+    color: #fff;
+  }
+  .for-shops .section-head h2 { color: #fff; }
+  .for-shops .section-head p { color: rgba(255,255,255,0.85); }
+  .fs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+  .fs-list { display: flex; flex-direction: column; gap: 18px; margin-top: 28px; }
+  .fs-list li { display: flex; gap: 14px; align-items: flex-start; list-style: none; font-size: 15.5px; color: rgba(255,255,255,0.92); line-height: 1.5; }
+  .fs-list .check {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); display: grid; place-items: center;
+    font-size: 13px; font-weight: 800; color: #fff;
+  }
+  .fs-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .fs-stat { background: rgba(255,255,255,0.1); border-radius: 18px; padding: 24px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); }
+  .fs-stat .num { font-family: var(--display); font-size: 38px; font-weight: 600; letter-spacing: -0.7px; color: #fff; line-height: 1; }
+  .fs-stat .lbl { font-size: 12.5px; color: rgba(255,255,255,0.75); margin-top: 6px; }
+  .fs-cta { margin-top: 28px; }
+
+  /* ───── Testimonials ───── */
+  .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .testimonial {
+    background: #fff; border-radius: 22px; padding: 26px;
+    border: 1px solid var(--line); display: flex; flex-direction: column; gap: 16px;
+  }
+  .testimonial .quote { font-family: var(--display); font-size: 19px; font-weight: 500; line-height: 1.4; color: var(--ink); letter-spacing: -0.3px; }
+  .testimonial .quote::before { content: "\201C"; color: var(--primary); font-size: 36px; line-height: 0; vertical-align: -0.4em; margin-right: 4px; }
+  .testimonial .who { display: flex; align-items: center; gap: 12px; margin-top: auto; }
+  .testimonial .avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 15px; }
+  .testimonial .name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .testimonial .role { font-size: 12px; color: var(--ink-mute); }
+  .stars { color: var(--star); font-size: 14px; letter-spacing: 2px; }
+
+  /* ───── FAQ ───── */
+  .faq { max-width: 780px; margin: 0 auto; }
+  .faq details {
+    background: #fff; border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px 22px; margin-bottom: 10px; transition: border-color .2s;
+  }
+  .faq details[open] { border-color: var(--primary); }
+  .faq summary {
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--display); font-size: 17px; font-weight: 600; color: var(--ink);
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-size: 22px; color: var(--primary); font-weight: 400; transition: transform .2s; }
+  .faq details[open] summary::after { transform: rotate(45deg); }
+  .faq details p { margin-top: 12px; font-size: 14.5px; color: var(--ink-mute); line-height: 1.6; }
+
+  /* ───── Download CTA ───── */
+  .download-cta {
+    background:
+      radial-gradient(600px 400px at 80% 30%, var(--primary-soft) 0%, transparent 60%),
+      radial-gradient(700px 500px at 10% 80%, #F4E5C9 0%, transparent 60%),
+      var(--paper);
+    text-align: center;
+  }
+  .download-cta .container { max-width: 880px; }
+  .download-cta h2 { font-family: var(--display); font-size: clamp(34px, 5vw, 60px); font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+  .download-cta p.lead { font-size: 17px; color: var(--ink-mute); margin-top: 16px; }
+  .qr-wrap { display: inline-flex; align-items: center; gap: 22px; margin-top: 36px; padding: 16px 22px 16px 16px; background: #fff; border-radius: 22px; border: 1px solid var(--line); }
+  .qr-svg { width: 110px; height: 110px; flex-shrink: 0; }
+  .qr-text { text-align: left; }
+  .qr-text .top { font-size: 11.5px; color: var(--ink-mute); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+  .qr-text .mid { font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--ink); margin-top: 2px; }
+  .qr-text .bot { font-size: 12.5px; color: var(--ink-mute); margin-top: 4px; }
+  .download-stores { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+  .social-proof { margin-top: 32px; display: inline-flex; gap: 16px; align-items: center; font-size: 13px; color: var(--ink-mute); }
+  .social-proof .stars { color: var(--star); font-size: 18px; }
+
+  /* ───── Footer ───── */
+  footer { background: var(--ink); color: rgba(250,242,227,0.85); padding: 64px 0 32px; }
+  .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+  .foot-col h4 { font-family: var(--display); font-size: 14px; font-weight: 600; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 16px; }
+  .foot-col a { display: block; padding: 5px 0; font-size: 13.5px; color: rgba(250,242,227,0.7); }
+  .foot-col a:hover { color: var(--primary); }
+  .foot-col p { font-size: 13.5px; color: rgba(250,242,227,0.7); line-height: 1.6; }
+  .foot-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 32px; margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12.5px; color: rgba(250,242,227,0.5); }
+  .foot-bottom .heart { color: var(--primary); }
+
+  /* ───── Responsive ───── */
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .phone-mock { transform: rotate(-2deg) scale(0.92); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .steps { grid-template-columns: 1fr 1fr; gap: 32px 16px; }
+    .steps::before { display: none; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .fs-grid { grid-template-columns: 1fr; gap: 32px; }
+    .nav-links { display: none; }
+    .foot-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+    section { padding: 64px 0; }
+  }
+  @media (max-width: 540px) {
+    .grid-4 { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .cat-pill { flex: 1 1 calc(50% - 6px); padding: 18px 14px; }
+    .fs-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .qr-wrap { flex-direction: column; padding: 20px; }
+    .qr-text { text-align: center; }
+    .foot-bottom { flex-direction: column; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo"><span class="logo-dot"></span>NearBy</a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#shops">For shops</a>
+      <a href="#download">Download</a>
+    </nav>
+    <a href="#download" class="btn btn-primary">Download app</a>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow">Hyperlocal · Verified · 30 minutes</span>
+      <h1 style="margin-top: 14px;">Your <em>neighbourhood</em>,<br>delivered.</h1>
+      <p class="lead">
+        Fresh groceries, medicines, and food from <strong style="color:var(--ink)">verified local shops</strong>
+        near you. Not a warehouse. Not a dark store. Real shops. Real people.
+      </p>
+      <div class="hero-ctas">
+        <a href="#" class="store-btn">
+          <span class="glyph">▶</span>
+          <span><span class="top">Get it on</span><br><span class="bot">Google Play</span></span>
+        </a>
+        <a href="#" class="store-btn">
+          <span class="glyph"></span>
+          <span><span class="top">Download on</span><br><span class="bot">App Store</span></span>
+        </a>
+      </div>
+      <div class="trust-row">
+        <div class="trust-item"><div class="num" data-count="2400">2,400+</div><div class="lbl">Verified shops</div></div>
+        <div class="trust-item"><div class="num" data-count="30">30+</div><div class="lbl">Min delivery time</div></div>
+        <div class="trust-item"><div class="num" data-count="48">48+</div><div class="lbl">Neighbourhoods</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="phone-mock">
+        <div class="phone-mock-screen">
+          <div class="phone-status"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <div class="pm-greeting">Namaste, Priya</div>
+            <div class="pm-loc">📍 Basheerbagh, Hyderabad</div>
+            <div class="pm-search">🔍 Search shops, products…</div>
+            <div class="pm-chips">
+              <span class="pm-chip active">All</span>
+              <span class="pm-chip">Kirana</span>
+              <span class="pm-chip">Veggies</span>
+              <span class="pm-chip">Pharmacy</span>
+            </div>
+            <div class="pm-card">
+              <div class="pm-card-cover">
+                <div class="pm-card-badge"><span class="dot"></span>Open · 0.4 km</div>
+              </div>
+              <div class="pm-card-body">
+                <div class="pm-card-title">Kumar's Kirana</div>
+                <div class="pm-card-meta">
+                  <span class="pm-card-pill">★ 4.8</span>
+                  <span>Verified · 1,200+ orders</span>
+                </div>
+              </div>
+            </div>
+            <div class="pm-card" style="margin-top:10px;">
+              <div class="pm-card-cover" style="background: linear-gradient(135deg, oklch(0.86 0.14 130), oklch(0.65 0.18 145)); height: 84px;">
+                <div class="pm-card-badge"><span class="dot"></span>Open · 1.1 km</div>
+              </div>
+              <div class="pm-card-body" style="padding-top:10px;">
+                <div class="pm-card-title">Green Garden Vegetables</div>
+                <div class="pm-card-meta">
+                  <span class="pm-card-pill">★ 4.7</span>
+                  <span>Verified · today's harvest</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Shops marquee -->
+<div class="shops-marquee">
+  <div class="container">
+    <div class="marquee-label">Trusted by shops in your gali</div>
+  </div>
+  <div class="marquee-track" id="marquee"></div>
+</div>
+
+<!-- Recommended -->
+<section id="recommended">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Handpicked for you</span>
+      <h2>Curated by our team. Picked from your neighbourhood.</h2>
+      <p>Eight products our editors love — from shops they actually shop at. Refreshed weekly.</p>
+    </div>
+    <div class="grid-4" id="recommended-grid"></div>
+  </div>
+</section>
+
+<!-- Trending -->
+<section class="trending-section" id="trending">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">🔥 Trending this week</span>
+      <h2>What your neighbours are ordering.</h2>
+      <p>Updated live. Not influencers. Not sponsored. Just what's actually selling fast in your area.</p>
+    </div>
+    <div class="trending-scroll" id="trending-scroll"></div>
+  </div>
+</section>
+
+<!-- Categories -->
+<section class="categories-section" id="categories">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">What can you order?</span>
+      <h2>Almost anything from down the street.</h2>
+    </div>
+    <div class="cat-row" id="cat-row"></div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how">
+  <div class="container">
+    <div class="section-head" style="align-items: center; text-align: center; margin-left: auto; margin-right: auto;">
+      <span class="eyebrow">How it works</span>
+      <h2>Four taps. Thirty minutes.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-icon">📍</div>
+        <h3>Find shops near you</h3>
+        <p>See verified shops within a 3 km radius — sorted by distance, rating, and what's open.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-icon">🛒</div>
+        <h3>Pick what you need</h3>
+        <p>Browse real-time inventory. If it's in the app, the shop has it on the shelf right now.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-icon">✅</div>
+        <h3>Place your order</h3>
+        <p>Pay with UPI, card, or cash. The shop accepts within three minutes — no fake confirmations.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-icon">🚀</div>
+        <h3>Get it delivered</h3>
+        <p>A local partner — usually someone from the same area — brings it to your door in 30 minutes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- For shops -->
+<section class="for-shops" id="shops">
+  <div class="container">
+    <div class="fs-grid">
+      <div>
+        <span class="eyebrow" style="color: rgba(255,255,255,0.85);">For shop owners</span>
+        <h2 class="display" style="font-size: clamp(30px, 4vw, 48px); margin-top: 12px; line-height: 1.05; letter-spacing: -0.02em;">
+          Run your shop online without changing how you work.
+        </h2>
+        <p style="font-size: 16px; color: rgba(255,255,255,0.85); margin-top: 16px; max-width: 460px;">
+          Six thousand kirana, vegetable, and pharmacy owners use NearBy to take orders from neighbours
+          they've been serving for years.
+        </p>
+        <ul class="fs-list">
+          <li><span class="check">✓</span><span>Open and close your shop with one giant tap. Customers see it instantly.</span></li>
+          <li><span class="check">✓</span><span>Three-minute timer to accept orders — no surprise penalties.</span></li>
+          <li><span class="check">✓</span><span>Lower commissions than aggregators. We make money when you make money.</span></li>
+          <li><span class="check">✓</span><span>Our team handles delivery partners, payments, and disputes. You sell.</span></li>
+        </ul>
+        <a href="#" class="btn btn-lg fs-cta" style="background:#fff; color:var(--accent);">List your shop →</a>
+      </div>
+      <div class="fs-stats">
+        <div class="fs-stat"><div class="num">6,400+</div><div class="lbl">Shops onboarded</div></div>
+        <div class="fs-stat"><div class="num">₹14L</div><div class="lbl">Avg monthly GMV</div></div>
+        <div class="fs-stat"><div class="num">12%</div><div class="lbl">Flat commission</div></div>
+        <div class="fs-stat"><div class="num">2.4 km</div><div class="lbl">Avg customer reach</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section id="reviews">
+  <div class="container">
+    <div class="section-head" style="align-items: center; text-align: center; margin-left: auto; margin-right: auto;">
+      <span class="eyebrow">Reviews from real people</span>
+      <h2>People who'd rather support the shop next door.</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <div class="quote">My grocery comes from the same Kumar uncle I've known for years. NearBy just made it easier — and he gets to keep most of what I pay.</div>
+        <div class="who">
+          <div class="avatar" style="background: oklch(0.7 0.13 30);">PR</div>
+          <div><div class="name">Priya Reddy</div><div class="role">Customer · Hyderabad</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <div class="quote">I list my shop on three apps. NearBy is the only one where I actually know the customers — they live in my lane.</div>
+        <div class="who">
+          <div class="avatar" style="background: oklch(0.65 0.16 60);">RK</div>
+          <div><div class="name">Rajesh Kumar</div><div class="role">Owner · Kumar's Kirana</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <div class="quote">Did 9 deliveries today, all within 4 km. Earned ₹685. Got home before sunset. That's the difference.</div>
+        <div class="who">
+          <div class="avatar" style="background: oklch(0.6 0.15 240);">RY</div>
+          <div><div class="name">Rakesh Yadav</div><div class="role">Delivery partner · 1,284 orders</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="background: var(--paper-deep);">
+  <div class="container">
+    <div class="section-head" style="align-items: center; text-align: center; margin-left: auto; margin-right: auto;">
+      <span class="eyebrow">Questions</span>
+      <h2>Things people ask before they tap download.</h2>
+    </div>
+    <div class="faq">
+      <details open>
+        <summary>How is NearBy different from Blinkit, Zepto, or Swiggy?</summary>
+        <p>Those are dark stores — warehouses dressed up as shops. NearBy is the actual shop down the street. Same shopkeeper. Same shelf. Same prices. Just delivered.</p>
+      </details>
+      <details>
+        <summary>Are the shops really verified?</summary>
+        <p>Every shop is visited in person before going live. We verify GST, FSSAI (where applicable), and a real human checks the storefront. Trust scores reflect a year of customer feedback.</p>
+      </details>
+      <details>
+        <summary>What if my neighbourhood isn't covered yet?</summary>
+        <p>Drop your pincode in the app and we'll notify you when we onboard a shop in your area. We're adding 80–100 new shops every week.</p>
+      </details>
+      <details>
+        <summary>How does payment work?</summary>
+        <p>UPI, all major cards, and cash on delivery. Refunds within 24 hours. Disputes handled by a real human in the same city — usually the same day.</p>
+      </details>
+      <details>
+        <summary>Are delivery fees fair to riders?</summary>
+        <p>Riders make ₹35–60 per order plus 100% of tips. We commit to a base earning floor per active hour, even on slow days. Numbers are public.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- Download CTA -->
+<section class="download-cta" id="download">
+  <div class="container">
+    <span class="eyebrow">Ready when you are</span>
+    <h2 style="margin-top: 14px;">Shop the lane,<br>not the warehouse.</h2>
+    <p class="lead">Free to download. No subscription. Most orders arrive in under thirty minutes.</p>
+    <div class="qr-wrap">
+      <svg class="qr-svg" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg" id="qr"></svg>
+      <div class="qr-text">
+        <div class="top">Scan to download</div>
+        <div class="mid">Get NearBy</div>
+        <div class="bot">Android · iOS · Free forever</div>
+      </div>
+    </div>
+    <div class="download-stores">
+      <a href="#" class="store-btn"><span class="glyph">▶</span><span><span class="top">Get it on</span><br><span class="bot">Google Play</span></span></a>
+      <a href="#" class="store-btn"><span class="glyph"></span><span><span class="top">Download on</span><br><span class="bot">App Store</span></span></a>
+    </div>
+    <div class="social-proof">
+      <span class="stars">★★★★★</span>
+      <span><strong style="color:var(--ink)">4.8</strong> · 12,400 reviews · 80,000+ downloads</span>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <a href="#" class="logo" style="color:#fff; margin-bottom: 12px;"><span class="logo-dot"></span>NearBy</a>
+        <p>Your neighbourhood, delivered. We're building hyperlocal commerce that keeps money in the lane it came from.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#categories">Categories</a>
+        <a href="#download">Download</a>
+        <a href="#reviews">Reviews</a>
+      </div>
+      <div class="foot-col">
+        <h4>Partners</h4>
+        <a href="#shops">For shops</a>
+        <a href="#">For delivery riders</a>
+        <a href="#">For neighbourhoods</a>
+        <a href="#">Press kit</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Careers</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 NearBy Technologies Pvt. Ltd. — Hyderabad, India</span>
+      <span>Made with <span class="heart">♥</span> for local India</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ─── Navbar scroll ───
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // ─── Trust counters ───
+  function animateCount(el, target, suffix = "+", duration = 1400) {
+    let start = 0; const t0 = performance.now();
+    function tick(t) {
+      const k = Math.min(1, (t - t0) / duration);
+      const eased = 1 - Math.pow(1 - k, 3);
+      const v = Math.round(start + (target - start) * eased);
+      el.textContent = v.toLocaleString() + (k === 1 ? suffix : "");
+      if (k < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const t = parseInt(e.target.dataset.count, 10);
+        animateCount(e.target, t);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-count]').forEach(el => io.observe(el));
+
+  // ─── Recommended products ───
+  const RECOMMENDED = [
+    { name: "Sona Masoori Rice", unit: "5 kg pack", price: 425, hue: 38, shop: "Kumar's Kirana", trust: 4.8, dist: 0.4, init: "S" },
+    { name: "Cold-pressed Coconut Oil", unit: "1 L bottle", price: 320, hue: 90, shop: "Sunrise Provisions", trust: 4.6, dist: 1.2, init: "C" },
+    { name: "Farm-fresh Tomatoes", unit: "per kg", price: 38, hue: 12, shop: "Green Garden Vegetables", trust: 4.7, dist: 1.1, init: "T" },
+    { name: "Tellicherry Black Pepper", unit: "100 g jar", price: 145, hue: 50, shop: "Spice Bazaar", trust: 4.9, dist: 2.3, init: "P" },
+    { name: "A2 Cow Milk", unit: "500 ml", price: 65, hue: 60, shop: "Mukunda Dairy", trust: 4.8, dist: 0.8, init: "M" },
+    { name: "Hand-rolled Agarbatti", unit: "pack of 50", price: 80, hue: 25, shop: "Sai Pooja Stores", trust: 4.7, dist: 1.5, init: "A" },
+    { name: "Mango Pickle (homemade)", unit: "500 g jar", price: 220, hue: 32, shop: "Aunty's Achaar", trust: 4.9, dist: 1.9, init: "M" },
+    { name: "Filter Coffee Powder", unit: "250 g", price: 195, hue: 22, shop: "Madras Coffee Co.", trust: 4.8, dist: 2.1, init: "C" },
+  ];
+  function renderPCard(p) {
+    return `
+      <div class="pcard">
+        <div class="pcard-img" style="background: linear-gradient(135deg, oklch(0.85 0.10 ${p.hue}), oklch(0.68 0.16 ${p.hue + 8}));">
+          <div class="pcard-img-fill">${p.init}</div>
+          <div class="pcard-pill">${p.dist} km</div>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-shop">${p.shop} <span class="verified">✓</span></div>
+          <div class="pcard-name">${p.name}</div>
+          <div class="pcard-foot">
+            <div><span class="pcard-price">₹${p.price}</span><span class="pcard-unit">${p.unit}</span></div>
+            <div style="font-size:11px;color:var(--star);font-weight:700;">★ ${p.trust}</div>
+          </div>
+          <button class="pcard-btn">Order on app →</button>
+        </div>
+      </div>`;
+  }
+  document.getElementById('recommended-grid').innerHTML = RECOMMENDED.map(renderPCard).join('');
+
+  // ─── Trending ───
+  const TRENDING = [
+    { name: "Heritage Banganapalli Mangoes", unit: "1 dozen", price: 480, hue: 50, shop: "Aunty's Achaar", trust: 4.9, label: "🔥 Hot this week", labelClass: "hot", social: "320 orders this week", init: "M" },
+    { name: "Cold-pressed Sesame Oil", unit: "500 ml", price: 280, hue: 80, shop: "Sunrise Provisions", trust: 4.6, label: "⚡ Fast seller", labelClass: "fast", social: "145 orders this week", init: "S" },
+    { name: "Hand-pounded Idli Rice", unit: "5 kg", price: 380, hue: 30, shop: "Kumar's Kirana", trust: 4.8, label: "❤️ Community favourite", labelClass: "heart", social: "210 orders", init: "I" },
+    { name: "Curry Leaves (organic)", unit: "100 g bunch", price: 22, hue: 145, shop: "Green Garden Vegetables", trust: 4.7, label: "🔥 Hot this week", labelClass: "hot", social: "412 orders", init: "C" },
+    { name: "Pure Ghee in Earthen Jar", unit: "200 ml", price: 320, hue: 45, shop: "Mukunda Dairy", trust: 4.8, label: "❤️ Community favourite", labelClass: "heart", social: "180 orders", init: "G" },
+    { name: "Fresh Coriander", unit: "100 g", price: 12, hue: 130, shop: "Green Garden Vegetables", trust: 4.7, label: "⚡ Fast seller", labelClass: "fast", social: "1,240 orders", init: "C" },
+  ];
+  function renderTCard(p) {
+    return `
+      <div class="tcard">
+        <div class="tcard-img" style="background: linear-gradient(135deg, oklch(0.85 0.10 ${p.hue}), oklch(0.68 0.16 ${p.hue + 8}));">${p.init}</div>
+        <div class="tcard-body">
+          <span class="tlabel ${p.labelClass}">${p.label}</span>
+          <div class="tcard-name">${p.name}</div>
+          <div class="tcard-meta">${p.shop} <span style="color:var(--accent);font-weight:800;">✓</span></div>
+          <div class="tcard-foot">
+            <div><span class="pcard-price">₹${p.price}</span><span class="pcard-unit">${p.unit}</span></div>
+            <div class="social">↗ ${p.social}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+  document.getElementById('trending-scroll').innerHTML = TRENDING.map(renderTCard).join('');
+
+  // ─── Categories ───
+  const CATEGORIES = [
+    { icon: "🛒", name: "Kirana", count: "2,400+ shops" },
+    { icon: "🥬", name: "Vegetables", count: "680+ shops" },
+    { icon: "💊", name: "Pharmacy", count: "320+ shops" },
+    { icon: "🍱", name: "Food & Tiffin", count: "540+ kitchens" },
+    { icon: "🐾", name: "Pet Supplies", count: "120+ shops" },
+    { icon: "📱", name: "Mobile & Repairs", count: "240+ shops" },
+    { icon: "🪑", name: "Home & Furniture", count: "180+ shops" },
+  ];
+  document.getElementById('cat-row').innerHTML = CATEGORIES.map(c => `
+    <a href="#" class="cat-pill">
+      <span class="icon">${c.icon}</span>
+      <span class="name">${c.name}</span>
+      <span class="count">${c.count}</span>
+    </a>`).join('');
+
+  // ─── Marquee shops ───
+  const MQ = [
+    { icon: "🛒", hue: 30, name: "Kumar's Kirana", area: "Basheerbagh" },
+    { icon: "🥬", hue: 130, name: "Green Garden Veggies", area: "Banjara Hills" },
+    { icon: "💊", hue: 200, name: "Vasanth Pharmacy", area: "Himayath Nagar" },
+    { icon: "🍱", hue: 14, name: "Aunty's Tiffin Centre", area: "Begumpet" },
+    { icon: "🌶️", hue: 22, name: "Spice Bazaar", area: "Charminar" },
+    { icon: "🥛", hue: 52, name: "Mukunda Dairy", area: "Madhapur" },
+    { icon: "☕", hue: 26, name: "Madras Coffee Co.", area: "Jubilee Hills" },
+    { icon: "🌾", hue: 60, name: "Sunrise Provisions", area: "Ameerpet" },
+  ];
+  const mqHTML = MQ.map(m => `
+    <div class="marquee-item">
+      <div class="marquee-icon" style="background: oklch(0.4 0.1 ${m.hue}); color: oklch(0.92 0.08 ${m.hue});">${m.icon}</div>
+      <div>
+        <div class="marquee-name">${m.name}</div>
+        <div class="marquee-area">${m.area}</div>
+      </div>
+    </div>`).join('');
+  // duplicate for seamless loop
+  document.getElementById('marquee').innerHTML = mqHTML + mqHTML;
+
+  // ─── Decorative QR (not a real one) ───
+  (function genQR() {
+    const svg = document.getElementById('qr');
+    const N = 21, cell = 110 / N;
+    let out = `<rect width="110" height="110" fill="#fff"/>`;
+    // pseudo-random (deterministic) pattern
+    function rand(i, j) {
+      const v = Math.sin(i * 928.3 + j * 374.7) * 1000;
+      return (v - Math.floor(v)) > 0.55;
+    }
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        if (rand(i, j)) out += `<rect x="${i*cell}" y="${j*cell}" width="${cell}" height="${cell}" fill="#1F1F1E"/>`;
+      }
+    }
+    // Three corner finder squares
+    function corner(cx, cy) {
+      return `
+        <rect x="${cx*cell}" y="${cy*cell}" width="${7*cell}" height="${7*cell}" fill="#1F1F1E"/>
+        <rect x="${(cx+1)*cell}" y="${(cy+1)*cell}" width="${5*cell}" height="${5*cell}" fill="#fff"/>
+        <rect x="${(cx+2)*cell}" y="${(cy+2)*cell}" width="${3*cell}" height="${3*cell}" fill="#1F1F1E"/>`;
+    }
+    out += corner(0, 0) + corner(N - 7, 0) + corner(0, N - 7);
+    // Center logo dot
+    out += `<rect x="${(N/2 - 2.5) * cell}" y="${(N/2 - 2.5) * cell}" width="${5*cell}" height="${5*cell}" rx="2" fill="#fff"/>`;
+    out += `<circle cx="55" cy="55" r="11" fill="#D35323"/>`;
+    out += `<circle cx="55" cy="55" r="5" fill="#fff"/>`;
+    svg.innerHTML = out;
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NearBy — Customer App Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- Google fonts for display + body pairs -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Serif+Display&family=Instrument+Serif:ital@0;1&family=Hind:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #1f1a14;
+    font-family: 'Hind', system-ui, sans-serif;
+    color: #f3ead9;
+  }
+  * { box-sizing: border-box; }
+  /* canvas backdrop tweak */
+  .nb-backdrop {
+    background:
+      radial-gradient(1200px 700px at 20% 0%, #2a1e14 0%, transparent 60%),
+      radial-gradient(1000px 600px at 90% 100%, #221912 0%, transparent 60%),
+      #17120d;
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- frames + canvas + tweaks shell -->
+<script type="text/babel" src="frames/ios-frame.jsx"></script>
+<script type="text/babel" src="frames/android-frame.jsx"></script>
+<script type="text/babel" src="frames/design-canvas.jsx"></script>
+<script type="text/babel" src="frames/tweaks-panel.jsx"></script>
+
+<!-- app code -->
+<script type="text/babel" src="app/tokens.jsx"></script>
+<script type="text/babel" src="app/data.jsx"></script>
+<script type="text/babel" src="app/ui.jsx"></script>
+<script type="text/babel" src="app/screens.jsx"></script>
+<script type="text/babel" src="app/tracking.jsx"></script>
+<script type="text/babel" src="app/app.jsx"></script>
+
+</head>
+<body class="nb-backdrop">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { DesignCanvas, DCSection, DCArtboard, DCPostIt,
+        IOSDevice, AndroidDevice,
+        TweaksPanel, TweakSection, TweakRadio, TweakSelect, TweakToggle, useTweaks,
+        NBApp, NEARBY_PALETTES, NEARBY_TYPE } = window;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "mixed",
+  "typePair": "fraunces-hind",
+  "cardVariant": "big",
+  "trackingVariant": "mapFirst",
+  "tone": "warm",
+  "seedCart": true
+}/*EDITMODE-END*/;
+
+function PhoneRow({ title, subtitle, t, startScreen }) {
+  // iOS + Android side by side, same app, same state shape (independent instances)
+  return (
+    <div style={{ display: 'flex', gap: 40, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#c9b89a', letterSpacing: 0.4,
+          textTransform: 'uppercase', fontFamily: 'Hind, sans-serif',
+        }}>iOS</div>
+        <IOSDevice width={390} height={844}>
+          <NBApp
+            width={390} height={844} scope={`nb-ios-${startScreen}`}
+            startScreen={startScreen}
+            palette={t.palette} typePair={t.typePair}
+            cardVariant={t.cardVariant} trackingVariant={t.trackingVariant}
+            tone={t.tone} seedCart={t.seedCart}
+          />
+        </IOSDevice>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#c9b89a', letterSpacing: 0.4,
+          textTransform: 'uppercase', fontFamily: 'Hind, sans-serif',
+        }}>Android</div>
+        <AndroidDevice width={412} height={868}>
+          <NBApp
+            width={412} height={868} scope={`nb-and-${startScreen}`}
+            startScreen={startScreen}
+            palette={t.palette} typePair={t.typePair}
+            cardVariant={t.cardVariant} trackingVariant={t.trackingVariant}
+            tone={t.tone} seedCart={t.seedCart}
+          />
+        </AndroidDevice>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [t, setT] = useTweaks(TWEAK_DEFAULTS);
+
+  const typeName    = NEARBY_TYPE[t.typePair]?.name || "";
+  const paletteName = NEARBY_PALETTES[t.palette]?.name || "";
+
+  return (
+    <>
+      <DesignCanvas title="NearBy · Customer App"
+        subtitle={`Interactive prototype · ${paletteName} · ${typeName}. Tap around each phone: browse shops, add to cart, checkout, track. Toggle layout variants via Tweaks.`}>
+
+        <DCSection id="home" title="1 · Home" subtitle="Shop discovery — tap a shop to enter. Try card-layout variants in Tweaks.">
+          <DCArtboard id="home" label="Home · Discovery" width={930} height={900}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="home" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="shop" title="2 · Shop" subtitle="Collapsible cover, trust ribbon, product grid with quantity steppers, floating cart bar.">
+          <DCArtboard id="shop" label="Shop · Kumar's Kirana" width={930} height={900}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="shop" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="cart" title="3 · Cart" subtitle="Line items, delivery math, shop context. Seed-cart is on so it's pre-filled.">
+          <DCArtboard id="cart" label="Cart · 4 items" width={930} height={900}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="cart" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="checkout" title="4 · Checkout" subtitle="Address, items, payment method (UPI/Card/Cash), then place order.">
+          <DCArtboard id="checkout" label="Checkout · Pay" width={930} height={900}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="checkout" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="tracking" title="5 · Order Tracking" subtitle="Live rider simulation advances through the timeline. Toggle map-first vs status-first in Tweaks.">
+          <DCArtboard id="tracking" label="Tracking · Live" width={930} height={900}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="tracking" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="NearBy Tweaks">
+        <TweakSection label="Color palette" />
+        <TweakRadio value={t.palette}
+          options={[
+            { value: "saffron", label: "Saffron Market" },
+            { value: "emerald", label: "Fresh Emerald" },
+            { value: "mixed",   label: "Turmeric & Leaf" },
+          ]}
+          onChange={(v) => setT('palette', v)} />
+
+        <TweakSection label="Typography" />
+        <TweakRadio value={t.typePair}
+          options={[
+            { value: "fraunces-hind",      label: "Fraunces × Hind" },
+            { value: "dm-hind",            label: "DM Serif × Hind" },
+            { value: "instrument-manrope", label: "Instrument × Manrope" },
+          ]}
+          onChange={(v) => setT('typePair', v)} />
+
+        <TweakSection label="Shop card layout (Home)" />
+        <TweakRadio value={t.cardVariant}
+          options={[
+            { value: "big",       label: "Big hero cover" },
+            { value: "compact",   label: "Compact list" },
+            { value: "editorial", label: "Editorial overlay" },
+          ]}
+          onChange={(v) => setT('cardVariant', v)} />
+
+        <TweakSection label="Order tracking layout" />
+        <TweakRadio value={t.trackingVariant}
+          options={[
+            { value: "mapFirst",    label: "Map-first" },
+            { value: "statusFirst", label: "Status-first" },
+          ]}
+          onChange={(v) => setT('trackingVariant', v)} />
+
+        <TweakSection label="Greeting tone (Home)" />
+        <TweakRadio value={t.tone}
+          options={[
+            { value: "warm",    label: "Warm · \"Namaste, Priya\"" },
+            { value: "neutral", label: "Neutral · \"Hi, Priya\"" },
+            { value: "crisp",   label: "Crisp · \"Good evening\"" },
+          ]}
+          onChange={(v) => setT('tone', v)} />
+
+        <TweakSection label="Prototype" />
+        <TweakToggle label="Seed cart (pre-fill items)" value={t.seedCart}
+          onChange={(v) => setT('seedCart', v)} />
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

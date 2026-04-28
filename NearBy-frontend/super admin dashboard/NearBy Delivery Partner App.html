@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NearBy — Delivery Partner App</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Serif+Display&family=Instrument+Serif:ital@0;1&family=Hind:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; padding: 0; height: 100%;
+    background: #1f1a14; font-family: 'Hind', system-ui, sans-serif; color: #f3ead9; }
+  * { box-sizing: border-box; }
+  .nb-backdrop {
+    background:
+      radial-gradient(1200px 700px at 20% 0%, #2a1e14 0%, transparent 60%),
+      radial-gradient(1000px 600px at 90% 100%, #221912 0%, transparent 60%),
+      #17120d;
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="frames/ios-frame.jsx"></script>
+<script type="text/babel" src="frames/android-frame.jsx"></script>
+<script type="text/babel" src="frames/design-canvas.jsx"></script>
+<script type="text/babel" src="frames/tweaks-panel.jsx"></script>
+
+<script type="text/babel" src="app/tokens.jsx"></script>
+<script type="text/babel" src="app/ui.jsx"></script>
+
+<script type="text/babel" src="delivery/data.jsx"></script>
+<script type="text/babel" src="delivery/screens.jsx"></script>
+<script type="text/babel" src="delivery/app.jsx"></script>
+
+</head>
+<body class="nb-backdrop">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { DesignCanvas, DCSection, DCArtboard,
+        IOSDevice, AndroidDevice,
+        TweaksPanel, TweakSection, TweakRadio, useTweaks,
+        NBDeliveryApp, NEARBY_PALETTES, NEARBY_TYPE } = window;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "mixed",
+  "typePair": "fraunces-hind"
+}/*EDITMODE-END*/;
+
+function PhoneRow({ t, startScreen }) {
+  const shared = { palette: t.palette, typePair: t.typePair, startScreen };
+  return (
+    <div style={{ display: 'flex', gap: 40, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#c9b89a', letterSpacing: 0.4,
+          textTransform: 'uppercase', fontFamily: 'Hind, sans-serif',
+        }}>iOS</div>
+        <IOSDevice width={390} height={844}>
+          <NBDeliveryApp width={390} height={844} scope={`dp-ios-${startScreen}`} topSafe={44} {...shared} />
+        </IOSDevice>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#c9b89a', letterSpacing: 0.4,
+          textTransform: 'uppercase', fontFamily: 'Hind, sans-serif',
+        }}>Android</div>
+        <AndroidDevice width={412} height={868}>
+          <NBDeliveryApp width={412} height={868} scope={`dp-and-${startScreen}`} topSafe={32} {...shared} />
+        </AndroidDevice>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [t, setT] = useTweaks(TWEAK_DEFAULTS);
+  const typeName    = NEARBY_TYPE[t.typePair]?.name || "";
+  const paletteName = NEARBY_PALETTES[t.palette]?.name || "";
+
+  return (
+    <>
+      <DesignCanvas title="NearBy · Delivery Partner App"
+        subtitle={`For Rakesh and 5,000 riders. ${paletteName} · ${typeName}. The full active flow: home → incoming request → go to shop → go to customer + OTP delivery confirmation.`}>
+
+        <DCSection id="home" title="1 · Home" subtitle="Online/offline toggle as the hero. Today's earnings ring shows progress to the daily goal. Live status, recent rides, weekly chart.">
+          <DCArtboard id="home" label="Home · Online" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="home" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="incoming" title="2 · Incoming Request" subtitle="15-second countdown ring. The whole screen is one giant Accept button. Decline is small and recessive.">
+          <DCArtboard id="incoming" label="Incoming · 15 sec timer" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="incoming" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="phase1" title="3 · Go to Shop" subtitle="Big map, ETA, prominent address, one-tap shop call/navigate. Items count is shown so the rider knows the load. Slide-to-confirm pickup.">
+          <DCArtboard id="phase1" label="Phase 1 · Pickup" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="phase1" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="phase2" title="4 · Go to Customer · OTP" subtitle="Customer location, address, instructions. Tap 'Reached' to reveal the OTP entry — 4-digit auto-advance fields, large keypad-friendly. Confirm to deliver.">
+          <DCArtboard id="phase2" label="Phase 2 · OTP delivery" width={930} height={920}>
+            <div style={{ padding: 20, background: '#1a140d', height: '100%' }}>
+              <PhoneRow t={t} startScreen="phase2" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Delivery Tweaks">
+        <TweakSection label="Color palette" />
+        <TweakRadio value={t.palette}
+          options={[
+            { value: "saffron", label: "Saffron Market" },
+            { value: "emerald", label: "Fresh Emerald" },
+            { value: "mixed",   label: "Turmeric & Leaf" },
+          ]}
+          onChange={(v) => setT('palette', v)} />
+
+        <TweakSection label="Typography" />
+        <TweakRadio value={t.typePair}
+          options={[
+            { value: "fraunces-hind",      label: "Fraunces × Hind" },
+            { value: "dm-hind",            label: "DM Serif × Hind" },
+            { value: "instrument-manrope", label: "Instrument × Manrope" },
+          ]}
+          onChange={(v) => setT('typePair', v)} />
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

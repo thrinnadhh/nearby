@@ -31,10 +31,65 @@ services:
     depends_on:
       - redis
       - typesense
-    env_file: .env
+    env_file: ./backend/.env
     command: npm run dev
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: nearby_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: nearby_grafana
+    ports:
+      - "3004:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-nearbyadmin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./ops/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: nearby_node_exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: nearby_cadvisor
+    ports:
+      - "8080:8080"
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
     restart: unless-stopped
 
 volumes:
   redis_data:
   typesense_data:
+  prometheus_data:
+  grafana_data:
