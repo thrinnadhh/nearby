@@ -14,21 +14,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'shop_owner', 'delivery', 'admin')),
 
   -- Optional: Shop association for shop_owner role only
-  shop_id UUID REFERENCES public.shops(id) ON DELETE SET NULL,
+  shop_id UUID,
   -- shop_id is required for shop_owner but NULL for others
+  -- Foreign key constraint added in migration 002_shops.sql after shops table is created
 
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
   -- Constraints
-  CONSTRAINT phone_valid CHECK (phone ~ '^\+91\d{10}$'),
+  CONSTRAINT phone_valid CHECK (phone ~ '^\+91\d{10}$')
   -- Ensures phone is in correct format
-  CONSTRAINT shop_id_only_for_owner CHECK (
-    (role = 'shop_owner' AND shop_id IS NOT NULL) OR
-    (role != 'shop_owner' AND shop_id IS NULL)
-  )
-  -- Ensures shop_id is only set for shop owners
+  -- shop_id constraint is added in 002_shops.sql after shops table is created
 );
 
 -- Indexes for common queries

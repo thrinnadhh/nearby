@@ -70,6 +70,28 @@ export interface Order {
   items: OrderItem[];
   payment_method: 'upi' | 'cod';
   created_at: string;
+  // Sprint 10 optional fields populated by order-detail / history endpoints
+  updated_at?: string;
+  delivery_address?: string;
+  refund_status?: string | null;
+  refund_amount?: number | null;
+  delivery_partner?: {
+    id: string;
+    name?: string;
+    phone?: string;
+    rating?: number;
+  } | null;
+  /** Nested shop info returned by some endpoints */
+  shop?: {
+    id?: string;
+    name?: string;
+    is_open?: boolean;
+  } | null;
+  // Tracking fields (live ETA from delivery tracking endpoint)
+  delivery_eta_seconds?: number | null;
+  delivery_distance_km?: number | null;
+  /** Some endpoints return status as order_status — both are accepted */
+  order_status?: OrderStatus;
 }
 
 export interface Coords {

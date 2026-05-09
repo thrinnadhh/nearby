@@ -14,7 +14,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+// @ts-ignore
 import * as ImagePicker from 'expo-image-picker';
+// @ts-ignore
 import * as ImageManipulator from 'expo-image-manipulator';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {

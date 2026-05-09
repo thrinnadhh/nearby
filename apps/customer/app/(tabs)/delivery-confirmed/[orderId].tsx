@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
+import type { Order } from '@/types';
 import { getOrder } from '@/services/orders';
 import { submitReview } from '@/services/reviews';
 import { paise } from '@/utils/currency';
@@ -37,22 +38,6 @@ import logger from '@/utils/logger';
  *   └── "Done" → /(tabs)/order-history or /(tabs)/home
  */
 
-interface Order {
-  id: string;
-  order_status: string;
-  total_amount: number;
-  delivery_partner?: {
-    id: string;
-    name: string;
-    vehicle_type: string;
-    rating: number;
-  };
-  shop?: {
-    id: string;
-    name: string;
-  };
-  order_items?: Array<{ name: string; qty: number }>;
-}
 
 export default function DeliveryConfirmedScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -74,7 +59,7 @@ export default function DeliveryConfirmedScreen() {
     try {
       if (!orderId || !token) return;
 
-      const data = await getOrder(orderId);
+      const data = await getOrder(orderId, token ?? undefined);
       setOrder(data);
       setError(null);
     } catch (err: any) {
@@ -104,10 +89,10 @@ export default function DeliveryConfirmedScreen() {
       // Submit delivery partner rating
       await submitReview({
         order_id: orderId,
+        reviewed_user_id: order?.delivery_partner?.id || '',
         rating,
-        comment: '',
-        review_type: 'delivery', // For delivery partner vs shop
-      }, token);
+        review_text: undefined,
+      });
 
       setReviewSubmitted(true);
 
@@ -206,14 +191,14 @@ export default function DeliveryConfirmedScreen() {
             <View style={[styles.summaryRow, styles.divider]}>
               <Text style={styles.summaryLabel}>Items</Text>
               <Text style={styles.summaryValue}>
-                {formatItemList(order.order_items)}
+                {formatItemList((order as any).order_items)}
               </Text>
             </View>
 
             <View style={styles.divider}>
               <Text style={styles.summaryLabel}>Total Amount</Text>
               <Text style={styles.amountValue}>
-                {paise(order.total_amount)}
+                {paise(order.total_paise ?? 0)}
               </Text>
             </View>
           </View>
@@ -231,7 +216,7 @@ export default function DeliveryConfirmedScreen() {
                     {order.delivery_partner.name}
                   </Text>
                   <Text style={styles.partnerVehicle}>
-                    🚗 {order.delivery_partner.vehicle_type}
+                    🚗 {(order.delivery_partner as any).vehicle_type}
                   </Text>
                 </View>
               </View>

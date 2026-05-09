@@ -23,6 +23,10 @@ export const notifyCustomerQueue = process.env.NODE_ENV === 'test'
       },
     });
 
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof notifyCustomerQueue?.on === 'function') notifyCustomerQueue.on('error', () => {});
+
+
 export const notifyCustomerWorker = process.env.NODE_ENV === 'test'
   ? {}
   : new Worker(

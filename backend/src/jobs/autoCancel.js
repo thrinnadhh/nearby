@@ -19,7 +19,7 @@ export const processAutoCancelJob = async (job) => {
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, status, customer_id, shop_id, payment_method, payment_id, total_paise')
+    .select('id, status, customer_id, shop_id, payment_method, payment_id, cashfree_order_id, total_paise')
     .eq('id', orderId)
     .single();
 
@@ -57,31 +57,29 @@ export const processAutoCancelJob = async (job) => {
 
     const stockMap = new Map((products || []).map((product) => [product.id, product.stock_quantity]));
 
-    for (const item of orderItems) {
-      const activeQuantity = Math.max(item.quantity - (item.cancelled_quantity || 0), 0);
-      if (activeQuantity <= 0) {
-        continue;
-      }
+    const updates = orderItems
+      .map((item) => {
+        const activeQuantity = Math.max(item.quantity - (item.cancelled_quantity || 0), 0);
+        if (activeQuantity <= 0) return null;
+        const nextStock = (stockMap.get(item.product_id) || 0) + activeQuantity;
+        return supabase
+          .from('products')
+          .update({ stock_quantity: nextStock, is_available: nextStock > 0 })
+          .eq('id', item.product_id);
+      })
+      .filter(Boolean);
 
-      const nextStock = (stockMap.get(item.product_id) || 0) + activeQuantity;
-      await supabase
-        .from('products')
-        .update({
-          stock_quantity: nextStock,
-          is_available: nextStock > 0,
-        })
-        .eq('id', item.product_id);
-    }
+    await Promise.all(updates);
   }
 
-  if (order.payment_method !== 'cod' && order.payment_id && order.total_paise > 0) {
+  if (order.payment_method !== 'cod' && order.cashfree_order_id && order.total_paise > 0) {
     try {
-      const { refundPayment } = await import('../services/cashfree.js');
-      await refundPayment(order.payment_id, order.total_paise, 'auto_cancelled');
+      const { initiateRefund } = await import('../services/cashfree.js');
+      await initiateRefund(order.cashfree_order_id, order.total_paise, 'auto_cancelled');
     } catch (error) {
       logger.error('Auto-cancel refund failed', {
         orderId,
-        paymentId: order.payment_id,
+        cashfreeOrderId: order.cashfree_order_id,
         error: error.message,
       });
     }
@@ -148,6 +146,10 @@ export const autoCancelQueue = process.env.NODE_ENV === 'test'
         removeOnFail: false,
       },
     });
+
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof autoCancelQueue?.on === 'function') autoCancelQueue.on('error', () => {});
+
 
 export const autoCancelWorker = process.env.NODE_ENV === 'test'
   ? {}

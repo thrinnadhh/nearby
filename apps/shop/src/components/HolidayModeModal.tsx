@@ -16,8 +16,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import DatePicker from 'react-native-date-picker';
+
 import { MaterialIcons } from '@expo/vector-icons';
+import { TextInput } from 'react-native';
 
 interface HolidayModeModalProps {
   visible: boolean;
@@ -118,11 +119,16 @@ export function HolidayModeModal({
 
           {showingStartPicker && (
             <View style={styles.pickerContainer}>
-              <DatePicker
-                date={startDate}
-                onDateChange={setStartDate}
-                mode="date"
-                minimumDate={new Date()}
+              <TextInput
+                value={startDate.toISOString().split('T')[0]}
+                onChangeText={(text) => {
+                  const d = new Date(text);
+                  if (!isNaN(d.getTime())) setStartDate(d);
+                }}
+                placeholder="YYYY-MM-DD"
+                keyboardType="numbers-and-punctuation"
+                style={styles.dateInput}
+                testID="start-date-input"
               />
             </View>
           )}
@@ -150,11 +156,16 @@ export function HolidayModeModal({
 
           {showingEndPicker && (
             <View style={styles.pickerContainer}>
-              <DatePicker
-                date={endDate}
-                onDateChange={setEndDate}
-                mode="date"
-                minimumDate={new Date(startDate.getTime() + 86400000)}
+              <TextInput
+                value={endDate.toISOString().split('T')[0]}
+                onChangeText={(text) => {
+                  const d = new Date(text);
+                  if (!isNaN(d.getTime())) setEndDate(d);
+                }}
+                placeholder="YYYY-MM-DD"
+                keyboardType="numbers-and-punctuation"
+                style={styles.dateInput}
+                testID="end-date-input"
               />
             </View>
           )}
@@ -268,6 +279,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
+  },
+  dateInput: {
+    fontSize: 14,
+    color: '#333',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1976D2',
   },
   durationContainer: {
     flexDirection: 'row',

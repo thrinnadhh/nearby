@@ -3,7 +3,7 @@
  * API calls for updating shop status and holiday mode
  */
 
-import { apiClient } from '@/services/axios';
+import { client } from '@/services/api';
 import { UpdateStatusRequest, UpdateStatusResponse } from '@/types/shopStatus';
 import logger from '@/utils/logger';
 import { AppError } from '@/types/common';
@@ -25,7 +25,7 @@ export async function updateShopStatus(
   try {
     logger.info('Updating shop status', { shopId, data });
 
-    const response = await apiClient.patch<UpdateStatusResponse>(
+    const response = await client.patch<UpdateStatusResponse>(
       `/shops/${shopId}/toggle`,
       data
     );
@@ -68,7 +68,7 @@ export async function setHolidayMode(params: UpdateStatusParams): Promise<Update
   try {
     logger.info('Setting holiday mode', { shopId, data });
 
-    const response = await apiClient.patch<UpdateStatusResponse>(
+    const response = await client.patch<UpdateStatusResponse>(
       `/shops/${shopId}/holiday-mode`,
       data
     );

@@ -7,10 +7,10 @@
 -- ============================================================
 ALTER TABLE public.shops ENABLE ROW LEVEL SECURITY;
 
--- Customers and public can read approved, open shops
+-- Customers and public can read verified, open shops
 CREATE POLICY "Anyone can view active shops"
   ON public.shops FOR SELECT
-  USING (status = 'approved');
+  USING (is_verified = true AND is_open = true);
 
 -- Shop owner can view their own shop regardless of status
 CREATE POLICY "Owner can view own shop"
@@ -28,15 +28,14 @@ CREATE POLICY "Service role manages shops"
 -- ============================================================
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
--- Anyone can view available products of active shops
+-- Anyone can view available products of verified, open shops
 CREATE POLICY "Anyone can view available products"
   ON public.products FOR SELECT
   USING (
     is_available = true
-    AND deleted_at IS NULL
     AND EXISTS (
       SELECT 1 FROM public.shops s
-      WHERE s.id = shop_id AND s.status = 'approved'
+      WHERE s.id = shop_id AND s.is_verified = true AND s.is_open = true
     )
   );
 

@@ -58,7 +58,7 @@ describe('useChat', () => {
       pageSize: 20,
       isOffline: false,
     });
-    mockUseNetworkStatus.mockReturnValue(true);
+    mockUseNetworkStatus.mockReturnValue({ isOnline: true, isSlowConnection: false });
   });
 
   it('should return initial state', () => {
@@ -151,7 +151,7 @@ describe('useChat', () => {
 
   it('should handle offline status', async () => {
     useAuthStore.setState({ shopId: '123' });
-    mockUseNetworkStatus.mockReturnValue(false);
+    mockUseNetworkStatus.mockReturnValue({ isOnline: false, isSlowConnection: false });
 
     const { result } = renderHook(() => useChat());
 

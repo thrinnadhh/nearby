@@ -41,7 +41,7 @@ export function RootNavigator() {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          animationEnabled: true,
+          animation: 'slide_from_right',
         }}
       >
         {isAuthenticated ? (
@@ -49,7 +49,7 @@ export function RootNavigator() {
           <Stack.Screen
             name="App"
             component={BottomTabNavigator}
-            options={{ animationEnabled: false }}
+            options={{ animation: 'none' }}
           />
         ) : (
           // Unauthenticated stack — show auth flows
@@ -58,35 +58,35 @@ export function RootNavigator() {
               name="Login"
               component={LoginScreen}
               options={{
-                animationEnabled: false,
+                animation: 'none',
               }}
             />
             <Stack.Screen
               name="OTPVerify"
               component={OTPVerifyScreen}
               options={{
-                animationEnabled: true,
+                animation: 'slide_from_right',
               }}
             />
             <Stack.Screen
               name="Aadhaar"
               component={AadhaarScreen}
               options={{
-                animationEnabled: true,
+                animation: 'slide_from_right',
               }}
             />
             <Stack.Screen
               name="VehiclePhoto"
               component={VehiclePhotoScreen}
               options={{
-                animationEnabled: true,
+                animation: 'slide_from_right',
               }}
             />
             <Stack.Screen
               name="BankDetails"
               component={BankDetailsScreen}
               options={{
-                animationEnabled: true,
+                animation: 'slide_from_right',
               }}
             />
           </>

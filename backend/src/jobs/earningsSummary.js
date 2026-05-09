@@ -16,6 +16,10 @@ export const earningsSummaryQueue = process.env.NODE_ENV === 'test'
   ? createTestStubQueue()
   : new Queue('earnings-summary', { connection });
 
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof earningsSummaryQueue?.on === 'function') earningsSummaryQueue.on('error', () => {});
+
+
 export const processEarningsSummaryJob = async (job) => {
   logger.info('Starting weekly earnings summary job');
 

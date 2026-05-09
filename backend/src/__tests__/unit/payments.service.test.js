@@ -17,7 +17,7 @@ jest.mock('../../utils/logger.js', () => ({
   },
 }));
 
-let createPaymentSession, getPaymentStatus, refundPayment, createPaymentSplit;
+let createPaymentSession, getPaymentStatus, initiateRefund, createPaymentSplit;
 
 /**
  * Mock https.request with specified status code and response body
@@ -58,7 +58,7 @@ beforeAll(async () => {
   const module = await import('../../services/cashfree.js');
   createPaymentSession = module.createPaymentSession;
   getPaymentStatus = module.getPaymentStatus;
-  refundPayment = module.refundPayment;
+  initiateRefund = module.initiateRefund;
   createPaymentSplit = module.createPaymentSplit;
 });
 
@@ -287,7 +287,7 @@ describe('Cashfree Service Unit Tests', () => {
     });
   });
 
-  describe('refundPayment', () => {
+  describe('initiateRefund', () => {
     it('should resolve with refund response on success (200)', async () => {
       const mockResponse = {
         refund_id: 'refund_abc_123',
@@ -296,7 +296,7 @@ describe('Cashfree Service Unit Tests', () => {
       };
       mockHttpsRequest(200, mockResponse);
 
-      const result = await refundPayment('pay_123', 10000, 'customer_request');
+      const result = await initiateRefund('cf-order-123', 10000, 'order_cancelled');
 
       expect(result).toEqual(mockResponse);
       expect(result.refund_id).toBe('refund_abc_123');
@@ -323,7 +323,7 @@ describe('Cashfree Service Unit Tests', () => {
         return reqEmitter;
       });
 
-      await refundPayment('pay_123', 10000);
+      await initiateRefund('cf-order-123', 10000);
 
       const parsed = JSON.parse(capturedBody);
       expect(parsed.refund_amount).toBe(100); // 10000 / 100
@@ -350,7 +350,7 @@ describe('Cashfree Service Unit Tests', () => {
         return reqEmitter;
       });
 
-      await refundPayment('pay_456', 5000, 'partial_refund');
+      await initiateRefund('cf-order-456', 5000, 'partial_refund');
 
       const parsed = JSON.parse(capturedBody);
       expect(parsed.refund_amount).toBe(50);
@@ -377,13 +377,13 @@ describe('Cashfree Service Unit Tests', () => {
         return reqEmitter;
       });
 
-      await refundPayment('pay_789', 1000, 'item_unavailable');
+      await initiateRefund('cf-order-789', 1000, 'item_unavailable');
 
       const parsed = JSON.parse(capturedBody);
       expect(parsed.refund_note).toBe('item_unavailable');
     });
 
-    it('should use default reason customer_request if not provided', async () => {
+    it('should use default reason order_cancelled if not provided', async () => {
       let capturedBody = '';
       const resEmitter = new EventEmitter();
       resEmitter.statusCode = 200;
@@ -404,40 +404,40 @@ describe('Cashfree Service Unit Tests', () => {
         return reqEmitter;
       });
 
-      await refundPayment('pay_default', 2000);
+      await initiateRefund('cf-order-default', 2000);
 
       const parsed = JSON.parse(capturedBody);
-      expect(parsed.refund_note).toBe('customer_request');
+      expect(parsed.refund_note).toBe('order_cancelled');
     });
 
     it('should reject with error when Cashfree returns 422 (refund not allowed)', async () => {
       mockHttpsRequest(422, { message: 'Refund not allowed for this payment' });
 
-      await expect(refundPayment('pay_bad', 100)).rejects.toThrow(
+      await expect(initiateRefund('cf-order-bad', 100)).rejects.toThrow(
         'Refund not allowed for this payment'
       );
     });
 
-    it('should reject with error when Cashfree returns 400 (invalid payment ID)', async () => {
+    it('should reject with error when Cashfree returns 400 (invalid order ID)', async () => {
       mockHttpsRequest(400, { message: 'Payment not found' });
 
-      await expect(refundPayment('pay_nonexistent', 100)).rejects.toThrow('Payment not found');
+      await expect(initiateRefund('cf-order-nonexistent', 100)).rejects.toThrow('Payment not found');
     });
 
-    it('should use correct API endpoint (POST /pg/payments/:paymentId/refunds)', async () => {
+    it('should use correct API endpoint (POST /pg/orders/:orderId/refunds)', async () => {
       mockHttpsRequest(200, { refund_id: 'refund_endpoint' });
 
-      await refundPayment('pay_endpoint_test', 1000);
+      await initiateRefund('cf-order-endpoint', 1000);
 
       const options = https.request.mock.calls[0][0];
-      expect(options.path).toContain('/pg/payments/pay_endpoint_test/refunds');
+      expect(options.path).toContain('/pg/orders/cf-order-endpoint/refunds');
       expect(options.method).toBe('POST');
     });
 
     it('should reject on network error (ECONNREFUSED)', async () => {
       mockHttpsRequestError('ECONNREFUSED');
 
-      await expect(refundPayment('pay_network', 1000)).rejects.toThrow('ECONNREFUSED');
+      await expect(initiateRefund('cf-order-network', 1000)).rejects.toThrow('ECONNREFUSED');
     });
   });
 

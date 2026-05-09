@@ -10,13 +10,13 @@ import { useAnalyticsStore } from '@/store/analytics';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { getAnalytics } from '@/services/earnings';
 import { getTopProducts } from '@/services/analytics';
-import { AnalyticsDateRange, AnalyticsData } from '@/types/analytics';
+import { AnalyticsDateRange, AnalyticsData, TopProduct } from '@/types/analytics';
 import { AppError } from '@/types/common';
 import logger from '@/utils/logger';
 
 interface UseShopAnalyticsResult {
   data: AnalyticsData | null;
-  topProducts: unknown[];
+  topProducts: TopProduct[];
   loading: boolean;
   error: string | null;
   dateRange: AnalyticsDateRange;
@@ -27,7 +27,7 @@ interface UseShopAnalyticsResult {
 
 export function useShopAnalytics(): UseShopAnalyticsResult {
   const shopId = useAuthStore((s) => s.shopId);
-  const isConnected = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
 
   // Individual selectors
   const data = useAnalyticsStore((s) => s.data);
@@ -75,7 +75,7 @@ export function useShopAnalytics(): UseShopAnalyticsResult {
           getTopProducts(shopId, 5, range),
         ]);
 
-        setData(earnings);
+        setData(earnings as unknown as AnalyticsData);
         setTopProducts(products);
         setDateRange(range);
 

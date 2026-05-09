@@ -52,7 +52,7 @@ export default function ProductCatalogueScreen() {
 
   // For search debounce
   const [localSearchText, setLocalSearchText] = useState(searchQuery);
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Register FCM token on mount
   useEffect(() => {

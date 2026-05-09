@@ -47,7 +47,7 @@ export default function ProductDetailScreen() {
       <View style={styles.content}>
         <View style={styles.placeholderBox}>
           <MaterialCommunityIcons
-            name="package-outline"
+            name="cube-outline" as any
             size={48}
             color={colors.textSecondary}
           />

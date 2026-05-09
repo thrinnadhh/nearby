@@ -14,13 +14,16 @@ import {
 } from '@/services/socket';
 import logger from '@/utils/logger';
 
+// Re-export the payload types using the same shape as the socket service,
+// avoiding the mismatch caused by duplicate local interface definitions.
 interface OrderNewEvent {
   orderId: string;
-  customerId: string;
-  customerName: string;
   total: number;
   itemsCount: number;
-  createdAt: string;
+  // Additional fields that may arrive from the server (optional for forward-compat)
+  customerId?: string;
+  customerName?: string;
+  createdAt?: string;
 }
 
 interface OrderActionCallback {
@@ -61,7 +64,7 @@ export function useOrderSocket(): UseOrderSocketActions {
     (callback: (event: OrderNewEvent) => void) => {
       const unsubscribe = onOrderNew((event) => {
         logger.info('New order received', { orderId: event.orderId });
-        callback(event);
+        callback(event as OrderNewEvent);
       });
 
       return unsubscribe;
@@ -73,7 +76,7 @@ export function useOrderSocket(): UseOrderSocketActions {
     (callback: OrderActionCallback) => {
       const unsubscribe = onOrderAccepted((data) => {
         logger.info('Order accepted event received', { orderId: data.orderId });
-        callback(data.orderId, data);
+        callback(data.orderId, data as unknown as Record<string, unknown>);
       });
 
       return unsubscribe;
@@ -85,7 +88,7 @@ export function useOrderSocket(): UseOrderSocketActions {
     (callback: OrderActionCallback) => {
       const unsubscribe = onOrderRejected((data) => {
         logger.info('Order rejected event received', { orderId: data.orderId });
-        callback(data.orderId, data);
+        callback(data.orderId, data as unknown as Record<string, unknown>);
       });
 
       return unsubscribe;

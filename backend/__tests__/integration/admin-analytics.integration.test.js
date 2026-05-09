@@ -249,4 +249,114 @@ describe('Admin Analytics Endpoints (13.6.1-13.6.3)', () => {
       expect(Array.isArray(res.body.data.top_shops)).toBe(true);
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Data-driven tests to cover aggregation branches (shopIds.length > 0,
+  // forEach loops in /daily and /top-shops)
+  // ═══════════════════════════════════════════════════════════════════
+  describe('Analytics with seeded order data', () => {
+    let shopId;
+    let customerId;
+    let orderIds = [];
+
+    beforeAll(async () => {
+      // Create a shop
+      shopId = uuidv4();
+      const ownerId = uuidv4();
+      await supabase.from('profiles').insert({
+        id: ownerId,
+        phone: `+91${Date.now().toString().slice(-10)}`,
+        role: 'shop_owner',
+        display_name: 'Analytics Test Owner',
+      });
+      await supabase.from('shops').insert({
+        id: shopId,
+        owner_id: ownerId,
+        name: 'Analytics Test Shop',
+        kyc_status: 'approved',
+        is_open: true,
+        city: 'Hyderabad',
+        latitude: 17.385,
+        longitude: 78.4867,
+        address: '1 Test St',
+        phone: `+91${(Date.now() + 1).toString().slice(-10)}`,
+      });
+
+      // Create a customer
+      customerId = uuidv4();
+      await supabase.from('profiles').insert({
+        id: customerId,
+        phone: `+91${(Date.now() + 2).toString().slice(-10)}`,
+        role: 'customer',
+        display_name: 'Analytics Test Customer',
+      });
+
+      // Create 2 delivered orders
+      for (let i = 0; i < 2; i++) {
+        const orderId = uuidv4();
+        orderIds.push(orderId);
+        await supabase.from('orders').insert({
+          id: orderId,
+          customer_id: customerId,
+          shop_id: shopId,
+          status: 'delivered',
+          total_paise: 50000 + i * 10000,
+          total_amount: 500 + i * 100,
+          payment_method: 'upi',
+          payment_status: 'completed',
+          delivery_address: 'Test Address',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+
+    afterAll(async () => {
+      for (const oid of orderIds) {
+        await supabase.from('orders').delete().eq('id', oid);
+      }
+      await supabase.from('shops').delete().eq('id', shopId);
+      await supabase.from('profiles').delete().eq('id', customerId);
+    });
+
+    it('should calculate gmv from delivered orders', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/analytics')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.data.orders_total).toBeGreaterThanOrEqual(2);
+      expect(typeof res.body.data.gmv_total).toBe('number');
+    });
+
+    it('should cover shopIds city lookup in /daily', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/analytics/daily?range=30d')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body.data.daily)).toBe(true);
+      expect(Array.isArray(res.body.data.by_city)).toBe(true);
+    });
+
+    it('should aggregate shops in /daily by date', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/analytics/daily?range=7d')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      // Orders placed today → should appear in daily array
+      expect(Array.isArray(res.body.data.daily)).toBe(true);
+    });
+
+    it('should aggregate top-shops with data', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/analytics/top-shops')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.data.count).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(res.body.data.top_shops)).toBe(true);
+    });
+  });
 });

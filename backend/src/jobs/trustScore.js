@@ -8,6 +8,7 @@ import {
   shouldAlertAdmin,
 } from '../utils/trustScoreFormula.js';
 import { emitToRoom } from '../socket/ioRegistry.js';
+import { sendNotification } from '../services/fcm.js';
 
 const connection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -21,6 +22,10 @@ const createTestStubQueue = () => ({
 export const trustScoreQueue = process.env.NODE_ENV === 'test'
   ? createTestStubQueue()
   : new Queue('trust-score', { connection });
+
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof trustScoreQueue?.on === 'function') trustScoreQueue.on('error', () => {});
+
 
 export const processTrustScoreJob = async (job) => {
   logger.info('Starting nightly trust score recomputation');
@@ -41,16 +46,15 @@ export const processTrustScoreJob = async (job) => {
   // 2. Recompute trust score for each shop
   for (const shop of shops) {
     try {
-      // Get review stats
-      const { data: reviews } = await supabase
+      // Get review stats via DB-side aggregation — avoids loading all rows
+      const { data: ratingData } = await supabase
         .from('reviews')
-        .select('rating')
+        .select('rating.avg()')
         .eq('shop_id', shop.id)
-        .eq('is_visible', true);
+        .eq('is_visible', true)
+        .single();
 
-      const avgRating = reviews && reviews.length > 0
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-        : 0;
+      const avgRating = ratingData?.['rating.avg()'] ?? 0;
 
       // Get completion rate from yesterday's analytics
       // (analytics-aggregate job runs at 3 AM; trust score at 2 AM reads the previous day)
@@ -63,7 +67,7 @@ export const processTrustScoreJob = async (job) => {
         .select('completion_rate')
         .eq('shop_id', shop.id)
         .eq('date', yesterdayStr)
-        .single();
+        .maybeSingle();
 
       const completionRate = latestAnalytics?.completion_rate || 0;
 
@@ -75,7 +79,7 @@ export const processTrustScoreJob = async (job) => {
         .eq('status', 'delivered')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       let responseScore = 50; // Default middle score
       if (latestOrder && latestOrder.accepted_at && latestOrder.created_at) {
@@ -151,6 +155,33 @@ export const processTrustScoreJob = async (job) => {
           completionRate,
           timestamp: new Date().toISOString(),
         });
+
+        // Send FCM warning to shop owner
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('fcm_token, device_token, push_token')
+          .eq('id', shop.owner_id)
+          .maybeSingle();
+
+        const ownerToken = ownerProfile?.fcm_token
+          || ownerProfile?.device_token
+          || ownerProfile?.push_token;
+
+        if (ownerToken) {
+          sendNotification({
+            token: ownerToken,
+            title: 'Action Required: Low Trust Score',
+            body: `Your shop trust score has dropped to ${trustScore}. Please improve your service quality to maintain your listing.`,
+            priority: 'high',
+            data: { shopId: shop.id, trustScore: String(trustScore), badge },
+          }).catch((fcmErr) => {
+            logger.warn('Failed to send FCM trust score warning to shop owner', {
+              shopId: shop.id,
+              ownerId: shop.owner_id,
+              error: fcmErr.message,
+            });
+          });
+        }
       }
 
       updatedCount += 1;

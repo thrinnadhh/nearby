@@ -88,7 +88,7 @@ jest.mock('../services/msg91.js', () => ({
   sendOTP: jest.fn().mockResolvedValue({ request_id: 'mock-123' }),
 }));
 
-jest.mock('../services/tomTom.js', () => ({
+jest.mock('../services/olaMaps.js', () => ({
   getDistanceMatrix: jest.fn().mockResolvedValue({
     matrix: [[{ response: { routeSummary: { travelTimeInSeconds: 600 } } }]],
   }),
@@ -131,7 +131,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-supabase-key';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.MSG91_AUTH_KEY = 'test-msg91-key';
 process.env.FCM_PROJECT_ID = 'test-fcm-project';
-process.env.TOMTOM_API_KEY = 'test-tomtom-key';
+process.env.OLA_MAPS_API_KEY = 'test-ola-maps-key';
 process.env.TYPESENSE_ADMIN_API_KEY = 'test-typesense-key';
 process.env.TYPESENSE_HOST = 'localhost';
 process.env.TYPESENSE_PORT = '8108';

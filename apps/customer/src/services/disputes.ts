@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/config/api';
+import { client } from './api';
 
 /**
  * Support & Dispute Management Service (Task 9.8)
@@ -212,21 +212,11 @@ export const openDispute = async (
   input: OpenDisputeInput,
   token: string
 ): Promise<Dispute> => {
-  const response = await fetch(`${API_BASE_URL}/disputes`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(input),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to open dispute');
-  }
-
-  const data = await response.json();
+  const { data } = await client.post<{ success: boolean; data: Dispute }>(
+    '/disputes',
+    input,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
   return data.data;
 };
 
@@ -246,39 +236,29 @@ export const getDisputes = async (
     sort_order = 'desc',
   } = params;
 
-  const queryParams = new URLSearchParams({
+  const queryParams: Record<string, string> = {
     page: String(page),
     limit: String(limit),
     sort_by,
     sort_order,
-  });
+  };
 
-  // Handle status filter (single or array)
   if (status) {
     const statuses = Array.isArray(status) ? status : [status];
-    queryParams.append('status', statuses.join(','));
+    queryParams.status = statuses.join(',');
   }
 
   if (resolution_status) {
-    queryParams.append('resolution_status', resolution_status);
+    queryParams.resolution_status = resolution_status;
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/disputes?${queryParams.toString()}`,
+  const { data } = await client.get<{ success: boolean; data: DisputeListResponse }>(
+    '/disputes',
     {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      params: queryParams,
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to fetch disputes');
-  }
-
-  const data = await response.json();
   return data.data;
 };
 
@@ -289,19 +269,10 @@ export const getDisputeDetail = async (
   disputeId: string,
   token: string
 ): Promise<Dispute> => {
-  const response = await fetch(`${API_BASE_URL}/disputes/${disputeId}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to fetch dispute');
-  }
-
-  const data = await response.json();
+  const { data } = await client.get<{ success: boolean; data: Dispute }>(
+    `/disputes/${disputeId}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
   return data.data;
 };
 
@@ -313,24 +284,11 @@ export const addDisputeMessage = async (
   comment: DisputeComment,
   token: string
 ): Promise<DisputeMessage> => {
-  const response = await fetch(
-    `${API_BASE_URL}/disputes/${disputeId}/messages`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(comment),
-    }
+  const { data } = await client.post<{ success: boolean; data: DisputeMessage }>(
+    `/disputes/${disputeId}/messages`,
+    comment,
+    { headers: { Authorization: `Bearer ${token}` } }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to add message');
-  }
-
-  const data = await response.json();
   return data.data;
 };
 
@@ -347,22 +305,10 @@ export const getDisputeResolutionStatus = async (
   refund_amount?: number;
   resolved_at?: string;
 }> => {
-  const response = await fetch(
-    `${API_BASE_URL}/disputes/${disputeId}/status`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const { data } = await client.get<{ success: boolean; data: { status: string; resolution_status: string; resolution_note?: string; refund_amount?: number; resolved_at?: string } }>(
+    `/disputes/${disputeId}/status`,
+    { headers: { Authorization: `Bearer ${token}` } }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to fetch status');
-  }
-
-  const data = await response.json();
   return data.data;
 };
 
@@ -373,22 +319,11 @@ export const acceptDisputeResolution = async (
   disputeId: string,
   token: string
 ): Promise<Dispute> => {
-  const response = await fetch(
-    `${API_BASE_URL}/disputes/${disputeId}/accept-resolution`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const { data } = await client.post<{ success: boolean; data: Dispute }>(
+    `/disputes/${disputeId}/accept-resolution`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
   );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to accept resolution');
-  }
-
-  const data = await response.json();
   return data.data;
 };
 
@@ -399,18 +334,10 @@ export const closeDispute = async (
   disputeId: string,
   token: string
 ): Promise<Dispute> => {
-  const response = await fetch(`${API_BASE_URL}/disputes/${disputeId}/close`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to close dispute');
-  }
-
-  const data = await response.json();
+  const { data } = await client.post<{ success: boolean; data: Dispute }>(
+    `/disputes/${disputeId}/close`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
   return data.data;
 };

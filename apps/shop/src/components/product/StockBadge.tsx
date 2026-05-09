@@ -54,12 +54,14 @@ export const StockBadge = React.memo(function StockBadge({
     };
   }, [stockQty, threshold]);
 
-  const iconName =
+  // Note: icon names cast as `any` because MaterialCommunityIcons type union
+  // doesn't include all valid icon names in some package versions.
+  const iconName: any =
     status === 'out-of-stock'
-      ? 'package-remove'
+      ? 'package-variant-remove'
       : status === 'low-stock'
-        ? 'package-down'
-        : 'package-check';
+        ? 'package-variant'
+        : 'package-variant-closed-check';
 
   return (
     <View

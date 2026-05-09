@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontFamily: fontFamily.bold,
     color: colors.error,
-    marginBottom: spacing.md,
+    marginBottom: spacing.base,
   },
 
   errorMessage: {
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.base,
     marginBottom: spacing.lg,
   },
 
@@ -366,15 +366,15 @@ const styles = StyleSheet.create({
   },
 
   timerContainer: {
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.base,
   },
 
   timelineCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
-    marginHorizontal: spacing.md,
+    marginHorizontal: spacing.base,
     marginBottom: spacing.lg,
   },
 
@@ -382,15 +382,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontFamily: fontFamily.bold,
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.base,
   },
 
   totalCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
+    padding: spacing.base,
+    marginHorizontal: spacing.base,
+    marginVertical: spacing.base,
   },
 
   totalRow: {
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginVertical: spacing.md,
+    marginVertical: spacing.base,
   },
 
   grandTotal: {
@@ -433,22 +433,22 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontFamily: fontFamily.regular,
     color: colors.textSecondary,
-    marginTop: spacing.md,
+    marginTop: spacing.base,
   },
 
   actionsContainer: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.base,
     marginVertical: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.base,
   },
 
   rejectButton: {
-    marginTop: spacing.md,
+    marginTop: spacing.base,
   },
 
   statusContainer: {
-    marginHorizontal: spacing.md,
-    padding: spacing.md,
+    marginHorizontal: spacing.base,
+    padding: spacing.base,
     backgroundColor: colors.primaryLight,
     borderRadius: borderRadius.md,
   },
@@ -480,13 +480,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontFamily: fontFamily.bold,
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.base,
   },
 
   reasonInput: {
     backgroundColor: colors.surfaceSecondary,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
+    padding: spacing.base,
     fontSize: fontSize.sm,
     fontFamily: fontFamily.regular,
     color: colors.textPrimary,
@@ -496,6 +496,6 @@ const styles = StyleSheet.create({
 
   modalButtons: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.base,
   },
 });

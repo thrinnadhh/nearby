@@ -15,6 +15,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -26,7 +27,6 @@ import {
   borderRadius,
 } from '@/constants/theme';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
-import { TextInput } from '@/components/common/TextInput';
 import { useProductsStore } from '@/store/products';
 import { useEditProduct } from '@/hooks/useEditProduct';
 import { paiseToRupees, formatRupeesForDisplay, parsePriceInput } from '@/utils/editProductValidation';
@@ -236,7 +236,7 @@ export default function EditProductScreen() {
                 placeholder="Enter price (e.g., 123.45)"
                 value={priceDisplay}
                 onChangeText={handlePriceChange}
-                keyboardType="decimal-pad"
+                keyboardType="numeric"
                 editable={!hook.isSubmitting}
                 onBlur={() => hook.validateField('price')}
                 testID="price-input"
@@ -264,7 +264,7 @@ export default function EditProductScreen() {
               placeholder="Enter stock quantity"
               value={stockDisplay}
               onChangeText={handleStockChange}
-              keyboardType="number-pad"
+              keyboardType="numeric"
               editable={!hook.isSubmitting}
               onBlur={() => hook.validateField('stockQty')}
               testID="stock-input"

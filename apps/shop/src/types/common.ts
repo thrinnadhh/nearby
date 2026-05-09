@@ -14,9 +14,17 @@ export interface AsyncState<T> {
   error: HttpError | null;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  meta?: PaginationMeta;
   error?: {
     code: string;
     message: string;

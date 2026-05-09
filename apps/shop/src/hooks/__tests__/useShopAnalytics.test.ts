@@ -25,12 +25,16 @@ const mockEarningsData: AnalyticsData = {
     orders: 5,
     revenuePaise: 50000,
   },
-  week: [
-    { views: 600, orders: 30, revenuePaise: 300000 },
-  ],
-  month: [
-    { views: 2400, orders: 120, revenuePaise: 1200000 },
-  ],
+  week: {
+    views: 600,
+    orders: 30,
+    revenuePaise: 300000,
+  },
+  month: {
+    views: 2400,
+    orders: 120,
+    revenuePaise: 1200000,
+  },
   topProducts: [],
 };
 
@@ -56,7 +60,7 @@ describe('useShopAnalytics', () => {
       isOffline: false,
       lastUpdated: null,
     });
-    mockUseNetworkStatus.mockReturnValue(true);
+    mockUseNetworkStatus.mockReturnValue({ isOnline: true, isSlowConnection: false });
   });
 
   it('should return initial state', () => {
@@ -108,7 +112,7 @@ describe('useShopAnalytics', () => {
     useAuthStore.setState({ shopId: '123' });
     mockGetAnalytics.mockResolvedValue(mockEarningsData);
     mockGetTopProducts.mockResolvedValue(mockTopProducts);
-    mockUseNetworkStatus.mockReturnValue(false);
+    mockUseNetworkStatus.mockReturnValue({ isOnline: false, isSlowConnection: false });
 
     const { result } = renderHook(() => useShopAnalytics());
 

@@ -256,8 +256,8 @@ export default function OrderDetailScreen() {
           <View style={styles.section}>
             <RefundStatusBadge 
               orderId={order.id}
-              status={order.refund_status || 'processing'}
-              refundAmount={order.refund_amount}
+              status={(order.refund_status ?? 'processing') as 'completed' | 'processing'}
+              refundAmount={order.refund_amount ?? undefined}
             />
           </View>
         )}
@@ -269,7 +269,7 @@ export default function OrderDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Delivery Partner</Text>
             <PartnerInfoCard 
-              partner={order.delivery_partner}
+              partner={order.delivery_partner as any}
               onContact={handleContactPartner} 
             />
           </View>

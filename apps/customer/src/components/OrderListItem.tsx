@@ -141,7 +141,7 @@ export function OrderListItem({
 
       {/* Status Badge */}
       <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
-        <Ionicons name={getStatusIcon(order.status)} size={14} color={statusColor} />
+        <Ionicons name={getStatusIcon(order.status) as any} size={14} color={statusColor} />
         <Text style={[styles.statusText, { color: statusColor }]}>
           {getStatusLabel(order.status)}
         </Text>

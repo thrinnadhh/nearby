@@ -15,7 +15,13 @@ import {
 import { supabase } from '../services/supabase.js';
 import { redis } from '../services/redis.js';
 import { createPaymentSession, getPaymentStatus } from '../services/cashfree.js';
+import Joi from 'joi';
 import { initiatePaymentSchema } from '../utils/validators.js';
+
+// Validates that the :id param in GET /:id is a real UUID.
+const paymentParamsSchema = Joi.object({
+  id: Joi.string().uuid({ version: 'uuidv4' }).required(),
+});
 
 const router = Router();
 const CASHFREE_WEBHOOK_SECRET = process.env.CASHFREE_WEBHOOK_SECRET;
@@ -29,13 +35,14 @@ const fetchOrderForPayment = async (orderId) => {
   const { data, error } = await supabase
     .from('orders')
     .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, payment_id, cashfree_order_id, created_at, updated_at')
-    .eq('id', orderId);
+    .eq('id', orderId)
+    .single();
 
-  if (error || !data || data.length === 0) {
+  if (error || !data) {
     return null;
   }
 
-  return data[0];
+  return data;
 };
 
 const assertOrderAccess = (user, order) => {
@@ -96,13 +103,21 @@ router.post(
       }
 
       if (order.payment_method === 'cod') {
-        await supabase
+        const { error: codUpdateError } = await supabase
           .from('orders')
           .update({
             payment_status: 'completed',
             updated_at: new Date().toISOString(),
           })
           .eq('id', order.id);
+
+        if (codUpdateError) {
+          logger.error('Failed to update COD order payment status', {
+            orderId: order.id,
+            error: codUpdateError.message,
+          });
+          return res.status(500).json(errorResponse(INTERNAL_ERROR, 'Failed to complete COD payment.'));
+        }
 
         return res.status(200).json(successResponse({
           orderId: order.id,
@@ -115,16 +130,15 @@ router.post(
         }));
       }
 
-      const { data: profiles, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, phone')
-        .eq('id', req.user.userId);
+        .eq('id', req.user.userId)
+        .single();
 
-      if (profileError || !profiles || profiles.length === 0) {
+      if (profileError || !profile) {
         return res.status(500).json(errorResponse(INTERNAL_ERROR, 'Customer profile not found.'));
       }
-
-      const profile = profiles[0];
 
       const cashfreeOrderId = order.cashfree_order_id || `nearby-${order.id}`;
       const session = await createPaymentSession({
@@ -139,13 +153,22 @@ router.post(
         order_note: order.id,
       });
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('orders')
         .update({
           cashfree_order_id: cashfreeOrderId,
           updated_at: new Date().toISOString(),
         })
         .eq('id', order.id);
+
+      if (updateError) {
+        logger.error('Failed to persist cashfree_order_id', {
+          orderId: order.id,
+          cashfreeOrderId,
+          error: updateError.message,
+        });
+        // Non-fatal: session was created; log and continue so client can still pay
+      }
 
       return res.status(200).json(successResponse({
         orderId: order.id,
@@ -172,7 +195,7 @@ router.post(
   }
 );
 
-router.get('/:id', authenticate, roleGuard(['customer', 'shop_owner']), async (req, res, next) => {
+router.get('/:id', authenticate, roleGuard(['customer', 'shop_owner']), validate(paymentParamsSchema, 'params'), async (req, res, next) => {
   try {
     const order = await fetchOrderForPayment(req.params.id);
 
@@ -227,7 +250,9 @@ router.post('/webhook', strictLimiter, async (req, res) => {
   }
 
   try {
-    const body = JSON.stringify(req.body);
+    // Use the raw request bytes so the HMAC matches what Cashfree actually signed.
+    // Falls back to JSON.stringify in test environments where rawBody is not set.
+    const body = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body);
     const hash = crypto
       .createHmac('sha256', CASHFREE_WEBHOOK_SECRET)
       .update(body)
@@ -284,8 +309,6 @@ router.post('/webhook', strictLimiter, async (req, res) => {
       return res.status(200).json(successResponse({ status: 'already_processed' }));
     }
 
-    await redis.setex(`payment:${paymentId}:processing`, 30, '1');
-
     try {
       if (event === 'PAYMENT_SUCCESS') {
         const { error } = await supabase
@@ -304,7 +327,6 @@ router.post('/webhook', strictLimiter, async (req, res) => {
             paymentId,
             error: error.message,
           });
-          await redis.del(`payment:${paymentId}:processing`);
           return res.status(500).json(
             errorResponse(INTERNAL_ERROR, 'Payment recorded but order update failed')
           );
@@ -341,7 +363,6 @@ router.post('/webhook', strictLimiter, async (req, res) => {
         await redis.setex(`payment:${paymentId}:processed`, PAYMENT_PROCESSED_TTL_SECONDS, '1');
       }
 
-      await redis.del(`payment:${paymentId}:processing`);
       return res.status(200).json(successResponse({ status: 'processed' }));
     } catch (err) {
       logger.error('Cashfree webhook processing error', {
@@ -350,7 +371,6 @@ router.post('/webhook', strictLimiter, async (req, res) => {
         error: err.message,
         stack: err.stack,
       });
-      await redis.del(`payment:${paymentId}:processing`);
       return res.status(500).json(errorResponse(INTERNAL_ERROR, 'Webhook processing failed'));
     }
   } catch (err) {

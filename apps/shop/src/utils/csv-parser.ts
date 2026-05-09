@@ -49,11 +49,10 @@ export async function parseCsvFile(
     const cleanContent = fileContent.replace(/^\uFEFF/, '');
 
     // Parse CSV
-    const result = Papa.parse(cleanContent, {
+    const result = Papa.parse<CsvRawRow>(cleanContent, {
       header: true,
       dynamicTyping: false,
       skipEmptyLines: true,
-      trimHeaders: true,
       transformHeader: (header: string) => header.trim(),
     });
 

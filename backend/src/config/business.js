@@ -17,3 +17,6 @@ export const DELIVERY_SEARCH_RADIUS_M = 5000;
 
 /** Review prompt delay after delivery in milliseconds (2 minutes) */
 export const REVIEW_PROMPT_DELAY_MS = 2 * 60 * 1000;
+
+/** Delivery OTP lockout duration in milliseconds after 3 failed attempts (10 minutes) */
+export const DELIVERY_OTP_LOCKOUT_MS = 10 * 60 * 1000;

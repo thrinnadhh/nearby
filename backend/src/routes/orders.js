@@ -9,6 +9,7 @@ import OrderService from '../services/orders.js';
 import { checkIdempotencyKey, setIdempotencyKey } from '../utils/idempotency.js';
 
 const router = Router();
+const IDEMPOTENCY_KEY_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 router.post(
   '/',
@@ -21,8 +22,7 @@ router.post(
       const customerId = req.user.userId;
 
       if (idempotencyKey) {
-        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidPattern.test(idempotencyKey)) {
+        if (!IDEMPOTENCY_KEY_REGEX.test(idempotencyKey)) {
           return res.status(400).json(
             errorResponse('VALIDATION_ERROR', 'idempotency-key must be a valid UUID v4.')
           );

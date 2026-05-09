@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { roleGuard } from '../middleware/roleGuard.js';
 import { validate } from '../middleware/validate.js';
 import { rateLimit } from '../middleware/rateLimit.js';
-import { successResponse, errorResponse } from '../utils/response.js';
+import { successResponse } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import * as DeliveryService from '../services/delivery.js';
 import { deliveryOtpSchema, deliveryPartnerRatingSchema } from '../utils/validators.js';
@@ -171,19 +171,14 @@ router.post(
   authenticate,
   roleGuard(['delivery']),
   deliveryActionLimiter,
+  validate(orderParamsSchema, 'params'),
+  validate(deliveryOtpSchema, 'body'),
   async (req, res, next) => {
     try {
-      const { error, value } = deliveryOtpSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json(
-          errorResponse('VALIDATION_ERROR', error.details[0].message)
-        );
-      }
-
       const result = await DeliveryService.verifyDeliveryOtpWithOwnership(
         req.user.userId,
         req.params.orderId,
-        value.otp
+        req.body.otp
       );
 
       logger.info('Delivery OTP verified', {
@@ -213,25 +208,20 @@ router.post(
   authenticate,
   roleGuard(['shop_owner']),
   deliveryActionLimiter,
+  validate(orderParamsSchema, 'params'),
+  validate(deliveryPartnerRatingSchema, 'body'),
   async (req, res, next) => {
     try {
-      const { error, value } = deliveryPartnerRatingSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json(
-          errorResponse('VALIDATION_ERROR', error.details[0].message)
-        );
-      }
-
       const rating = await DeliveryService.rateDeliveryPartner(
         req.user.userId,
         req.params.orderId,
-        value
+        req.body
       );
 
       logger.info('Delivery partner rated', {
         orderId: req.params.orderId,
         shopId: req.user.shopId,
-        rating: value.rating,
+        rating: req.body.rating,
       });
 
       return res.status(201).json(successResponse(rating));

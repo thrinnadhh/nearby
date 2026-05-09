@@ -13,6 +13,7 @@ import { useOrdersStore } from '@/store/orders';
 import { useAuthStore } from '@/store/auth';
 import { getOrder } from '@/services/orders';
 import { paise } from '@/utils/currency';
+import logger from '@/utils/logger';
 
 const ACCEPTANCE_TIMEOUT = 180; // 3 minutes in seconds
 
@@ -49,7 +50,7 @@ export default function OrderConfirmedScreen() {
     try {
       if (!orderId || !token) return;
 
-      const data = await getOrder(orderId);
+      const data = await getOrder(orderId, token ?? undefined);
       setOrder(data);
       setPollError(null);
 
@@ -62,7 +63,7 @@ export default function OrderConfirmedScreen() {
     } catch (error: any) {
       const message = error?.message || 'Failed to fetch order status';
       setPollError(message);
-      console.error('Order fetch error:', message);
+      logger.error('Order fetch error', { message });
     }
   }, [orderId, token, router, setActiveOrder]);
 

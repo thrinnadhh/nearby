@@ -70,7 +70,7 @@ export function InputField({
             disabled={!onRightIconPress}
           >
             <MaterialCommunityIcons
-              name={rightIcon}
+              name={rightIcon as any}
               size={20}
               color={error ? colors.error : colors.textSecondary}
             />

@@ -34,7 +34,7 @@ export default function ChatDetailScreen({
 }: ChatDetailScreenProps) {
   const shopId = useAuthStore((s) => s.shopId);
   const { messages, loading, error } = useChat();
-  const { socketConnected, sendMessage } = useChatSocket(shopId);
+  const { socketConnected, sendMessage } = useChatSocket(shopId ?? undefined);
 
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);

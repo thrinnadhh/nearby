@@ -36,6 +36,7 @@ const MOCK_PRODUCT: Product = {
   createdAt: '2026-04-19T00:00:00Z',
   updatedAt: '2026-04-19T00:00:00Z',
   isActive: true,
+  isAvailable: true,
 };
 
 const VALID_IMAGE = {

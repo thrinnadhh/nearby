@@ -29,7 +29,7 @@ interface UseChatResult {
 
 export function useChat(): UseChatResult {
   const shopId = useAuthStore((s) => s.shopId);
-  const isConnected = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
 
   // Individual selectors
   const conversations = useChatStore((s) => s.conversations);
@@ -165,8 +165,8 @@ export function useChat(): UseChatResult {
     [shopId, setCurrentChat, setMessages, setLoading, setError]
   );
 
-  const retry = useCallback(() => {
-    fetchConversations(currentPage, lastSearch);
+  const retry = useCallback(async () => {
+    await fetchConversations(currentPage, lastSearch);
   }, [fetchConversations, currentPage, lastSearch]);
 
   // Initial fetch

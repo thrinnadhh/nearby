@@ -369,10 +369,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingTopColor: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    marginTopColor: spacing.md,
+    marginTop: spacing.md,
   },
   timeText: {
     fontSize: fontSize.sm,

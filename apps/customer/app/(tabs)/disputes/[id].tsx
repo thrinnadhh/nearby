@@ -23,6 +23,7 @@ import {
   getDisputeStatusLabel,
   getResolutionStatusLabel,
 } from '@/services/disputes';
+import logger from '@/utils/logger';
 
 /**
  * Dispute Detail Screen (Task 9.8)
@@ -90,7 +91,7 @@ export default function DisputeDetailScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to load dispute';
       setError(message);
-      console.error('Dispute detail load error:', message);
+      logger.error('Dispute detail load error', { message });
     } finally {
       setIsRefreshing(false);
       setIsLoading(false);
@@ -132,7 +133,7 @@ export default function DisputeDetailScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to send message';
       Alert.alert('Error', message);
-      console.error('Send message error:', message);
+      logger.error('Send message error', { message });
     } finally {
       setIsSending(false);
     }
@@ -162,7 +163,7 @@ export default function DisputeDetailScreen() {
             } catch (err: any) {
               const message = err?.message || 'Failed to accept resolution';
               Alert.alert('Error', message);
-              console.error('Accept resolution error:', message);
+              logger.error('Accept resolution error', { message });
             } finally {
               setIsAccepting(false);
             }
@@ -202,7 +203,7 @@ export default function DisputeDetailScreen() {
             } catch (err: any) {
               const message = err?.message || 'Failed to close dispute';
               Alert.alert('Error', message);
-              console.error('Close dispute error:', message);
+              logger.error('Close dispute error', { message });
             } finally {
               setIsClosing(false);
             }

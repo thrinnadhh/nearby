@@ -33,24 +33,12 @@ const router = Router();
  *   }
  * Response: 201 with created shop object
  */
-router.post('/', authenticate, roleGuard(['shop_owner']), async (req, res, next) => {
+router.post('/', authenticate, roleGuard(['shop_owner']), validate(createShopSchema), async (req, res, next) => {
   try {
-    // 1. Validate request body
-    const { error, value } = createShopSchema.validate(req.body);
-    if (error) {
-      logger.warn('Create shop validation failed', {
-        error: error.message,
-        userId: req.user.userId,
-      });
-      return res.status(400).json(
-        errorResponse('VALIDATION_ERROR', error.details[0].message)
-      );
-    }
+    // 1. Call service to create shop (body already validated and sanitized by validate middleware)
+    const shop = await ShopService.create(req.user.userId, req.body);
 
-    // 2. Call service to create shop
-    const shop = await ShopService.create(req.user.userId, value);
-
-    // 3. Return 201 with created shop
+    // 2. Return 201 with created shop
     logger.info('Shop creation endpoint success', {
       shopId: shop.id,
       userId: req.user.userId,
@@ -58,7 +46,7 @@ router.post('/', authenticate, roleGuard(['shop_owner']), async (req, res, next)
 
     res.status(201).json(successResponse(shop));
   } catch (err) {
-    // 4. Forward error to error handler middleware
+    // 3. Forward error to error handler middleware
     logger.error('Create shop endpoint error', {
       error: err.message,
       userId: req.user?.userId,
@@ -239,8 +227,8 @@ router.post(
   '/:shopId/kyc',
   authenticate,
   rateLimit('kyc-upload', 10, 3600),
-  upload.single('document'),
   roleGuard(['shop_owner']),
+  upload.single('document'),
   checkFileExists,
   shopOwnerGuard(),
   async (req, res, next) => {

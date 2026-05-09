@@ -1,3 +1,4 @@
+// @ts-ignore
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase client initialization for React Native

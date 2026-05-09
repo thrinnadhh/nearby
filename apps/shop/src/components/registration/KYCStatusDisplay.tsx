@@ -95,7 +95,7 @@ export function KYCStatusDisplay({
           <ActivityIndicator size="large" color={config.color} />
         ) : (
           <MaterialCommunityIcons
-            name={config.icon}
+            name={config.icon as any}
             size={56}
             color={config.color}
           />

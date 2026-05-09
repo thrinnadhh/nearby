@@ -42,4 +42,7 @@ export const PRODUCTS_ENDPOINTS = {
   CREATE_PRODUCT: '/products',
   UPDATE_PRODUCT: '/products/:id',
   DELETE_PRODUCT: '/products/:id',
+  BULK_CREATE: '/shops/:shopId/products/bulk',
+  TEMPLATE: '/products/template',
+  LOW_STOCK: '/shops/:shopId/products/low-stock',
 };

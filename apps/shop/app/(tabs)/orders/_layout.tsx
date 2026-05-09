@@ -10,7 +10,7 @@ export default function OrdersLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animationEnabled: true,
+        animation: "slide_from_right",
       }}
     />
   );

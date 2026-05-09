@@ -148,8 +148,8 @@ export default function BulkUploadScreen() {
    */
   useFocusEffect(
     useCallback(() => {
-      const unsubscribe = router.canGoBack() ? null : undefined;
-      return () => unsubscribe?.();
+      // No-op: back navigation handled by expo-router
+      return () => {};
     }, [router])
   );
 

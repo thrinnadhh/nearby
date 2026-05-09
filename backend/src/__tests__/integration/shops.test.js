@@ -605,14 +605,13 @@ describe('Shops Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.isOpen).toBe(false);
 
-      // Verify queue job was added
+      // Verify queue job was added (no options object — delay:0 was redundant)
       expect(mockTypesenseQueue.add).toHaveBeenCalledWith(
         'sync',
         expect.objectContaining({
           shopId: testShopId,
           action: 'remove',
-        }),
-        expect.any(Object)
+        })
       );
     });
 

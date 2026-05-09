@@ -107,7 +107,7 @@ export function DocumentUploadCard({
         ) : (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
-              name={DOCUMENT_ICONS[docType]}
+              name={DOCUMENT_ICONS[docType] as any}
               size={40}
               color={colors.primary}
             />

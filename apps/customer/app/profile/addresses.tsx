@@ -103,7 +103,7 @@ export default function SavedAddressesScreen() {
         <EmptyState
           icon="alert-circle"
           title="Failed to Load Addresses"
-          subtitle={error?.message || 'Please try again'}
+          description={error?.message || 'Please try again'}
           onCtaPress={() => token && fetchProfile(token)}
           ctaLabel="Retry"
         />
@@ -131,7 +131,7 @@ export default function SavedAddressesScreen() {
         <EmptyState
           icon="location"
           title="No Addresses Saved"
-          subtitle="Add a delivery address to place orders"
+          description="Add a delivery address to place orders"
           onCtaPress={handleAddAddress}
           ctaLabel="Add Address"
         />

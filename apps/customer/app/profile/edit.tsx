@@ -35,7 +35,7 @@ export default function EditProfileScreen() {
 
       <View style={styles.content}>
         <View style={styles.card}>
-          <Ionicons name="lock" size={40} color={colors.textTertiary} />
+          <Ionicons name={'lock' as any} size={40} color={colors.textTertiary} />
           <Text style={styles.message}>Profile editing</Text>
           <Text style={styles.description}>
             This feature is coming soon. Currently, your profile information is read-only.

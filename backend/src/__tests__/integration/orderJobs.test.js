@@ -12,7 +12,7 @@ jest.mock('../../jobs/notifyCustomer.js', () => ({
 }));
 
 jest.mock('../../services/cashfree.js', () => ({
-  refundPayment: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
+  initiateRefund: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
 }));
 
 jest.mock('../../services/msg91.js', () => ({
@@ -37,7 +37,7 @@ describe('Order jobs', () => {
     ({ processAutoCancelJob } = await import('../../jobs/autoCancel.js'));
     ({ processNotifyShopJob } = await import('../../jobs/notifyShop.js'));
     ({ notifyCustomerQueue: mockNotifyCustomerQueue } = await import('../../jobs/notifyCustomer.js'));
-    ({ refundPayment: mockRefundPayment } = await import('../../services/cashfree.js'));
+    ({ initiateRefund: mockRefundPayment } = await import('../../services/cashfree.js'));
     ({ sendNotification: mockSendNotification } = await import('../../services/msg91.js'));
     ({ sendHighPriorityNotification: mockSendHighPriorityNotification } = await import('../../services/fcm.js'));
   });
@@ -76,6 +76,7 @@ describe('Order jobs', () => {
       shop_id: 'shop-1',
       payment_method: 'upi',
       payment_id: 'pay_auto',
+      cashfree_order_id: 'cf_order_auto',
       total_paise: 13000,
     };
     const orderItems = [
@@ -153,7 +154,7 @@ describe('Order jobs', () => {
       expect.objectContaining({ status: 'auto_cancelled', payment_status: 'failed' })
     );
     expect(updates.shops[0]).toEqual({ trust_score: 49 });
-    expect(mockRefundPayment).toHaveBeenCalledWith('pay_auto', 13000, 'auto_cancelled');
+    expect(mockRefundPayment).toHaveBeenCalledWith('cf_order_auto', 13000, 'auto_cancelled');
     expect(mockNotifyCustomerQueue.add).toHaveBeenCalledWith(
       'notify-customer',
       expect.objectContaining({ orderId: 'order-2', customerId: 'customer-1', status: 'auto_cancelled' })

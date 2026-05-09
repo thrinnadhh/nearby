@@ -73,7 +73,7 @@ export default function LoginScreen() {
             onChangeText={setPhone}
             keyboardType="phone-pad"
             maxLength={10}
-            error={error}
+            error={error ?? undefined}
           />
 
           {error && (

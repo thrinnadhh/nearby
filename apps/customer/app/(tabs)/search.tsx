@@ -23,6 +23,8 @@ import { CategoryChip, CATEGORY_LABELS } from '@/components/CategoryChip';
 import { ProductCard } from '@/components/ProductCard';
 import { searchProducts } from '@/services/search';
 import { useDebounce } from '@/hooks/useDebounce';
+import { DEMO_MODE } from '@/config/demo';
+import { searchDemoProducts } from '@/mocks/data';
 import type { Product, ShopCategory } from '@/types';
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as ShopCategory[];
@@ -56,6 +58,27 @@ export default function SearchScreen() {
     setSearchError(null);
     setHasSearched(true);
     try {
+      if (DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 300));
+        const all = searchDemoProducts(debouncedQuery);
+        const filtered = selectedCategory
+          ? all.filter((p) => {
+              const shopCategory = p.shop_id
+                ? ({
+                    'shop-1': 'kirana',
+                    'shop-2': 'vegetables',
+                    'shop-3': 'pharmacy',
+                    'shop-4': 'restaurant',
+                    'shop-5': 'pet_store',
+                    'shop-6': 'mobile',
+                  } as Record<string, string>)[p.shop_id]
+                : null;
+              return shopCategory === selectedCategory;
+            })
+          : all;
+        setResults(filtered);
+        return;
+      }
       const res = await searchProducts(
         {
           q: debouncedQuery,

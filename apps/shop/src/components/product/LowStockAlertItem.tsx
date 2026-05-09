@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.white,
     borderRadius: borderRadius.md,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    padding: spacing.md,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.base,
+    padding: spacing.base,
     alignItems: 'center',
   },
   containerDismissed: {
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: borderRadius.md,
-    marginRight: spacing.md,
+    marginRight: spacing.base,
     backgroundColor: colors.backgroundSecondary,
   },
   imagePlaceholder: {

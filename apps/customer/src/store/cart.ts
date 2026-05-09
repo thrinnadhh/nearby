@@ -178,3 +178,7 @@ export const useCartStore = create<CartState & CartActions>()(
 /** Total price in paise — computed from in-memory items (current session prices). */
 export const selectCartTotal = (state: CartState): number =>
   state.items.reduce((sum, i) => sum + i.product.price * i.qty, 0);
+
+/** Total item count — computed from entries (persisted, always accurate for badge). */
+export const selectCartCount = (state: CartState): number =>
+  state.entries.reduce((sum, e) => sum + e.qty, 0);

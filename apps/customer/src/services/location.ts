@@ -1,13 +1,8 @@
-import axios from 'axios';
-import { API_BASE_URL, API_TIMEOUT } from '@/constants/api';
+import { client } from './api';
 import type { AddressSuggestion, Coords } from '@/types';
 
 // Ola Maps reverse geocode is proxied through our backend to keep the API key
 // server-side. The backend endpoint calls Ola Maps and returns a formatted address.
-const client = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: API_TIMEOUT,
-});
 
 export interface ReverseGeocodeResult {
   address: string;

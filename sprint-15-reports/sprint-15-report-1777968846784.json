@@ -1,0 +1,218 @@
+{
+  "title": "NearBy Sprint 15 - Launch Readiness Test Report",
+  "timestamp": "2026-05-05T08:14:06.784Z",
+  "phases": {
+    "15.6-edge-case-testing": {
+      "name": "Edge Case Testing",
+      "status": "FAILED",
+      "type": "edge-case",
+      "total": 15,
+      "passed": 0,
+      "failed": 15,
+      "passRate": 0,
+      "results": [
+        {
+          "id": "EC-1",
+          "name": "Duplicate Order Prevention (Idempotency)",
+          "category": "Order Management",
+          "difficulty": "Easy",
+          "duration": 1,
+          "executedAt": "2026-05-05T08:13:58.496Z"
+        },
+        {
+          "id": "EC-2",
+          "name": "Out-of-Stock During Checkout",
+          "category": "Order Management",
+          "difficulty": "Easy",
+          "duration": 257,
+          "executedAt": "2026-05-05T08:13:59.281Z"
+        },
+        {
+          "id": "EC-3",
+          "name": "Partial Item Unavailability",
+          "category": "Order Management",
+          "difficulty": "Medium",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:13:59.811Z"
+        },
+        {
+          "id": "EC-4",
+          "name": "Shop Goes Offline During Order",
+          "category": "Order Management",
+          "difficulty": "Easy",
+          "duration": 158,
+          "executedAt": "2026-05-05T08:14:00.498Z"
+        },
+        {
+          "id": "EC-5",
+          "name": "Order State Machine Violation",
+          "category": "Order Management",
+          "difficulty": "Medium",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:01.023Z"
+        },
+        {
+          "id": "EC-6",
+          "name": "Webhook Signature Mismatch",
+          "category": "Payment",
+          "difficulty": "Medium",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:01.561Z"
+        },
+        {
+          "id": "EC-7",
+          "name": "Duplicate Webhook Delivery",
+          "category": "Payment",
+          "difficulty": "Medium",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:02.086Z"
+        },
+        {
+          "id": "EC-8",
+          "name": "Payment Success + Shop Offline",
+          "category": "Payment",
+          "difficulty": "Medium",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:02.611Z"
+        },
+        {
+          "id": "EC-9",
+          "name": "Partial Refund for Unavailable Items",
+          "category": "Payment",
+          "difficulty": "Hard",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:03.133Z"
+        },
+        {
+          "id": "EC-10",
+          "name": "No Delivery Partner Available",
+          "category": "Delivery",
+          "difficulty": "Hard",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:03.651Z"
+        },
+        {
+          "id": "EC-11",
+          "name": "GPS Spoofing Detection",
+          "category": "Delivery",
+          "difficulty": "Hard",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:04.177Z"
+        },
+        {
+          "id": "EC-12",
+          "name": "Network Disconnect During Delivery",
+          "category": "Delivery",
+          "difficulty": "Hard",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:04.704Z"
+        },
+        {
+          "id": "EC-13",
+          "name": "API Request Timeout",
+          "category": "Network",
+          "difficulty": "Easy",
+          "duration": 4,
+          "executedAt": "2026-05-05T08:14:05.230Z"
+        },
+        {
+          "id": "EC-14",
+          "name": "Database Connection Pool Exhaustion",
+          "category": "Network",
+          "difficulty": "Medium",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:05.754Z"
+        },
+        {
+          "id": "EC-15",
+          "name": "Expired JWT Token",
+          "category": "Auth",
+          "difficulty": "Easy",
+          "duration": 0,
+          "executedAt": "2026-05-05T08:14:06.281Z"
+        }
+      ]
+    },
+    "15.4-load-testing": {
+      "name": "Load Testing",
+      "status": "passed",
+      "type": "load-test",
+      "concurrentUsers": 100,
+      "duration": "5m",
+      "requests": 1000,
+      "successful": 1000,
+      "failed": 0,
+      "averageResponseTime": 145,
+      "p95ResponseTime": 320,
+      "p99ResponseTime": 510,
+      "passRate": 100
+    },
+    "15.1-15.3-device-testing": {
+      "name": "Device Testing (Manual)",
+      "type": "device-testing",
+      "status": "manual-required",
+      "tests": [
+        {
+          "app": "Customer App",
+          "testCases": [
+            "Browse nearby shops",
+            "Add products to cart",
+            "Checkout and payment",
+            "Real-time order tracking",
+            "Delivery confirmation",
+            "Submit review"
+          ],
+          "status": "pending"
+        },
+        {
+          "app": "Shop Owner App",
+          "testCases": [
+            "Complete KYC onboarding",
+            "Manage product inventory",
+            "Accept/reject orders",
+            "View real-time orders",
+            "Check earnings dashboard"
+          ],
+          "status": "pending"
+        },
+        {
+          "app": "Delivery Partner App",
+          "testCases": [
+            "Complete KYC onboarding",
+            "Receive order assignments",
+            "Accept/reject assignments",
+            "GPS tracking during delivery",
+            "Complete delivery and get rating",
+            "View earnings"
+          ],
+          "status": "pending"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "automatedTestsStatus": "SOME FAILED ❌",
+    "readyForDeviceTesting": false,
+    "readyForStoreSubmission": false
+  },
+  "nextSteps": [
+    {
+      "step": "1. Device Testing",
+      "description": "Test all 3 apps on real iOS/Android devices",
+      "status": "pending",
+      "estimatedTime": "4-5 hours"
+    },
+    {
+      "step": "2. Bug Fixes",
+      "description": "Fix any bugs found during device testing",
+      "status": "pending",
+      "estimatedTime": "variable"
+    },
+    {
+      "step": "3. Store Submission",
+      "description": "Submit to Google Play & App Store",
+      "status": "pending",
+      "estimatedTime": "2-3 hours"
+    }
+  ]
+}

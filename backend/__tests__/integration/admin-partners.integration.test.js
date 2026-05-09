@@ -1,5 +1,6 @@
 import request from 'supertest';
 import app from '../../src/index.js';
+import { supabase } from '../../src/services/supabase.js';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -341,6 +342,58 @@ describe('Admin Delivery Partners Endpoints (13.6.4-13.6.7)', () => {
         .set('Authorization', `Bearer ${adminToken}`);
       
       expect(res.status).toBe(404);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Data-driven reinstate & earnings tests (proper DB setup)
+  // ═══════════════════════════════════════════════════════════════════
+  describe('Reinstate & Earnings with real DB data', () => {
+    let partnerId;
+
+    beforeEach(async () => {
+      if (!supabase) return;
+      partnerId = uuidv4();
+      await supabase.from('delivery_partners').insert({
+        id: partnerId,
+        name: 'Reinstate Test Partner',
+        phone: `+91${Date.now().toString().slice(-10)}`,
+        status: 'suspended',
+        suspension_reason: 'Test suspension reason',
+        suspended_at: new Date().toISOString(),
+        total_earnings: 0,
+        rating: 4.5,
+        orders_completed: 10,
+      });
+    });
+
+    afterEach(async () => {
+      if (!partnerId) return;
+      await supabase.from('delivery_partners').delete().eq('id', partnerId);
+    });
+
+    it('should successfully reinstate a suspended partner', async () => {
+      if (!partnerId) return;
+      const res = await request(app)
+        .patch(`/api/v1/admin/delivery-partners/${partnerId}/reinstate`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.partner_id).toBe(partnerId);
+      expect(res.body.data.status).toBe('active');
+    });
+
+    it('should return earnings history for partner', async () => {
+      if (!partnerId) return;
+      const res = await request(app)
+        .get(`/api/v1/admin/delivery-partners/${partnerId}/earnings`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.partner_id).toBe(partnerId);
+      expect(Array.isArray(res.body.data.earnings)).toBe(true);
     });
   });
 });

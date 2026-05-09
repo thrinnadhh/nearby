@@ -3,7 +3,7 @@
  * API calls for fetching settlement history
  */
 
-import { apiClient } from '@/services/axios';
+import { client } from '@/services/api';
 import { SettlementListResponse } from '@/types/settlement';
 import logger from '@/utils/logger';
 import { AppError } from '@/types/common';
@@ -26,7 +26,7 @@ export async function fetchSettlements(
   try {
     logger.info('Fetching settlements', { shopId, page, limit });
 
-    const response = await apiClient.get<SettlementListResponse>(
+    const response = await client.get<SettlementListResponse>(
       `/shops/${shopId}/settlements`,
       {
         params: { page, limit },

@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosError } from 'axios';
-import { FileSystem } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
 import { client } from './api';
 import { AppError } from '@/types/common';
 import { FileUploadResponse } from '@/types/shop-registration';

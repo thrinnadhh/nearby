@@ -9,7 +9,6 @@ import {
   StyleSheet,
   TextInput,
   Alert,
-  Picker,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
@@ -18,6 +17,7 @@ import {
   getDisputeReasons,
   getReasonLabel,
 } from '@/services/disputes';
+import logger from '@/utils/logger';
 
 /**
  * New Dispute Form (Task 9.8)
@@ -98,7 +98,7 @@ export default function NewDisputeScreen() {
       const message = err?.message || 'Failed to open dispute';
       setError(message);
       Alert.alert('Error', message);
-      console.error('Open dispute error:', message);
+      logger.error('Open dispute error', { message });
     } finally {
       setIsSubmitting(false);
     }

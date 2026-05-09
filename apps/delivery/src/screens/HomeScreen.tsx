@@ -98,18 +98,18 @@ function formatKYCStatus(status: string): string {
 
 function getKYCStatusStyle(status: string) {
   if (status === 'approved') {
-    return { color: '#22c55e' };
+    return { color: '#2F8F5E' };
   }
   if (status === 'rejected') {
-    return { color: '#ef4444' };
+    return { color: '#DC2626' };
   }
-  return { color: '#f59e0b' };
+  return { color: '#D97706' };
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#FBF4EA',
     paddingHorizontal: 16,
     paddingTop: 16,
   },
@@ -119,56 +119,60 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#261A14',
+    fontFamily: 'Georgia',
   },
   message: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B5B4E',
     marginTop: 12,
     textAlign: 'center',
   },
   statusCard: {
-    backgroundColor: '#e5e7eb',
-    borderRadius: 12,
+    backgroundColor: '#E9DDC7',
+    borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
   },
   statusOnline: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#D1F0E2',
+    borderWidth: 1.5,
+    borderColor: '#2F8F5E',
   },
   statusDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#B8A99A',
     marginRight: 12,
   },
   statusDotOnline: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#2F8F5E',
   },
   statusText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
+    color: '#261A14',
   },
   infoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E9DDC7',
   },
   infoLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B5B4E',
     marginBottom: 8,
   },
   infoValue: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#261A14',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -178,33 +182,33 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E9DDC7',
   },
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#E35D23',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#6B5B4E',
   },
   errorBox: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#ef4444',
+    borderLeftColor: '#DC2626',
   },
   errorText: {
-    color: '#991b1b',
+    color: '#991B1B',
     fontSize: 14,
   },
   loadingContainer: {

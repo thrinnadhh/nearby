@@ -30,17 +30,15 @@ import {
 } from '@/constants/theme';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { AppError } from '@/types/common';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import logger from '@/utils/logger';
 
 // Configuration constants
 const KYC_APPROVED_REDIRECT_DELAY_MS = 2000; // Show approval message for 2s before redirecting
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import logger from '@/utils/logger';
 
 export default function WaitingScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
   const { shopId } = useRegistration();
   const {
     status,

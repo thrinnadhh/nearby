@@ -44,7 +44,7 @@ interface DocumentUploadState {
 
 export default function KYCScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
   const { shopId, formData, setField, submitKYC, loading, error, setError } =
     useRegistration();
 

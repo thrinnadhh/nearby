@@ -1,4 +1,4 @@
-import { api, client } from './api';
+import { client } from './api';
 import type { Order } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -110,8 +110,8 @@ async function createOrderFromExisting(
  * Create an order.
  * @throws Error if API fails
  */
-export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  const response = await api.post<CreateOrderResponse>(
+export async function createOrder(payload: CreateOrderPayload, token?: string): Promise<Order> {
+  const response = await client.post<CreateOrderResponse>(
     '/orders',
     {
       shop_id: payload.shop_id,
@@ -124,6 +124,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     {
       headers: {
         'idempotency-key': payload.idempotency_key || uuidv4(),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     }
   );
@@ -138,12 +139,14 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
 /**
  * Fetch a single order by ID.
  */
-export async function getOrder(orderId: string): Promise<Order> {
-  const response = await api.get<{
+export async function getOrder(orderId: string, token?: string): Promise<Order> {
+  const response = await client.get<{
     success: boolean;
     data?: BackendOrder;
     error?: { code: string; message: string };
-  }>(`/orders/${orderId}`);
+  }>(`/orders/${orderId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to fetch order');
@@ -183,12 +186,14 @@ export async function getOrderDetail(
 /**
  * Fetch all orders for the current user.
  */
-export async function getOrders(): Promise<Order[]> {
-  const response = await api.get<{
+export async function getOrders(token?: string): Promise<Order[]> {
+  const response = await client.get<{
     success: boolean;
     data?: BackendOrder[];
     error?: { code: string; message: string };
-  }>('/orders');
+  }>('/orders', {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
 
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || 'Failed to fetch orders');
@@ -266,7 +271,7 @@ export async function initiatePayment(orderId: string): Promise<{
   session_url: string;
   order_id: string;
 }> {
-  const response = await api.post<{
+  const response = await client.post<{
     success: boolean;
     data?: {
       orderId: string;
@@ -295,7 +300,7 @@ export async function getPaymentStatus(
   paid: boolean;
   error?: string;
 }> {
-  const response = await api.get<{
+  const response = await client.get<{
     success: boolean;
     data?: {
       paymentStatus: 'completed' | 'pending' | 'failed' | 'refunded';

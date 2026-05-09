@@ -13,6 +13,8 @@ jest.mock('@/services/low-stock');
 jest.mock('@/store/auth');
 jest.mock('@/utils/logger');
 
+const mockedLogger = logger as jest.Mocked<typeof logger>;
+
 const TEST_SHOP_ID = 'shop-001';
 
 const MOCK_PRODUCT_1 = {
@@ -56,10 +58,10 @@ const MOCK_RESPONSE = {
 describe('useLowStockAlerts hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAuthStore as jest.Mock).mockReturnValue(TEST_SHOP_ID);
-    logger.info.mockImplementation(() => {});
-    logger.error.mockImplementation(() => {});
-    logger.warn.mockImplementation(() => {});
+    (useAuthStore as unknown as jest.Mock).mockReturnValue(TEST_SHOP_ID);
+    mockedLogger.info.mockImplementation(() => {});
+    mockedLogger.error.mockImplementation(() => {});
+    mockedLogger.warn.mockImplementation(() => {});
   });
 
   describe('Happy Path', () => {
@@ -554,7 +556,7 @@ describe('useLowStockAlerts hook', () => {
 
   describe('Missing Shop ID', () => {
     it('should handle missing shopId gracefully', async () => {
-      (useAuthStore as jest.Mock).mockReturnValue(null);
+      (useAuthStore as unknown as jest.Mock).mockReturnValue(null);
 
       const { result } = renderHook(() => useLowStockAlerts());
 

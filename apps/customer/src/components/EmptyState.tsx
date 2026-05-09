@@ -39,7 +39,7 @@ export function EmptyState({
   return (
     <View style={styles.container}>
       <MaterialCommunityIcons
-        name={icon}
+        name={icon as any}
         size={64}
         color={colors.textSecondary}
         style={styles.icon}

@@ -37,7 +37,7 @@ export const processNotifyShopJob = async (job) => {
     try {
       const { data: ownerProfile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('fcm_token, device_token, push_token')
         .eq('id', shop.owner_id)
         .single();
 
@@ -86,6 +86,10 @@ export const notifyShopQueue = process.env.NODE_ENV === 'test'
         removeOnFail: false,
       },
     });
+
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof notifyShopQueue?.on === 'function') notifyShopQueue.on('error', () => {});
+
 
 let notifyShopWorker;
 try {

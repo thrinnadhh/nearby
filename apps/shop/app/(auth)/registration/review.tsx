@@ -35,7 +35,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ReviewScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
   const { formData, submitForReview, loading, error, setError } =
     useRegistration();
 

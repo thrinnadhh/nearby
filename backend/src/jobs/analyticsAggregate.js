@@ -16,6 +16,10 @@ export const analyticsAggregateQueue = process.env.NODE_ENV === 'test'
   ? createTestStubQueue()
   : new Queue('analytics-aggregate', { connection });
 
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof analyticsAggregateQueue?.on === 'function') analyticsAggregateQueue.on('error', () => {});
+
+
 export const processAnalyticsAggregateJob = async (job) => {
   logger.info('Starting nightly analytics aggregation job');
 

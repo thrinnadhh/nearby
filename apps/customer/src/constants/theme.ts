@@ -1,17 +1,34 @@
+// ─── NearBy Saffron Market palette ──────────────────────────────────────────
+// Warm terracotta + cream — local, trustworthy, community feel
 export const colors = {
-  primary: '#2563EB',
-  primaryLight: '#DBEAFE',
-  success: '#16A34A',
+  // Brand
+  primary: '#E35D23',        // Saffron terracotta
+  primaryDeep: '#B9431B',    // Deep press state
+  primarySoft: '#FBE4D3',    // Tinted backgrounds
+  accent: '#F4A62A',         // Marigold yellow accent
+  // Semantic
+  success: '#2F8F5E',        // Turmeric green
   error: '#DC2626',
   warning: '#D97706',
-  background: '#F9FAFB',
-  surface: '#FFFFFF',
-  border: '#E5E7EB',
-  textPrimary: '#111827',
-  textSecondary: '#6B7280',
-  textDisabled: '#9CA3AF',
+  // Surfaces
+  background: '#FBF4EA',     // Warm cream paper
+  surface: '#FFFFFF',        // Card white
+  card: '#FFFFFF',
+  line: '#E9DDC7',           // Warm dividers
+  // Text
+  textPrimary: '#261A14',    // Deep warm ink
+  textSecondary: '#6B5B4E',  // Muted warm brown
+  textDisabled: '#B8A99A',
   white: '#FFFFFF',
   black: '#000000',
+  // Aliases for backward compatibility
+  text: '#261A14',
+  textTertiary: '#B8A99A',
+  textPrimarySecondary: '#6B5B4E',
+  divider: '#E9DDC7',
+  dark: '#261A14',
+  border: '#E9DDC7',
+  primaryLight: '#FBE4D3',  // alias for primarySoft
 } as const;
 
 export const spacing = {
@@ -39,6 +56,8 @@ export const fontFamily = {
   medium: 'Inter-Medium',
   semiBold: 'Inter-SemiBold',
   bold: 'Inter-Bold',
+  // Display (serif) — falls back to system serif if custom font not loaded
+  display: 'Georgia',
 } as const;
 
 export const fontSize = {

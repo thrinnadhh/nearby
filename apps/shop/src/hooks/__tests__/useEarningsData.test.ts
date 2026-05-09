@@ -109,7 +109,7 @@ describe('useEarningsData hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // ✅ FIXED: Use TEST_SHOP_ID as default (most tests need it to trigger fetches)
-    (useAuthStore as jest.Mock).mockImplementation((selector) => {
+    (useAuthStore as unknown as jest.Mock).mockImplementation((selector) => {
       const store = {
         shopId: TEST_SHOP_ID,
         phone: '9876543210',
@@ -137,7 +137,7 @@ describe('useEarningsData hook', () => {
   describe('Initialization', () => {
     it('should initialize with default state', () => {
       // ✅ FIXED: Override shopId for initialization test to avoid auto-fetch
-      (useAuthStore as jest.Mock).mockImplementation((selector) => {
+      (useAuthStore as unknown as jest.Mock).mockImplementation((selector) => {
         const store = {
           shopId: null,
           phone: '',
@@ -172,7 +172,7 @@ describe('useEarningsData hook', () => {
 
     it('should skip fetch when shopId is not available', async () => {
       // ✅ FIXED: Proper mock setup for null shopId case
-      (useAuthStore as jest.Mock).mockImplementation((selector) => {
+      (useAuthStore as unknown as jest.Mock).mockImplementation((selector) => {
         const store = {
           shopId: null,
           phone: '',

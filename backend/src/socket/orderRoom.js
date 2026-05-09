@@ -1,9 +1,11 @@
 import logger from '../utils/logger.js';
 
+const ORDER_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const registerOrderRoom = (_io, socket) => {
   socket.on('order:join', ({ orderId }) => {
-    if (!orderId) {
-      socket.emit('order:error', { code: 'VALIDATION_ERROR', message: 'orderId is required.' });
+    if (!orderId || !ORDER_ID_REGEX.test(orderId)) {
+      socket.emit('order:error', { code: 'VALIDATION_ERROR', message: 'orderId must be a valid UUID.' });
       return;
     }
 

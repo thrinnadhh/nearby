@@ -44,7 +44,7 @@ export function useKYCStatus(shopId: string): UseKYCStatusState &
     pollCount: 0,
   });
 
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCountRef = useRef(0);
   const isPollingRef = useRef(false);
 

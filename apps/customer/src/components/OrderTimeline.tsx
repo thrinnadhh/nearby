@@ -137,7 +137,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
                 ]}
               >
                 <Ionicons
-                  name={getStatusIcon(event.status)}
+                  name={getStatusIcon(event.status) as any}
                   size={14}
                   color={event.isCompleted ? colors.surface : colors.textSecondary}
                 />

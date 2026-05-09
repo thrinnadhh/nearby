@@ -3,7 +3,6 @@ import logger from '../utils/logger.js';
 import {
   AppError,
   DUPLICATE_SHOP,
-  INVALID_COORDINATES,
   INTERNAL_ERROR,
   SHOP_NOT_FOUND,
   UNAUTHORIZED,
@@ -23,12 +22,45 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME_TYPE = 'application/pdf';
 const KYC_BUCKET = process.env.R2_KYC_BUCKET || 'nearby-kyc';
 const KYC_IDEMPOTENCY_TTL = 300; // 5 minutes in seconds
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * ShopService — encapsulates all shop business logic.
  * Provides methods for shop creation, retrieval, updates, KYC upload, and toggling.
  */
 class ShopService {
+  /**
+   * Map a DB shop row to a camelCase API response object (immutable).
+   * @private
+   */
+  static _toShopResponse(shop) {
+    return Object.freeze({
+      id: shop.id,
+      ownerId: shop.owner_id,
+      name: shop.name,
+      category: shop.category,
+      description: shop.description,
+      phone: shop.phone,
+      latitude: shop.latitude,
+      longitude: shop.longitude,
+      isOpen: shop.is_open,
+      isVerified: shop.is_verified,
+      trustScore: shop.trust_score,
+      kycStatus: shop.kyc_status ?? null,
+      kycDocumentUrl: shop.kyc_document_url ?? null,
+      createdAt: shop.created_at,
+      updatedAt: shop.updated_at,
+    });
+  }
+
+  /**
+   * Validate that a string is a well-formed UUID v4.
+   * @private
+   */
+  static _isValidUuid(id) {
+    return UUID_REGEX.test(id);
+  }
+
   /**
    * Check if a user already owns a shop.
    * @private
@@ -68,12 +100,12 @@ class ShopService {
    * @param {Object} shopData - Shop creation data
    * @param {string} shopData.name - Shop name (3-100 chars)
    * @param {string} shopData.description - Shop description (10-500 chars)
-   * @param {number} shopData.latitude - Latitude (8°-35°N)
-   * @param {number} shopData.longitude - Longitude (68°-97°E)
+   * @param {number} shopData.latitude - Latitude (8°-35°N, validated by schema)
+   * @param {number} shopData.longitude - Longitude (68°-97°E, validated by schema)
    * @param {string} shopData.category - Shop category (enum)
    * @param {string} [shopData.phone] - Optional phone number (+91XXXXXXXXXX)
    * @returns {Promise<Object>} Created shop object
-   * @throws {AppError} If duplicate shop, invalid coordinates, or database error
+   * @throws {AppError} If duplicate shop or database error
    */
   static async create(userId, shopData) {
     const {
@@ -104,34 +136,10 @@ class ShopService {
       );
     }
 
-    // 2. Validate coordinates are within India bounds
-    if (latitude < 8.0 || latitude > 35.0) {
-      logger.warn('Invalid latitude for shop creation', {
-        latitude,
-        userId,
-      });
-      throw new AppError(
-        INVALID_COORDINATES,
-        'Latitude must be within India bounds (8°N–35°N)',
-        400
-      );
-    }
-
-    if (longitude < 68.0 || longitude > 97.0) {
-      logger.warn('Invalid longitude for shop creation', {
-        longitude,
-        userId,
-      });
-      throw new AppError(
-        INVALID_COORDINATES,
-        'Longitude must be within India bounds (68°E–97°E)',
-        400
-      );
-    }
+    // Coordinate bounds are validated by createShopSchema in validators.js.
 
     try {
-      // 3. Create shop in shops table
-      // Using immutability: create new object with shop data
+      // 2. Create shop in shops table
       const shopId = uuidv4();
       const now = new Date().toISOString();
 
@@ -201,21 +209,8 @@ class ShopService {
         category: createdShop.category,
       });
 
-      // 5. Return shop object (immutably constructed response)
-      return {
-        id: createdShop.id,
-        name: createdShop.name,
-        category: createdShop.category,
-        description: createdShop.description,
-        phone: createdShop.phone,
-        latitude: createdShop.latitude,
-        longitude: createdShop.longitude,
-        isOpen: createdShop.is_open,
-        isVerified: createdShop.is_verified,
-        trustScore: createdShop.trust_score,
-        createdAt: createdShop.created_at,
-        updatedAt: createdShop.updated_at,
-      };
+      // 5. Return camelCase response
+      return this._toShopResponse(createdShop);
     } catch (err) {
       // Re-throw AppError as-is
       if (err.isOperational) {
@@ -254,7 +249,7 @@ class ShopService {
 
     try {
       // 1. Validate shopId is a valid UUID
-      if (!shopId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shopId)) {
+      if (!shopId || !this._isValidUuid(shopId)) {
         logger.warn('Invalid shopId format', {
           userId,
           shopId,
@@ -269,7 +264,7 @@ class ShopService {
       // 2. Fetch shop from database
       const { data: shop, error: shopError } = await supabase
         .from('shops')
-        .select('*')
+        .select('id, owner_id, name, category, description, phone, latitude, longitude, is_open, is_verified, trust_score, kyc_status, kyc_document_url, created_at, updated_at')
         .eq('id', shopId)
         .single();
 
@@ -305,24 +300,8 @@ class ShopService {
         userId,
       });
 
-      // 4. Return immutably constructed response with camelCase keys
-      return {
-        id: shop.id,
-        ownerId: shop.owner_id,
-        name: shop.name,
-        category: shop.category,
-        description: shop.description,
-        phone: shop.phone,
-        latitude: shop.latitude,
-        longitude: shop.longitude,
-        isOpen: shop.is_open,
-        isVerified: shop.is_verified,
-        trustScore: shop.trust_score,
-        kycStatus: shop.kyc_status,
-        kycDocumentUrl: shop.kyc_document_url,
-        createdAt: shop.created_at,
-        updatedAt: shop.updated_at,
-      };
+      // 4. Return camelCase response
+      return this._toShopResponse(shop);
     } catch (err) {
       // Re-throw AppError as-is
       if (err.isOperational) {
@@ -365,7 +344,7 @@ class ShopService {
 
     try {
       // 1. Validate shopId is a valid UUID
-      if (!shopId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shopId)) {
+      if (!shopId || !this._isValidUuid(shopId)) {
         logger.warn('Invalid shopId format', {
           userId,
           shopId,
@@ -377,10 +356,10 @@ class ShopService {
         );
       }
 
-      // 2. Fetch shop from database to verify existence and ownership
+      // 2. Fetch only the fields needed for ownership check
       const { data: shop, error: shopError } = await supabase
         .from('shops')
-        .select('*')
+        .select('id, owner_id')
         .eq('id', shopId)
         .single();
 
@@ -456,24 +435,8 @@ class ShopService {
         fieldsUpdated: Object.keys(filteredUpdate).filter(f => f !== 'updated_at'),
       });
 
-      // 6. Return immutably constructed response with camelCase keys
-      return {
-        id: updatedShop.id,
-        ownerId: updatedShop.owner_id,
-        name: updatedShop.name,
-        category: updatedShop.category,
-        description: updatedShop.description,
-        phone: updatedShop.phone,
-        latitude: updatedShop.latitude,
-        longitude: updatedShop.longitude,
-        isOpen: updatedShop.is_open,
-        isVerified: updatedShop.is_verified,
-        trustScore: updatedShop.trust_score,
-        kycStatus: updatedShop.kyc_status,
-        kycDocumentUrl: updatedShop.kyc_document_url,
-        createdAt: updatedShop.created_at,
-        updatedAt: updatedShop.updated_at,
-      };
+      // 6. Return camelCase response
+      return this._toShopResponse(updatedShop);
     } catch (err) {
       // Re-throw AppError as-is
       if (err.isOperational) {
@@ -513,7 +476,7 @@ class ShopService {
 
     try {
       // 1. Validate shopId is a valid UUID
-      if (!shopId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shopId)) {
+      if (!shopId || !this._isValidUuid(shopId)) {
         logger.warn('Invalid shopId format', {
           userId,
           shopId,
@@ -525,10 +488,10 @@ class ShopService {
         );
       }
 
-      // 2. Fetch shop from database to verify existence and ownership
+      // 2. Fetch only the fields needed for ownership check + toggle
       const { data: shop, error: shopError } = await supabase
         .from('shops')
-        .select('*')
+        .select('id, owner_id, is_open')
         .eq('id', shopId)
         .single();
 
@@ -622,13 +585,7 @@ class ShopService {
           };
         }
 
-        await typesenseSyncQueue.add(
-          'sync',
-          jobData,
-          {
-            delay: 0, // Immediate job execution
-          }
-        );
+        await typesenseSyncQueue.add('sync', jobData);
 
         logger.debug('Typesense sync job queued', {
           shopId,
@@ -644,24 +601,8 @@ class ShopService {
         });
       }
 
-      // 6. Return immutably constructed response with camelCase keys
-      return {
-        id: updatedShop.id,
-        ownerId: updatedShop.owner_id,
-        name: updatedShop.name,
-        category: updatedShop.category,
-        description: updatedShop.description,
-        phone: updatedShop.phone,
-        latitude: updatedShop.latitude,
-        longitude: updatedShop.longitude,
-        isOpen: updatedShop.is_open,
-        isVerified: updatedShop.is_verified,
-        trustScore: updatedShop.trust_score,
-        kycStatus: updatedShop.kyc_status,
-        kycDocumentUrl: updatedShop.kyc_document_url,
-        createdAt: updatedShop.created_at,
-        updatedAt: updatedShop.updated_at,
-      };
+      // 6. Return camelCase response
+      return this._toShopResponse(updatedShop);
     } catch (err) {
       // Re-throw AppError as-is
       if (err.isOperational) {

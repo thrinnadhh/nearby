@@ -41,16 +41,17 @@ export function CategoryChip({ category, selected, onPress }: CategoryChipProps)
 
 const styles = StyleSheet.create({
   chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: borderRadius.full,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    marginRight: spacing.sm,
   },
   chipSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primarySoft,
   },
   label: {
     fontSize: fontSize.sm,
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   labelSelected: {
-    color: colors.primary,
+    color: colors.primaryDeep,
     fontFamily: fontFamily.semiBold,
   },
 });

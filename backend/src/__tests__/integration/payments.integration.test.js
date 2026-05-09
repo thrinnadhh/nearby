@@ -89,7 +89,7 @@ jest.mock('../../services/cashfree.js', () => ({
     order_status: 'PAID',
     cf_order_id: 'nearby-order-1',
   }),
-  refundPayment: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
+  initiateRefund: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
 }));
 
 describe('Payments Integration Tests', () => {
@@ -158,9 +158,10 @@ describe('Payments Integration Tests', () => {
       if (table === 'orders') {
         return {
           select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({
-            data: orderData ? [orderData] : [],
-            error: null,
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: orderData || null,
+            error: orderData ? null : { code: 'PGRST116', message: 'Order not found' },
           }),
           update: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -170,18 +171,19 @@ describe('Payments Integration Tests', () => {
 
       if (table === 'profiles') {
         // When profileData is undefined (not passed), return default profile
-        // When profileData is null, return empty array (profile not found)
-        const profilesData = profileData === undefined
-          ? [{ id: CUSTOMER_ID, phone: '+919000001010' }]
+        // When profileData is null, return not-found (single() error)
+        const profileItem = profileData === undefined
+          ? { id: CUSTOMER_ID, phone: '+919000001010' }
           : profileData === null
-            ? []
-            : [profileData];
+            ? null
+            : profileData;
 
         return {
           select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({
-            data: profilesData,
-            error: null,
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({
+            data: profileItem,
+            error: profileItem === null ? { code: 'PGRST116', message: 'Profile not found' } : null,
           }),
         };
       }

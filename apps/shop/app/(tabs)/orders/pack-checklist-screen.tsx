@@ -36,7 +36,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function PackChecklistScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
 
   const { orders, loading: ordersLoading } = useOrders();

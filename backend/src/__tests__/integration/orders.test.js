@@ -73,7 +73,7 @@ jest.mock('../../jobs/assignDelivery.js', () => ({
 }));
 
 jest.mock('../../services/cashfree.js', () => ({
-  refundPayment: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
+  initiateRefund: jest.fn().mockResolvedValue({ refund_id: 'refund-123' }),
 }));
 
 jest.mock('../../socket/ioRegistry.js', () => ({
@@ -121,7 +121,7 @@ describe('Orders Routes', () => {
     ({ notifyCustomerQueue: mockNotifyCustomerQueue } = await import('../../jobs/notifyCustomer.js'));
     ({ assignDeliveryQueue: mockAssignDeliveryQueue } = await import('../../jobs/assignDelivery.js'));
     ({ emitOrderEvent: mockEmitOrderEvent } = await import('../../socket/ioRegistry.js'));
-    ({ refundPayment: mockRefundPayment } = await import('../../services/cashfree.js'));
+    ({ initiateRefund: mockRefundPayment } = await import('../../services/cashfree.js'));
   });
 
   beforeEach(() => {
@@ -228,6 +228,7 @@ describe('Orders Routes', () => {
       total_paise: 13000,
       payment_method: 'cod',
       payment_status: 'pending',
+      cashfree_order_id: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...orderOverrides,
@@ -556,6 +557,7 @@ describe('Orders Routes', () => {
       orderOverrides: {
         payment_method: 'upi',
         payment_id: 'pay_123',
+        cashfree_order_id: 'cf_pay_123',
       },
     });
 
@@ -564,7 +566,7 @@ describe('Orders Routes', () => {
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
 
-    expect(mockRefundPayment).toHaveBeenCalledWith('pay_123', 13000, 'shop_rejected');
+    expect(mockRefundPayment).toHaveBeenCalledWith('cf_pay_123', 13000, 'shop_rejected');
   });
 
   it('allows the shop owner to mark an accepted order ready', async () => {
@@ -610,6 +612,7 @@ describe('Orders Routes', () => {
       orderOverrides: {
         payment_method: 'upi',
         payment_id: 'pay_456',
+        cashfree_order_id: 'cf_pay_456',
       },
     });
 
@@ -618,7 +621,7 @@ describe('Orders Routes', () => {
       .set('Authorization', `Bearer ${customerToken}`)
       .expect(200);
 
-    expect(mockRefundPayment).toHaveBeenCalledWith('pay_456', 13000, 'customer_cancelled');
+    expect(mockRefundPayment).toHaveBeenCalledWith('cf_pay_456', 13000, 'customer_cancelled');
   });
 
   it('allows the shop owner to partially cancel unavailable items', async () => {
@@ -659,6 +662,7 @@ describe('Orders Routes', () => {
         status: 'accepted',
         payment_method: 'upi',
         payment_id: 'pay_partial',
+        cashfree_order_id: 'cf_pay_partial',
       },
     });
 
@@ -671,7 +675,7 @@ describe('Orders Routes', () => {
       })
       .expect(200);
 
-    expect(mockRefundPayment).toHaveBeenCalledWith('pay_partial', 6500, 'partial_cancel_items');
+    expect(mockRefundPayment).toHaveBeenCalledWith('cf_pay_partial', 6500, 'partial_cancel_items');
   });
 
   it('cancels the full order when partial cancellation removes all remaining items', async () => {

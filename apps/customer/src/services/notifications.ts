@@ -1,7 +1,24 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { client } from './api';
 import logger from '@/utils/logger';
+
+// expo-notifications Android push support was removed from Expo Go in SDK 53.
+// We guard all usage behind a runtime check so the app works in Expo Go
+// (dev/testing) without crashing, while still working in production builds.
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+type NotificationsModule = typeof import('expo-notifications');
+
+function getNotifications(): NotificationsModule | null {
+  if (isExpoGo) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('expo-notifications') as NotificationsModule;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Request push-notification permissions, obtain the device push token (raw
@@ -10,8 +27,15 @@ import logger from '@/utils/logger';
  *
  * This is a fire-and-forget call — errors are silently swallowed because
  * notification permission is optional and should never block the login flow.
+ * In Expo Go this is a no-op (push notifications are not supported there).
  */
 export async function registerPushToken(authToken: string): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) {
+    logger.info('[notifications] Push token registration skipped in Expo Go');
+    return;
+  }
+
   // Android requires an explicit notification channel for FCM.
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -47,13 +71,19 @@ export async function registerPushToken(authToken: string): Promise<void> {
 /**
  * Top-level handler so foreground notifications display a banner.
  * Call this once at app startup (in _layout.tsx).
+ * In Expo Go this is a no-op.
  */
 export function configureForegroundNotifications(): void {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 }

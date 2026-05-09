@@ -24,7 +24,7 @@ interface SavedAddressesResponse {
  */
 export async function getProfile(token: string): Promise<Profile> {
   try {
-    const response = await client.get<ProfileResponse>('/api/v1/auth/profile', {
+    const response = await client.get<ProfileResponse>('/auth/profile', {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -45,7 +45,7 @@ export async function getProfile(token: string): Promise<Profile> {
  */
 export async function getSavedAddresses(token: string): Promise<SavedAddress[]> {
   try {
-    const response = await client.get<SavedAddressesResponse>('/api/v1/auth/addresses', {
+    const response = await client.get<SavedAddressesResponse>('/auth/addresses', {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -69,7 +69,7 @@ export async function updateProfile(
   payload: UpdateProfilePayload
 ): Promise<Profile> {
   try {
-    const response = await client.patch<ProfileResponse>('/api/v1/auth/profile', payload, {
+    const response = await client.patch<ProfileResponse>('/auth/profile', payload, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -92,7 +92,7 @@ export async function updateProfile(
 export async function logout(token: string): Promise<void> {
   try {
     const response = await client.post<{ success: boolean }>(
-      '/api/v1/auth/logout',
+      '/auth/logout',
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );

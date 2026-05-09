@@ -94,7 +94,7 @@ export default function OtpVerifyScreen() {
             onChangeText={setOtp}
             keyboardType="numeric"
             maxLength={6}
-            error={error}
+            error={error ?? undefined}
             editable={!isLocked}
           />
 

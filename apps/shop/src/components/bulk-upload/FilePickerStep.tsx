@@ -158,7 +158,7 @@ function InstructionItem({ icon, title, description }: InstructionItemProps) {
   return (
     <View style={styles.instructionItem}>
       <MaterialCommunityIcons
-        name={icon}
+        name={icon as any}
         size={24}
         color={colors.primary}
         style={styles.instructionIcon}
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTopColor: spacing.md,
+    paddingTop: spacing.md,
   },
   instructionItem: {
     flexDirection: 'row',

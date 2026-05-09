@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo, { NetInfoCellularState } from '@react-native-community/netinfo';
 
 interface NetworkState {
   isOnline: boolean;
@@ -23,10 +23,13 @@ export function useNetworkStatus(): NetworkState {
         networkState.isConnected === true &&
         networkState.isInternetReachable !== false;
 
+      // Safely check for cellular details — the details object is typed per connection type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const details = networkState.details as any;
       const isSlowConnection =
-        networkState.details?.type === 'cellular' &&
-        networkState.details?.cellularGeneration &&
-        ['2g', '3g'].includes(networkState.details.cellularGeneration);
+        networkState.type === 'cellular' &&
+        !!details?.cellularGeneration &&
+        ['2g', '3g'].includes(details.cellularGeneration ?? '');
 
       setState({
         isOnline,

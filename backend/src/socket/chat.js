@@ -93,7 +93,7 @@ export function registerChat(io, socket) {
       const { data: message, error } = await supabase
         .from('messages')
         .insert([messageData])
-        .select()
+        .select('id, shop_id, customer_id, order_id, sender_type, body, is_read, created_at, updated_at')
         .single();
 
       if (error) {

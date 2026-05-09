@@ -61,10 +61,10 @@ export function SkeletonLoader({
       style={[
         styles.skeleton,
         {
-          width,
+          width: width as number,
           height,
           borderRadius: radius,
-          opacity,
+          opacity: opacity as any,
         },
         style,
       ]}

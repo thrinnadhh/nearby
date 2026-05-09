@@ -91,7 +91,7 @@ export default function ProfileScreen() {
         <EmptyState
           icon="alert-circle"
           title="Failed to Load Profile"
-          subtitle={error?.message || 'Please try again'}
+          description={error?.message || 'Please try again'}
           onCtaPress={() => token && fetchProfile(token)}
           ctaLabel="Retry"
         />

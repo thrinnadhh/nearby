@@ -52,7 +52,7 @@ export function PaymentWebView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentStarted, setPaymentStarted] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Start timeout timer when component mounts
   useEffect(() => {

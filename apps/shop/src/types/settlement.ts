@@ -26,7 +26,9 @@ export interface Settlement {
 
 export interface SettlementResponse {
   id: string;
+  shopId: string; // required by Settlement interface
   amount: number;
+  currency: string; // 'INR'
   status: 'pending' | 'initiated' | 'completed' | 'failed';
   utrNumber?: string;
   settlementDate?: string;

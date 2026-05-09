@@ -14,6 +14,7 @@ import { roleGuard, shopOwnerGuard } from '../middleware/roleGuard.js';
 import AnalyticsService from '../services/analytics.js';
 import { supabase } from '../services/supabase.js';
 import { AppError, INTERNAL_ERROR } from '../utils/errors.js';
+import { NEARBY_COMMISSION_RATE } from '../config/business.js';
 
 const router = Router();
 
@@ -314,7 +315,7 @@ router.get(
       // shopOwnerGuard already verified ownership, just get the orders
       let query = supabase
         .from('orders')
-        .select('*')
+        .select('id, status, total_paise, created_at')
         .eq('shop_id', shopId)
         .eq('status', 'delivered');
 
@@ -337,7 +338,7 @@ router.get(
 
       // Calculate earnings
       const totalRevenue = orders.reduce((sum, order) => sum + (order.total_paise || 0), 0);
-      const commission = Math.floor(totalRevenue * 0.1); // 10% commission
+      const commission = Math.floor(totalRevenue * NEARBY_COMMISSION_RATE);
       const netRevenue = totalRevenue - commission;
 
       const response = {
@@ -346,8 +347,8 @@ router.get(
         commission_paise: commission,
         net_revenue_paise: netRevenue,
         total_orders: orders.length,
-        completed_orders: orders.filter(o => o.status === 'delivered').length,
-        cancelled_orders: orders.filter(o => o.status === 'cancelled').length,
+        completed_orders: orders.length,
+        cancelled_orders: 0,
         created_at: new Date().toISOString(),
       };
 
@@ -387,7 +388,7 @@ router.get(
       // shopOwnerGuard already verified ownership
       const { data: ordersData, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, status, total_paise, created_at')
         .eq('shop_id', shopId)
         .eq('status', 'delivered');
 
@@ -415,14 +416,14 @@ router.get(
       const weeklySummaries = Object.entries(weeks)
         .map(([weekStart, weekOrders]) => {
           const totalRevenue = weekOrders.reduce((sum, o) => sum + (o.total_paise || 0), 0);
-          const commission = Math.floor(totalRevenue * 0.1);
+          const commission = Math.floor(totalRevenue * NEARBY_COMMISSION_RATE);
           return {
             week_start_date: weekStart,
             gross_revenue_paise: totalRevenue,
             commission_paise: commission,
             net_revenue_paise: totalRevenue - commission,
             total_orders: weekOrders.length,
-            completed_orders: weekOrders.filter(o => o.status === 'delivered').length,
+            completed_orders: weekOrders.length,
           };
         })
         .sort((a, b) => new Date(b.week_start_date) - new Date(a.week_start_date));
@@ -512,7 +513,7 @@ router.post(
       const orders = ordersData || [];
 
       const totalRevenue = orders.reduce((sum, o) => sum + (o.total_paise || 0), 0);
-      const totalCommission = Math.floor(totalRevenue * 0.1);
+      const totalCommission = Math.floor(totalRevenue * NEARBY_COMMISSION_RATE);
       const availableBalance = totalRevenue - totalCommission;
 
       // Check minimum amount

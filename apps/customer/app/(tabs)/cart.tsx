@@ -23,14 +23,9 @@ import { useCartStore, selectCartTotal } from '@/store/cart';
 import { useLocationStore } from '@/store/location';
 import { searchProducts } from '@/services/search';
 import type { CartItem } from '@/types';
+import { paise } from '@/utils/currency';
 
 const DELIVERY_FEE_PAISE = 2500; // ₹25 flat — dynamic fee in Sprint 9
-
-// ─── Currency helper ─────────────────────────────────────────────────────────
-
-function paise(amount: number) {
-  return `₹${(amount / 100).toFixed(2)}`;
-}
 
 // ─── Cart item row ───────────────────────────────────────────────────────────
 
@@ -303,12 +298,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xxl,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -331,14 +326,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     gap: spacing.md,
   },
   separator: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.line,
     marginHorizontal: spacing.lg,
   },
   thumb: {
@@ -351,7 +346,7 @@ const styles = StyleSheet.create({
   thumbPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.background,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -381,7 +376,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: borderRadius.full,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -402,12 +397,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
   },
   addressText: {
     flex: 1,
@@ -416,12 +411,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   summaryCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
   },
   summaryTitle: {
     fontSize: fontSize.base,
@@ -445,7 +440,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.line,
     marginVertical: spacing.xs,
   },
   totalLabel: {
@@ -460,7 +455,7 @@ const styles = StyleSheet.create({
   },
   proceedBtn: {
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
@@ -501,7 +496,7 @@ const styles = StyleSheet.create({
   browseBtn: {
     paddingHorizontal: spacing.xxl,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     backgroundColor: colors.primary,
     marginTop: spacing.sm,
   },
@@ -531,7 +526,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     borderWidth: 1.5,
     borderColor: colors.primary,
   },

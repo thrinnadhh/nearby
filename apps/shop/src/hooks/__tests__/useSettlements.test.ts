@@ -21,7 +21,9 @@ const TEST_SHOP_ID = 'shop-001';
 const MOCK_SETTLEMENTS = [
   {
     id: 'settlement-001',
+    shopId: 'shop-001',
     amount: 100000,
+    currency: 'INR',
     status: 'completed' as const,
     utrNumber: 'UTR123456789',
     settlementDate: '2026-04-19',
@@ -49,7 +51,7 @@ const MOCK_RESPONSE = {
 describe('useSettlements', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAuthStore as jest.Mock).mockReturnValue(TEST_SHOP_ID);
+    (useAuthStore as unknown as jest.Mock).mockReturnValue(TEST_SHOP_ID);
     (useNetworkStatus as jest.Mock).mockReturnValue(true);
     useSettlementStore.setState({
       data: [],
@@ -209,7 +211,7 @@ describe('useSettlements', () => {
   });
 
   it('should handle shop ID missing', () => {
-    (useAuthStore as jest.Mock).mockReturnValue(null);
+    (useAuthStore as unknown as jest.Mock).mockReturnValue(null);
 
     const { result } = renderHook(() => useSettlements());
 

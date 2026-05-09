@@ -24,6 +24,8 @@ import { CategoryChip, CATEGORY_LABELS } from '@/components/CategoryChip';
 import { ShopCard } from '@/components/ShopCard';
 import { searchNearbyShops } from '@/services/search';
 import { onShopStatusChange } from '@/services/socket';
+import { DEMO_MODE } from '@/config/demo';
+import { filterDemoShops } from '@/mocks/data';
 import type { Shop, ShopCategory } from '@/types';
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as ShopCategory[];
@@ -43,14 +45,20 @@ export default function HomeScreen() {
 
   // ── Fetch shops whenever location or category changes ───────────────────
   const fetchShops = useCallback(async () => {
-    if (!coords) return;
+    if (!coords && !DEMO_MODE) return;
     setLoadingShops(true);
     setSearchError(null);
     try {
+      if (DEMO_MODE) {
+        // Short-circuit: use local fake data — no network needed.
+        await new Promise((r) => setTimeout(r, 400)); // simulate load
+        setShops(filterDemoShops(selectedCategory));
+        return;
+      }
       const result = await searchNearbyShops(
         {
-          lat: coords.lat,
-          lng: coords.lng,
+          lat: coords!.lat,
+          lng: coords!.lng,
           category: selectedCategory ?? undefined,
           limit: 20,
         },
@@ -130,6 +138,16 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Search bar */}
+      <TouchableOpacity
+        style={styles.searchBar}
+        onPress={() => router.push('/(tabs)/search')}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.searchIcon}>🔍</Text>
+        <Text style={styles.searchText}>Search shops or products…</Text>
+      </TouchableOpacity>
+
       {/* Category chips — horizontal scroll */}
       <ScrollView
         horizontal
@@ -162,6 +180,13 @@ export default function HomeScreen() {
           />
         ))}
       </ScrollView>
+
+      {/* Section title */}
+      {!loadingShops && shops.length > 0 && (
+        <Text style={styles.sectionTitle}>
+          {selectedCategory ? `${shops.length} shops nearby` : 'Shops near you'}
+        </Text>
+      )}
 
       {/* Shop list */}
       {loadingShops ? (
@@ -210,31 +235,37 @@ const styles = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────────────────────
   header: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xxl + 8,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.sm,
+    borderBottomColor: colors.line,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
   brand: {
-    fontSize: fontSize.xl,
-    fontFamily: fontFamily.bold,
+    fontSize: fontSize.xxl,
+    fontFamily: fontFamily.display,
     color: colors.primary,
     letterSpacing: -0.5,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     gap: spacing.xs,
   },
-  locationPin: { fontSize: 14 },
+  locationPin: { fontSize: 13 },
   locationText: {
     flex: 1,
     fontSize: fontSize.sm,
@@ -246,24 +277,46 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  // ── Search bar ────────────────────────────────────────────────────────────
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  searchIcon: { fontSize: 16, color: colors.textSecondary },
+  searchText: {
+    flex: 1,
+    fontSize: fontSize.base,
+    fontFamily: fontFamily.regular,
+    color: colors.textSecondary,
+  },
+
   // ── Category chips ───────────────────────────────────────────────────────
   chipsScroll: { flexGrow: 0 },
   chips: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    gap: spacing.sm,
   },
   allChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: borderRadius.full,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    marginRight: spacing.sm,
   },
   allChipSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primarySoft,
   },
   allChipLabel: {
     fontSize: fontSize.sm,
@@ -271,13 +324,23 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   allChipLabelSelected: {
-    color: colors.primary,
+    color: colors.primaryDeep,
     fontFamily: fontFamily.semiBold,
+  },
+
+  // ── Section title ────────────────────────────────────────────────────────
+  sectionTitle: {
+    fontSize: fontSize.base,
+    fontFamily: fontFamily.bold,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
 
   // ── Shop list ────────────────────────────────────────────────────────────
   list: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.massive,
   },
 
@@ -307,7 +370,7 @@ const styles = StyleSheet.create({
   locationButton: {
     height: 52,
     paddingHorizontal: spacing.xxl,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -337,7 +400,7 @@ const styles = StyleSheet.create({
   retryButton: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     borderWidth: 1.5,
     borderColor: colors.primary,
   },

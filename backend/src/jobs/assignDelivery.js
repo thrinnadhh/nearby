@@ -113,7 +113,7 @@ export const processAssignDeliveryJob = async (job) => {
     })
     .eq('id', orderId)
     .eq('status', 'ready')
-    .select()
+    .select('id, customer_id, shop_id, delivery_partner_id, status, total_paise, payment_method, accepted_at, created_at, updated_at')
     .single();
 
   if (updateErr || !updated) {
@@ -151,6 +151,10 @@ export const assignDeliveryQueue = process.env.NODE_ENV === 'test'
         removeOnFail: false,
       },
     });
+
+// Suppress BullMQ queue-level connection errors at startup
+if (typeof assignDeliveryQueue?.on === 'function') assignDeliveryQueue.on('error', () => {});
+
 
 export const assignDeliveryWorker = process.env.NODE_ENV === 'test'
   ? {}

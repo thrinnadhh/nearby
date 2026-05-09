@@ -34,6 +34,9 @@ const createMockQueryBuilder = (table) => {
     return tableData.filter(row => {
       return filters.every(filter => {
         const { column, value, op } = filter;
+        // Dot-notation columns (e.g. 'orders.shop_id') are join references
+        // that don't exist as real columns — skip these filters in the mock
+        if (column.includes('.')) return true;
         const cellValue = row[column];
         
         if (op === 'eq') return cellValue === value;
@@ -43,6 +46,7 @@ const createMockQueryBuilder = (table) => {
         if (op === 'gt') return cellValue > value;
         if (op === 'gte') return cellValue >= value;
         if (op === 'is') return value === null ? cellValue === null : cellValue !== null;
+        if (op === 'in') return Array.isArray(value) && value.includes(cellValue);
         return true;
       });
     });
@@ -93,6 +97,7 @@ const createMockQueryBuilder = (table) => {
             if (op === 'gt') return cellValue > value;
             if (op === 'gte') return cellValue >= value;
             if (op === 'is') return value === null ? cellValue === null : cellValue !== null;
+            if (op === 'in') return Array.isArray(value) && value.includes(cellValue);
             return true;
           });
           return matches ? idx : -1;
@@ -285,6 +290,13 @@ const createMockQueryBuilder = (table) => {
         }
         return { ...this, _pendingSelectResult: insertResult };
       }
+
+      // Handle upsert().select() chain — execute upsert and set pending result
+      if (operationType === 'upsert' && operationData) {
+        const upsertResult = executeUpsert(operationData.records, operationData.options);
+        operationType = 'select';
+        return { ...this, _pendingSelectResult: upsertResult };
+      }
       
       operationType = 'select';
       selectedColumns = columns === '*' ? null : columns.split(',').map(c => c.trim());
@@ -346,6 +358,11 @@ const createMockQueryBuilder = (table) => {
       return this;
     }),
 
+    in: jest.fn(function(column, value) {
+      filters.push({ column, value, op: 'in' });
+      return this;
+    }),
+
     is: jest.fn(function(column, value) {
       filters.push({ column, value, op: 'is' });
       return this;
@@ -354,6 +371,11 @@ const createMockQueryBuilder = (table) => {
     or: jest.fn(function(filter) {
       // Simple OR implementation - store as special filter
       // For now, ignore complex OR queries
+      return this;
+    }),
+
+    distinct: jest.fn(function() {
+      // distinct: return unique rows (no-op in mock since test data is usually unique)
       return this;
     }),
 
@@ -402,6 +424,12 @@ const createMockQueryBuilder = (table) => {
           result = {
             data: Array.isArray(insertResult.data) ? insertResult.data[0] : insertResult.data,
             error: insertResult.error,
+          };
+        } else if (operationType === 'upsert') {
+          const upsertResult = executeUpsert(operationData.records, operationData.options);
+          result = {
+            data: Array.isArray(upsertResult.data) ? upsertResult.data[0] : upsertResult.data,
+            error: upsertResult.error,
           };
         } else {
           // If we have filters applied, treat this as an implicit select

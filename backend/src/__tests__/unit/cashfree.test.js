@@ -18,7 +18,7 @@ jest.mock('../../utils/logger.js', () => ({
 }));
 
 // Dynamic import after env vars set
-let createPaymentSession, getPaymentStatus, refundPayment, createPaymentSplit;
+let createPaymentSession, getPaymentStatus, initiateRefund, createPaymentSplit;
 
 function mockHttpsRequest(statusCode, responseBody) {
   const resEmitter = new EventEmitter();
@@ -53,7 +53,7 @@ beforeAll(async () => {
   const module = await import('../../services/cashfree.js');
   createPaymentSession = module.createPaymentSession;
   getPaymentStatus = module.getPaymentStatus;
-  refundPayment = module.refundPayment;
+  initiateRefund = module.initiateRefund;
   createPaymentSplit = module.createPaymentSplit;
 });
 
@@ -115,12 +115,12 @@ describe('cashfree.getPaymentStatus', () => {
   });
 });
 
-describe('cashfree.refundPayment', () => {
+describe('cashfree.initiateRefund', () => {
   it('resolves with refund response on success', async () => {
     const response = { refund_id: 'refund_abc', refund_status: 'PENDING' };
     mockHttpsRequest(200, response);
 
-    const result = await refundPayment('pay_123', 5000, 'customer_request');
+    const result = await initiateRefund('cf-order-123', 5000, 'order_cancelled');
 
     expect(result).toEqual(response);
   });
@@ -143,7 +143,7 @@ describe('cashfree.refundPayment', () => {
       return reqEmitter;
     });
 
-    await refundPayment('pay_123', 10000);
+    await initiateRefund('cf-order-123', 10000);
 
     const parsed = JSON.parse(capturedBody);
     expect(parsed.refund_amount).toBe(100);
@@ -152,7 +152,7 @@ describe('cashfree.refundPayment', () => {
   it('rejects on Cashfree error', async () => {
     mockHttpsRequest(422, { message: 'Refund not allowed' });
 
-    await expect(refundPayment('pay_bad', 100)).rejects.toThrow('Refund not allowed');
+    await expect(initiateRefund('cf-order-bad', 100)).rejects.toThrow('Refund not allowed');
   });
 });
 

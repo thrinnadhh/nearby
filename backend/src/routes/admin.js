@@ -8,7 +8,7 @@ import { supabase } from '../services/supabase.js';
 import { redis } from '../services/redis.js';
 import { msg91 } from '../services/msg91.js';
 import { fcm } from '../services/fcm.js';
-import { refundPayment as cashfreeRefund } from '../services/cashfree.js';
+import { initiateRefund as cashfreeRefund } from '../services/cashfree.js';
 import { AppError, NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR } from '../utils/errors.js';
 import { maskPhone } from '../utils/security.js';
 import { checkSmsBroadcastLimit } from '../middleware/rateLimit.js';
@@ -258,14 +258,14 @@ router.patch('/disputes/:id/resolve', authenticate, roleGuard(['admin']), valida
     const { id } = req.params;
     const { decision, refund_amount, notes } = req.body;
     const adminId = req.user.userId;
-    const { data: dispute, error: fetchError } = await supabase.from('disputes').select('id,order_id,customer_id,orders!inner(total_amount,payment_id)').eq('id', id).single();
+    const { data: dispute, error: fetchError } = await supabase.from('disputes').select('id,order_id,customer_id,orders!inner(id,cashfree_order_id,total_amount,payment_id)').eq('id', id).single();
     if (fetchError || !dispute) return next(new AppError(NOT_FOUND, 'Dispute not found', 404));
     if (refund_amount < 0 || refund_amount > dispute.orders?.[0]?.total_amount) return next(new AppError(VALIDATION_ERROR, 'Invalid refund amount', 400));
     let refund_id = null;
     if (decision === 'approve' && refund_amount > 0) {
       try {
         const refundResult = await cashfreeRefund(
-          dispute.orders?.[0]?.payment_id,
+          dispute.orders?.[0]?.cashfree_order_id,
           refund_amount,
           `Dispute resolution by admin: ${notes || 'No notes'}`
         );

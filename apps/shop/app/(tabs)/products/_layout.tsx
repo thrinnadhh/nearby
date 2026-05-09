@@ -15,7 +15,7 @@ export default function ProductsLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          animationEnabled: true,
+          animation: "slide_from_right",
         }}
       />
     </Stack>

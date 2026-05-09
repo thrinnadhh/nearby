@@ -30,6 +30,8 @@ import adminRouter from './routes/admin.js';
 import analyticsProductsRouter from './routes/analytics-products.js';
 import chatsRouter from './routes/chats.js';
 import earningsRouter from './routes/earnings.js';
+import settlementsRouter from './routes/settlements.js';
+import testRunnerRouter from './routes/testRunner.js';
 
 // Middleware imports
 import errorHandler from './middleware/errorHandler.js';
@@ -93,8 +95,18 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  // Capture raw body bytes so webhook HMAC is computed on the exact bytes
+  // Cashfree signed, not a re-serialised version of the parsed object.
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve public static files (including test-runner dashboard)
+app.use(express.static('src/public', { maxAge: 0, etag: false }));
 
 // 4. Apply global rate limiting
 app.use(globalLimiter);
@@ -107,6 +119,11 @@ app.get('/health', (req, res) => {
     version: '1.0.0',
     environment: NODE_ENV,
   }));
+});
+
+// 5b. Test Runner Dashboard
+app.get('/test-runner', (_req, res) => {
+  res.sendFile('src/public/test-runner.html', { root: process.cwd() });
 });
 
 // 6. Readiness probe endpoint
@@ -164,6 +181,7 @@ app.use('/api/v1/auth', deliveryPartnersRouter);
 app.use('/api/v1/shops', shopsRouter);
 app.use('/api/v1/shops', analyticsProductsRouter);
 app.use('/api/v1/shops', earningsRouter);
+app.use('/api/v1/shops', settlementsRouter);
 app.use('/api/v1/chats', chatsRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/delivery', deliveryRouter);
@@ -172,6 +190,7 @@ app.use('/api/v1/payments', paymentsRouter);
 app.use('/api/v1/reviews', reviewsRouter);
 app.use('/api/v1/search', searchRouter);
 app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/test-runner', testRunnerRouter);
 
 // 8. 404 handler
 app.use((req, res) => {

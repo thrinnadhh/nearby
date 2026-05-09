@@ -22,13 +22,14 @@ import {
 
 interface Props {
   label: string;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   loading?: boolean;
   disabled?: boolean;
   variant?: 'primary' | 'secondary' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   style?: ViewStyle;
   textStyle?: TextStyle;
+  testID?: string;
 }
 
 export function PrimaryButton({
@@ -40,6 +41,7 @@ export function PrimaryButton({
   size = 'md',
   style,
   textStyle,
+  testID,
 }: Props) {
   const isDisabled = disabled || loading;
 
@@ -72,6 +74,7 @@ export function PrimaryButton({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.7}
+      testID={testID}
     >
       {loading ? (
         <ActivityIndicator

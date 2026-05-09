@@ -18,6 +18,7 @@ import {
   getDisputeStatusLabel,
   getResolutionStatusLabel,
 } from '@/services/disputes';
+import logger from '@/utils/logger';
 
 /**
  * Disputes List Screen (Task 9.8)
@@ -116,7 +117,7 @@ export default function DisputesListScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to load disputes';
       setError(message);
-      console.error('Disputes load error:', message);
+      logger.error('Disputes load error', { message });
     } finally {
       setIsRefreshing(false);
       setIsLoading(false);
@@ -139,7 +140,7 @@ export default function DisputesListScreen() {
   };
 
   const handleNewDispute = () => {
-    router.push('/(tabs)/orders?section=disputes');
+    router.push('/order-history');
   };
 
   const renderDisputeItem = ({ item: dispute }: { item: any }) => {

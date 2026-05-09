@@ -49,7 +49,7 @@ export function BankDetailsForm({
       <View style={styles.fieldContainer}>
         <Text style={styles.label}>IFSC Code</Text>
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="bank" size={18} color="#666" />
+          <MaterialIcons name="account-balance" size={18} color="#666" />
           <TextInput
             style={styles.input}
             placeholder="11 characters (e.g., SBIN0000001)"

@@ -181,15 +181,17 @@ export default function OrderHistoryScreen() {
       try {
         const newOrder = await reorderFromHistory(
           order.id,
-          { address: deliveryAddress, coordinates: deliveryCoords },
-          token
+          {
+            address: deliveryAddress!,
+            coordinates: [deliveryCoords!.lat, deliveryCoords!.lng] as [number, number],
+          },
+          token ?? undefined
         );
 
         Alert.alert('Order Created', 'Your reorder has been placed successfully!', [
           {
             text: 'View Order',
             onPress: () => {
-              setActiveOrder(newOrder);
               router.push(`/(tabs)/order-confirmed/${newOrder.order_id}`);
             },
           },
@@ -210,7 +212,7 @@ export default function OrderHistoryScreen() {
     ({ item: order }: { item: Order }) => {
       const isReorderingThis = isReordering === order.id;
       const canReorder =
-        order.order_status === 'delivered' && order.shop && order.shop.is_open !== false;
+        order.status === 'delivered' && order.shop && order.shop.is_open !== false;
 
       return (
         <TouchableOpacity
@@ -226,12 +228,12 @@ export default function OrderHistoryScreen() {
                 {new Date(order.created_at).toLocaleDateString()}
               </Text>
             </View>
-            <Text style={styles.orderAmount}>{paise(order.total_amount)}</Text>
+            <Text style={styles.orderAmount}>{paise(order.total_paise)}</Text>
           </View>
 
           {/* Shop and Items */}
           <View style={styles.orderInfo}>
-            <Text style={styles.shopName}>{order.shop?.name || 'Unknown Shop'}</Text>
+            <Text style={styles.shopName}>{order.shop?.name || order.shop_name || 'Unknown Shop'}</Text>
             <Text style={styles.itemCount}>
               {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
             </Text>
@@ -241,11 +243,10 @@ export default function OrderHistoryScreen() {
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: `${getStatusColor(order.order_status)}20` },
+              { backgroundColor: `${getStatusColor(order.status)}20` },
             ]}
           >
-            <Text style={[styles.statusText, { color: getStatusColor(order.order_status) }]}>
-              {getStatusLabel(order.order_status)}
+            <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>            {getStatusLabel(order.status)}
             </Text>
           </View>
 

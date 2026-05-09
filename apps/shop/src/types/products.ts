@@ -18,10 +18,14 @@ export interface Product {
   category: string;
   price: number; // in paise (e.g., 50000 = ₹500)
   stockQty: number;
+  /** Backend field: stock_quantity (alias of stockQty) */
+  stock_quantity?: number;
   images: ProductImage[];
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  /** Whether the product is currently available for ordering */
+  isAvailable: boolean;
 }
 
 export interface ProductsListResponse {

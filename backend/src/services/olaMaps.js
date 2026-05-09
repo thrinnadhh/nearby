@@ -1,10 +1,10 @@
 import https from 'https';
 import logger from '../utils/logger.js';
 
-const OLA_MAPS_API_KEY = process.env.OLA_MAPS_API_KEY;
+const OLA_MAPS_API_KEY = process.env.OLA_MAPS_API_KEY || process.env.TOMTOM_API_KEY;
 
 if (!OLA_MAPS_API_KEY) {
-  throw new Error('OLA_MAPS_API_KEY is not configured');
+  logger.warn('OLA_MAPS_API_KEY is not configured — ETA and geocoding will be unavailable');
 }
 
 const BASE_URL = 'https://api.olamaps.io';

@@ -20,10 +20,11 @@ export function useNetworkStatus(): NetworkState {
     // Subscribe to network state updates
     const unsubscribe = NetInfo.addEventListener((state) => {
       const isOnline = state.isConnected === true && state.isInternetReachable !== false;
+      const cellularDetails = state.details as { type?: string; cellularGeneration?: string | null } | null;
       const isSlowConnection =
-        state.details?.type === 'cellular' &&
-        state.details?.cellularGeneration &&
-        ['2g', '3g'].includes(state.details.cellularGeneration);
+        cellularDetails?.type === 'cellular' &&
+        cellularDetails?.cellularGeneration != null &&
+        ['2g', '3g'].includes(cellularDetails.cellularGeneration);
 
       setState({
         isOnline,

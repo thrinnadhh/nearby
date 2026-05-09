@@ -9,7 +9,9 @@ import { SettlementItem } from '@/components/SettlementItem';
 
 const MOCK_SETTLEMENT = {
   id: 'settlement-001',
+  shopId: 'shop-001',
   amount: 100000,
+  currency: 'INR',
   status: 'completed' as const,
   utrNumber: 'UTR123456789',
   settlementDate: '2026-04-19',

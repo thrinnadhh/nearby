@@ -44,13 +44,8 @@ export function useReviewSubmit(orderId: string): UseReviewSubmitResult {
 
         const response = await submitOrderReview(payload, token);
 
-        // Server returned review — update store with real data
-        if (previousOrder) {
-          setActiveOrder({
-            ...previousOrder,
-            review: response,
-          });
-        }
+        // Server returned review — no need to update order state
+        // (review submission doesn't change Order fields)
 
         logger.info('Review submitted successfully', { orderId, rating });
       } catch (err) {

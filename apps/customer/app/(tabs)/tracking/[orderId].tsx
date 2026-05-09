@@ -76,12 +76,12 @@ export default function TrackingScreen() {
     try {
       if (!orderId || !token) return;
 
-      const data = await getOrder(orderId);
+      const data = await getOrder(orderId, token ?? undefined);
       setOrder(data);
 
       // Setup delivery partner info
       if (data.delivery_partner) {
-        setDeliveryPartner(data.delivery_partner);
+        setDeliveryPartner(data.delivery_partner as unknown as DeliveryPartner);
       }
 
       // Setup ETA and distance
@@ -101,7 +101,7 @@ export default function TrackingScreen() {
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch tracking';
       setError(message);
-      console.error('Tracking error:', message);
+      logger.error('Tracking error', { message });
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +184,7 @@ export default function TrackingScreen() {
           Alert.alert('Error', 'Unable to make phone call');
         }
       })
-      .catch(err => console.error('Phone error:', err));
+      .catch(err => logger.error('Phone error', { error: err instanceof Error ? err.message : String(err) }));
   };
 
   const handleShareLocation = () => {
@@ -194,7 +194,7 @@ export default function TrackingScreen() {
     }
 
     const shareUrl = `https://maps.google.com/maps?q=${partnerLocation.lat},${partnerLocation.lng}`;
-    Linking.openURL(shareUrl).catch(err => console.error('Share error:', err));
+    Linking.openURL(shareUrl).catch(err => logger.error('Share error', { error: err instanceof Error ? err.message : String(err) }));
   };
 
   const handleVerifyOtp = async () => {
@@ -207,7 +207,7 @@ export default function TrackingScreen() {
     try {
       // Verify OTP server-side via PATCH /delivery/:orderId/deliver
       // The delivery partner's app calls this; here we poll for confirmed status
-      const updated = await getOrder(orderId!);
+      const updated = await getOrder(orderId!, token ?? undefined);
       if (updated.order_status === 'delivered') {
         setOtpError(null);
         setShowOtpModal(false);

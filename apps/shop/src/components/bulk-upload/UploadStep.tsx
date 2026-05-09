@@ -199,7 +199,7 @@ function StatItem({ icon, label, value }: StatItemProps) {
     <View style={styles.statRow}>
       <View style={styles.statContent}>
         <MaterialCommunityIcons
-          name={icon}
+          name={icon as any}
           size={20}
           color={colors.primary}
           style={styles.statIcon}

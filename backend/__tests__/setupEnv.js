@@ -60,7 +60,7 @@ jest.mock('../src/services/msg91.js', () => ({
   sendSMS: jest.fn().mockResolvedValue({ request_id: 'mock-sms-123' }),
 }));
 
-jest.mock('../src/services/tomTom.js', () => ({
+jest.mock('../src/services/olaMaps.js', () => ({
   getDistanceMatrix: jest.fn().mockResolvedValue({
     matrix: [
       [
@@ -117,7 +117,7 @@ process.env.SUPABASE_URL = 'http://localhost:54321';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-supabase-key';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.MSG91_AUTH_KEY = 'test-msg91-key';
-process.env.TOMTOM_API_KEY = 'test-tomtom-key';
+process.env.OLA_MAPS_API_KEY = 'test-ola-maps-key';
 process.env.NODE_ENV = 'test';
 
 // Global test utilities

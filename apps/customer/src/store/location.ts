@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Coords } from '@/types';
 
 type PermissionStatus = 'undetermined' | 'granted' | 'denied';
@@ -26,31 +24,25 @@ interface LocationActions {
 }
 
 export const useLocationStore = create<LocationState & LocationActions>()(
-  persist(
-    (set) => ({
-      coords: null,
-      address: null,
-      permissionStatus: 'undetermined',
-      deliveryAddress: null,
-      deliveryCoords: null,
+  (set) => ({
+    coords: null,
+    address: null,
+    permissionStatus: 'undetermined',
+    deliveryAddress: null,
+    deliveryCoords: null,
 
-      setLocation: (coords, address) =>
-        set((state) => ({
-          coords,
-          address,
-          // Auto-seed delivery address on first GPS fix only
-          deliveryAddress: state.deliveryAddress ?? address,
-          deliveryCoords: state.deliveryCoords ?? coords,
-        })),
-      setPermissionStatus: (status) => set({ permissionStatus: status }),
-      clearLocation: () =>
-        set({ coords: null, address: null, deliveryAddress: null, deliveryCoords: null }),
-      setDeliveryAddress: (address, coords) =>
-        set({ deliveryAddress: address, deliveryCoords: coords }),
-    }),
-    {
-      name: 'nearby-location',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    setLocation: (coords, address) =>
+      set((state) => ({
+        coords,
+        address,
+        // Auto-seed delivery address on first GPS fix only
+        deliveryAddress: state.deliveryAddress ?? address,
+        deliveryCoords: state.deliveryCoords ?? coords,
+      })),
+    setPermissionStatus: (status) => set({ permissionStatus: status }),
+    clearLocation: () =>
+      set({ coords: null, address: null, deliveryAddress: null, deliveryCoords: null }),
+    setDeliveryAddress: (address, coords) =>
+      set({ deliveryAddress: address, deliveryCoords: coords }),
+  })
 );

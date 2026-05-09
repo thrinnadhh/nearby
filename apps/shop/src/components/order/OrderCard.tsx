@@ -64,7 +64,7 @@ export function OrderCard({ order, onPress }: Props) {
 
         <View style={styles.itemsInfo}>
           <MaterialCommunityIcons
-            name="package-outline"
+            name="cube-outline" as any
             size={16}
             color={colors.textSecondary}
           />

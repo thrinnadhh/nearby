@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+// @ts-ignore
 import * as ImagePicker from 'expo-image-picker';
 import { useRegistration } from '@/hooks/useRegistration';
 import { uploadFileToR2, parseFile } from '@/services/file-upload';
@@ -34,7 +35,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function PhotoScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
   const { shopId, formData, setField, updatePhoto, loading, error, setError } =
     useRegistration();
 

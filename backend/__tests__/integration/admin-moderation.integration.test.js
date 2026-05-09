@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../../src/index.js';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../../src/services/supabase.js';
 
 describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
   let adminToken;
@@ -294,6 +295,70 @@ describe('Admin Moderation Endpoints (13.6.8-13.6.11)', () => {
         .set('Authorization', `Bearer ${customerToken}`)
       
       expect(res.status).toBe(403);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Data-driven moderation tests — insert real reviews to cover success paths
+  // ═══════════════════════════════════════════════════════════════════
+  describe('Moderation approve/remove with real review data', () => {
+    let reviewId;
+    let creatorId;
+
+    beforeEach(async () => {
+      creatorId = uuidv4();
+      reviewId = uuidv4();
+      const orderId = uuidv4();
+      const shopId = uuidv4();
+
+      await supabase.from('profiles').insert({
+        id: creatorId,
+        phone: `+91${Date.now().toString().slice(-10)}`,
+        role: 'customer',
+        display_name: 'Moderation Test User',
+      });
+
+      await supabase.from('reviews').insert({
+        id: reviewId,
+        order_id: orderId,
+        shop_id: shopId,
+        customer_id: creatorId,
+        creator_id: creatorId,
+        rating: 3,
+        comment: 'Flagged review',
+        is_flagged: true,
+        flag_count: 2,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    });
+
+    afterEach(async () => {
+      if (reviewId) await supabase.from('reviews').delete().eq('id', reviewId);
+      if (creatorId) await supabase.from('profiles').delete().eq('id', creatorId);
+    });
+
+    it('should approve an existing review', async () => {
+      const res = await request(app)
+        .post(`/api/v1/admin/moderation/${reviewId}/approve`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ content_type: 'review' })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe(reviewId);
+      expect(res.body.data.status).toBe('approved');
+    });
+
+    it('should remove (hard-delete) an existing review', async () => {
+      const res = await request(app)
+        .post(`/api/v1/admin/moderation/${reviewId}/remove`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ content_type: 'review', reason: 'Spam content' })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.status).toBe('removed');
     });
   });
 });

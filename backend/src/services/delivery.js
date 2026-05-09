@@ -3,6 +3,7 @@ import { emitOrderEvent } from '../socket/ioRegistry.js';
 import { assignDeliveryQueue } from '../jobs/assignDelivery.js';
 import { generateDeliveryOtp, verifyDeliveryOtp as verifyOtpStringCompare } from '../utils/otpGenerator.js';
 import logger from '../utils/logger.js';
+import { DELIVERY_OTP_LOCKOUT_MS } from '../config/business.js';
 import {
   AppError,
   ORDER_NOT_FOUND,
@@ -78,7 +79,7 @@ function _assertStatus(order, allowedStatuses) {
 export async function listOrders(userId, statusFilter) {
   let query = supabase
     .from('orders')
-    .select(`${ORDER_SELECT}, order_items(*)`)
+    .select(ORDER_SELECT)
     .eq('delivery_partner_id', userId);
 
   if (statusFilter) {
@@ -123,7 +124,7 @@ export async function rejectAssignment(userId, orderId) {
     .update({ delivery_partner_id: null, status: 'ready', updated_at: now })
     .eq('id', orderId)
     .eq('status', 'assigned')
-    .select()
+    .select(ORDER_SELECT)
     .single();
 
   if (error || !updated) {
@@ -161,7 +162,7 @@ export async function markPickedUp(userId, orderId) {
     .update({ status: 'picked_up', picked_up_at: now, updated_at: now })
     .eq('id', orderId)
     .eq('status', 'assigned')
-    .select()
+    .select(ORDER_SELECT)
     .single();
 
   if (error || !updated) {
@@ -195,7 +196,7 @@ export async function markDelivered(userId, orderId) {
     .update({ status: 'delivered', delivered_at: deliveredAt, updated_at: deliveredAt })
     .eq('id', orderId)
     .in('status', ['picked_up', 'out_for_delivery'])
-    .select()
+    .select(ORDER_SELECT)
     .single();
 
   if (error || !updated) {
@@ -288,7 +289,7 @@ export async function verifyDeliveryOtpWithOwnership(deliveryPartnerId, orderId,
 
     // Lock after 3 failed attempts
     if (newAttempts >= 3) {
-      lockUntil = new Date(Date.now() + 10 * 60 * 1000); // 10 minute lockout
+      lockUntil = new Date(Date.now() + DELIVERY_OTP_LOCKOUT_MS);
     }
 
     await supabase
@@ -298,7 +299,10 @@ export async function verifyDeliveryOtpWithOwnership(deliveryPartnerId, orderId,
         delivery_otp_locked_until: lockUntil,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .then(({ error: updErr }) => {
+        if (updErr) logger.error('Failed to update OTP attempts', { orderId, error: updErr.message });
+      });
 
     throw new AppError(INVALID_DELIVERY_OTP, 'Invalid OTP. Please try again.', 400);
   }
@@ -365,7 +369,7 @@ export async function rateDeliveryPartner(shopOwnerId, orderId, ratingData) {
       comment: ratingData.comment || null,
       created_at: new Date().toISOString(),
     })
-    .select()
+    .select('id, order_id, delivery_partner_id, shop_id, rating, comment, created_at')
     .single();
 
   if (error) {

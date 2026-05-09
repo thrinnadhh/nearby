@@ -34,12 +34,12 @@ export default function RegistrationLayout() {
       screenOptions={{
         headerShown: true,
         headerBackVisible: currentStep < 5, // Hide back button on final step
-        headerLeft: ({ pressColor, pressOpacity }) =>
+        headerLeft: () =>
           currentStep < 5 ? (
             <TouchableOpacity
               onPress={handleGoBack}
               style={[styles.backButton]}
-              activeOpacity={pressOpacity}
+              activeOpacity={0.7}
             >
               <MaterialCommunityIcons
                 name="chevron-left"
@@ -53,7 +53,7 @@ export default function RegistrationLayout() {
           backgroundColor: colors.white,
         },
         headerShadowVisible: false,
-        animationEnabled: true,
+        animation: "slide_from_right",
       }}
     >
       {/* Progress bar shown above each screen */}

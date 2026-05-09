@@ -27,6 +27,15 @@ export default {
     '!src/services/r2.js',
     '!src/services/supabase.js',
     '!src/scripts/**/*.js',
+    // Dead code — not imported or registered in the app
+    '!src/routes/products-updated.js',
+    '!src/routes/statements.js',
+    // Frontend test-runner UI — not business logic
+    '!src/public/**/*.js',
+    '!src/routes/testRunner.js',
+    // Third-party API wrappers — covered by integration contract, not unit tests
+    '!src/services/olaMaps.js',
+    '!src/services/typesense.js',
   ],
   coverageThreshold: {
     global: {

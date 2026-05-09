@@ -1,4 +1,8 @@
-import { useEffect, useCallback, useState } from 'react';
+// Demo bootstrap — must be the very first import so stores are seeded
+// before any component reads from them.
+import '@/mocks';
+
+import { useEffect, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,6 +14,7 @@ import { PaymentCallbackListener } from '@/components/PaymentCallbackListener';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import logger from '@/utils/logger';
+import { DEMO_MODE } from '@/config/demo';
 
 // Must be called at module level — before any render cycle — so the splash
 // screen stays visible while fonts and the auth store both hydrate.
@@ -21,7 +26,6 @@ configureForegroundNotifications();
 
 export default function RootLayout() {
   const hasHydrated = useAuthStore((s) => s._hasHydrated);
-  const [paymentCallbackHandled, setPaymentCallbackHandled] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
@@ -34,15 +38,13 @@ export default function RootLayout() {
   const handlePaymentCallback = useCallback(
     (orderId: string, status: 'success' | 'failed') => {
       logger.info('Root payment callback handler triggered', { orderId, status });
-      setPaymentCallbackHandled(true);
-      
-      // Payment screen will handle the actual callback via PaymentCallbackListener
-      // This is just for logging/debugging at the app root level
     },
     []
   );
 
-  const ready = (fontsLoaded || fontError != null) && hasHydrated;
+  // In DEMO_MODE the stores are pre-seeded at module load time, so we don't
+  // need to wait for SecureStore hydration — show the app as soon as fonts load.
+  const ready = (fontsLoaded || fontError != null) && (hasHydrated || DEMO_MODE);
 
   useEffect(() => {
     if (fontError) {

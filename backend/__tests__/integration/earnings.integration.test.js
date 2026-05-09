@@ -535,4 +535,86 @@ describe('Earnings Endpoints', () => {
       expect(response.body).toHaveProperty('data');
     });
   });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // GET /api/v1/shops/:shopId/analytics  (uncovered endpoint in earnings.js)
+  // ══════════════════════════════════════════════════════════════════════
+  describe('GET /api/v1/shops/:shopId/analytics', () => {
+    it('should return 200 with analytics for default 30d range', async () => {
+      const res = await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics`)
+        .set('Authorization', `Bearer ${shopToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      const d = res.body.data;
+      // top-level keys from route
+      expect(d).toHaveProperty('today');
+      expect(d).toHaveProperty('week');
+      expect(d).toHaveProperty('month');
+      expect(d).toHaveProperty('summary');
+      // summary has aggregated totals from calculateSummary
+      expect(d.summary).toHaveProperty('today_total');
+      expect(d.summary).toHaveProperty('week_total');
+      expect(d.summary).toHaveProperty('month_total');
+    });
+
+    it('should return analytics for ?dateRange=7d', async () => {
+      const res = await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics?dateRange=7d`)
+        .set('Authorization', `Bearer ${shopToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('summary');
+    });
+
+    it('should return analytics for ?dateRange=90d', async () => {
+      const res = await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics?dateRange=90d`)
+        .set('Authorization', `Bearer ${shopToken}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+    });
+
+    it('should return 400 for invalid dateRange', async () => {
+      const res = await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics?dateRange=invalid`)
+        .set('Authorization', `Bearer ${shopToken}`)
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('INVALID_DATE_RANGE');
+    });
+
+    it('should require authentication', async () => {
+      await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics`)
+        .expect(401);
+    });
+
+    it('should require shop_owner role', async () => {
+      const customerToken = jwt.sign(
+        { userId: uuidv4(), phone: '+919000000000', role: 'customer' },
+        process.env.JWT_SECRET || 'test-secret',
+        { expiresIn: '24h' }
+      );
+      await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics`)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .expect(403);
+    });
+
+    it('should return empty records for shop with no analytics data', async () => {
+      const res = await request(app)
+        .get(`/api/v1/shops/${shopId}/analytics?dateRange=30d`)
+        .set('Authorization', `Bearer ${shopToken}`)
+        .expect(200);
+
+      // No shop_analytics data for this shop → week and month arrays are empty
+      expect(Array.isArray(res.body.data.week)).toBe(true);
+      expect(Array.isArray(res.body.data.month)).toBe(true);
+    });
+  });
 });

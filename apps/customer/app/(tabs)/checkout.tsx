@@ -25,13 +25,8 @@ import { useOrdersStore } from '@/store/orders';
 import { createOrder, generateIdempotencyKey } from '@/services/orders';
 import { searchProducts } from '@/services/search';
 import logger from '@/utils/logger';
+import { paise } from '@/utils/currency';
 import type { OrderItem as OrderItemType } from '@/types';
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
-function paise(amount: number) {
-  return `₹${(amount / 100).toFixed(2)}`;
-}
 
 const DELIVERY_FEE_PAISE = 2500; // ₹25 flat
 const TAX_RATE = 0.05; // 5% tax
@@ -201,14 +196,14 @@ export default function CheckoutScreen() {
 
       // 2. Create order with idempotency key
       const order = await createOrder({
-        shop_id: shopId,
+        shop_id: shopId!,
         items: freshItems,
-        delivery_address: deliveryAddress,
-        delivery_coords: deliveryCoords,
+        delivery_address: deliveryAddress ?? undefined,
+        delivery_coords: deliveryCoords ?? undefined,
         payment_method: paymentMethod,
         total_paise: freshTotal,
         idempotency_key: generateIdempotencyKey(),
-      });
+      }, token ?? undefined);
 
       // 3. Save active order in store
       setActiveOrder(order);
@@ -363,11 +358,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -402,12 +397,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
     gap: spacing.md,
   },
   addressCardLeft: {
@@ -426,11 +421,11 @@ const styles = StyleSheet.create({
 
   // ── Order items ─────────────────────────────────────────────────────────
   itemsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
   },
   orderItemRow: {
     flexDirection: 'row',
@@ -438,7 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.line,
   },
   orderItemName: {
     flex: 1,
@@ -468,12 +463,12 @@ const styles = StyleSheet.create({
 
   // ── Price breakdown ─────────────────────────────────────────────────────
   priceCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
   },
   priceRow: {
     flexDirection: 'row',
@@ -503,7 +498,7 @@ const styles = StyleSheet.create({
   },
   priceDivider: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.line,
     marginVertical: spacing.sm,
   },
 
@@ -515,17 +510,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.line,
     marginBottom: spacing.md,
   },
   paymentOptionSelected: {
     borderColor: colors.primary,
-    backgroundColor: `${colors.primary}08`,
+    backgroundColor: colors.primarySoft,
   },
   paymentOptionLeft: {
     flex: 1,
@@ -552,9 +547,9 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.line,
   },
   placeOrderBtn: {
     flexDirection: 'row',
@@ -563,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
     gap: spacing.md,
   },
   placeOrderBtnDisabled: {
@@ -594,7 +589,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
   },
   errorBtnText: {
     fontSize: fontSize.md,

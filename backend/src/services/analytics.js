@@ -18,8 +18,13 @@ class AnalyticsService {
    * @returns {Object} Analytics data
    */
   static async aggregateDailyMetrics(shopId, date = null) {
-    const targetDate = date ? new Date(date) : new Date();
-    targetDate.setDate(targetDate.getDate() - 1); // Yesterday by default
+    let targetDate;
+    if (date) {
+      targetDate = new Date(date);
+    } else {
+      targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() - 1); // Default to yesterday
+    }
     const dateStr = targetDate.toISOString().split('T')[0];
 
     // 1. Fetch orders for the day
@@ -134,7 +139,7 @@ class AnalyticsService {
     const { data: analytics, error: upsertError } = await supabase
       .from('shop_analytics')
       .upsert(analyticsData, { onConflict: 'shop_id,date' })
-      .select()
+      .select('id, shop_id, date, total_orders, completed_orders, cancelled_orders, auto_cancelled_orders, gross_revenue_paise, net_revenue_paise, completion_rate, avg_acceptance_time_seconds, avg_preparation_time_seconds, review_count, avg_rating, unique_customers, created_at, updated_at')
       .single();
 
     if (upsertError) {
@@ -167,7 +172,7 @@ class AnalyticsService {
   static async getAnalytics(shopId, startDate, endDate) {
     const { data: analytics, error } = await supabase
       .from('shop_analytics')
-      .select('*')
+      .select('id, shop_id, date, total_orders, completed_orders, cancelled_orders, auto_cancelled_orders, gross_revenue_paise, net_revenue_paise, completion_rate, avg_acceptance_time_seconds, avg_preparation_time_seconds, review_count, avg_rating, unique_customers, created_at, updated_at')
       .eq('shop_id', shopId)
       .gte('date', startDate)
       .lte('date', endDate)

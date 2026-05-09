@@ -63,9 +63,21 @@ export const createShopSchema = Joi.object({
       'string.max': 'Description must not exceed 500 characters',
     }),
   latitude: Joi.number()
-    .required(),
+    .min(8.0)
+    .max(35.0)
+    .required()
+    .messages({
+      'number.min': 'Latitude must be within India bounds (8°N–35°N)',
+      'number.max': 'Latitude must be within India bounds (8°N–35°N)',
+    }),
   longitude: Joi.number()
-    .required(),
+    .min(68.0)
+    .max(97.0)
+    .required()
+    .messages({
+      'number.min': 'Longitude must be within India bounds (68°E–97°E)',
+      'number.max': 'Longitude must be within India bounds (68°E–97°E)',
+    }),
   category: Joi.string()
     .valid(...SHOP_CATEGORIES)
     .required()

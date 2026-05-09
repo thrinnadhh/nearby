@@ -74,7 +74,7 @@ class ReviewService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .select()
+      .select('id, order_id, customer_id, shop_id, rating, comment, is_visible, created_at, updated_at')
       .single();
 
     if (error) {
@@ -101,7 +101,7 @@ class ReviewService {
 
     const { data: reviews, error, count } = await supabase
       .from('reviews')
-      .select('*', { count: 'exact' })
+      .select('id, order_id, customer_id, shop_id, rating, comment, is_visible, created_at, updated_at', { count: 'exact' })
       .eq('shop_id', shopId)
       .eq('is_visible', true)
       .order('created_at', { ascending: false })
@@ -125,7 +125,7 @@ class ReviewService {
     // Use DB-side aggregation to avoid loading every review into memory
     const { data, error } = await supabase
       .from('reviews')
-      .select('rating.avg(), rating.count()', { count: 'exact' })
+      .select('rating.avg(), rating.count()')
       .eq('shop_id', shopId)
       .eq('is_visible', true)
       .single();

@@ -56,22 +56,17 @@ export default function OrdersListScreen() {
 
   // Listen to Socket.IO new order events
   useEffect(() => {
-    const unsubscribe = onNewOrder(
-      (event: {
-        orderId: string;
-        customerId: string;
-        customerName: string;
-        total: number;
-        createdAt: string;
-      }) => {
+    const unsubscribe = onNewOrder((event) => {
         logger.info('New order received via Socket.IO', {
           orderId: event.orderId,
         });
+        const now = new Date().toISOString();
+        const createdAt = event.createdAt ?? now;
         const newOrder: Order = {
           id: event.orderId,
           shopId: '',
-          customerId: event.customerId,
-          customerName: event.customerName,
+          customerId: event.customerId ?? '',
+          customerName: event.customerName ?? 'Customer',
           customerPhone: '',
           deliveryAddress: '',
           items: [],
@@ -80,15 +75,14 @@ export default function OrdersListScreen() {
           total: event.total,
           status: 'pending',
           paymentMode: 'upi',
-          createdAt: event.createdAt,
-          updatedAt: event.createdAt,
+          createdAt,
+          updatedAt: createdAt,
           acceptanceDeadline: new Date(
-            new Date(event.createdAt).getTime() + 3 * 60 * 1000
+            new Date(createdAt).getTime() + 3 * 60 * 1000
           ).toISOString(),
         };
         addOrderToStore(newOrder);
-      }
-    );
+      });
 
     return unsubscribe;
   }, [onNewOrder, addOrderToStore]);

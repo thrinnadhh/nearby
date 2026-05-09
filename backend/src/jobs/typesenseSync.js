@@ -29,6 +29,11 @@ export const typesenseSyncQueue = new Queue('typesense-sync', {
   },
 });
 
+// Suppress BullMQ internal connection promise rejections at startup
+typesenseSyncQueue.on('error', (err) => {
+  logger.warn('Typesense sync queue error (non-fatal)', { error: err.message });
+});
+
 /**
  * Worker that processes Typesense sync jobs.
  * Syncs shop/product documents or removes them from the search index.

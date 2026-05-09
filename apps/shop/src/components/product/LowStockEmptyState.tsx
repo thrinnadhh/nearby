@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontFamily: fontFamily.bold,
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.base,
     textAlign: 'center',
   },
   message: {
@@ -153,9 +153,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.base,
     borderRadius: borderRadius.md,
-    marginTop: spacing.md,
+    marginTop: spacing.base,
   },
   buttonText: {
     fontSize: fontSize.md,

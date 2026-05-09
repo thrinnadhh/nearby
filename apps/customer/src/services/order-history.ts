@@ -136,8 +136,6 @@ export async function reorderFromHistory(
     items: previousOrder.items.map((item) => ({
       product_id: item.product_id,
       qty: item.qty,
-      name: item.name,
-      price: item.price,
     })),
     delivery_address: deliveryAddress.address,
     delivery_coords: {
@@ -145,7 +143,7 @@ export async function reorderFromHistory(
       lng: deliveryAddress.coordinates[1],
     },
     payment_method: previousOrder.payment_method,
-  });
+  }, token);
 
   return {
     order_id: newOrder.id,

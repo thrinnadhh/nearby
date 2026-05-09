@@ -1,10 +1,5 @@
-import axios, { AxiosError } from 'axios';
-import { API_BASE_URL, API_TIMEOUT } from '@/constants/api';
-
-const client = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: API_TIMEOUT,
-});
+import { AxiosError } from 'axios';
+import { client } from './api';
 
 // ─── Response shapes (mirrors backend API conventions) ───────────────────────
 

@@ -11,6 +11,7 @@ import {
   SHOP_NOT_FOUND,
   SHOP_NOT_VERIFIED,
 } from '../utils/errors.js';
+import { ORDER_AUTO_CANCEL_MS } from '../config/business.js';
 import { supabase } from './supabase.js';
 import { notifyShopQueue } from '../jobs/notifyShop.js';
 import { autoCancelQueue } from '../jobs/autoCancel.js';
@@ -113,7 +114,7 @@ class OrderService {
   static async _fetchOrder(orderId) {
     const { data: order, error } = await supabase
       .from('orders')
-      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, payment_id, created_at, updated_at, accepted_at, delivered_at')
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, payment_id, cashfree_order_id, created_at, updated_at, accepted_at, delivered_at')
       .eq('id', orderId)
       .single();
 
@@ -161,13 +162,13 @@ class OrderService {
   }
 
   static async _refundOrderIfNeeded(order, reason) {
-    if (order.payment_method === 'cod' || !order.payment_id || order.total_paise <= 0) {
+    if (order.payment_method === 'cod' || !order.cashfree_order_id || order.total_paise <= 0) {
       return false;
     }
 
     try {
-      const { refundPayment } = await import('./cashfree.js');
-      await refundPayment(order.payment_id, order.total_paise, reason);
+      const { initiateRefund } = await import('./cashfree.js');
+      await initiateRefund(order.cashfree_order_id, order.total_paise, reason);
       return true;
     } catch (error) {
       logger.error('OrderService: refund failed', {
@@ -254,12 +255,14 @@ class OrderService {
     );
   }
 
-  static async _queuePostCreateJobs(order) {
+  static async _queuePostCreateJobs(order, itemCount = null) {
     try {
       await notifyShopQueue.add('notify-shop', {
         orderId: order.id,
         shopId: order.shop_id,
         customerId: order.customer_id,
+        itemCount,
+        total: order.total_paise,
       });
     } catch (error) {
       logger.warn('OrderService: failed to queue notify-shop job', {
@@ -273,7 +276,7 @@ class OrderService {
         'auto-cancel',
         { orderId: order.id, shopId: order.shop_id },
         {
-          delay: 3 * 60 * 1000,
+          delay: ORDER_AUTO_CANCEL_MS,
           jobId: this._getAutoCancelJobId(order.id),
         }
       );
@@ -315,19 +318,13 @@ class OrderService {
         const nextStock = lineItem.product.stock_quantity - lineItem.quantity;
         const nextAvailability = nextStock > 0;
 
-        const updateQuery = supabase
+        const { error: stockError } = await supabase
           .from('products')
           .update({
             stock_quantity: nextStock,
             is_available: nextAvailability,
           })
           .eq('id', lineItem.product.id);
-
-        if (typeof updateQuery.gte === 'function') {
-          updateQuery.gte('stock_quantity', lineItem.quantity);
-        }
-
-        const { error: stockError } = await updateQuery;
 
         if (stockError) {
           logger.warn('OrderService: stock reservation failed', {
@@ -364,7 +361,7 @@ class OrderService {
       const { data: orderRow, error: orderError } = await supabase
         .from('orders')
         .insert(orderInsert)
-        .select()
+        .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at')
         .single();
 
       if (orderError || !orderRow) {
@@ -388,7 +385,7 @@ class OrderService {
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItemsPayload)
-        .select();
+        .select('id, order_id, product_id, quantity, unit_price_paise, total_paise, cancelled_quantity, cancelled_total_paise, cancellation_reason, cancelled_at');
 
       if (itemsError) {
         logger.error('OrderService: order items insert failed', {
@@ -398,7 +395,7 @@ class OrderService {
         throw new AppError(INTERNAL_ERROR, 'Failed to create order items.', 500);
       }
 
-      await this._queuePostCreateJobs(orderRow);
+      await this._queuePostCreateJobs(orderRow, orderItemsPayload.length);
       const response = this._toResponse(orderRow, orderItems || orderItemsPayload);
       emitOrderEvent(orderRow.id, 'order:created', { order: response });
       return response;
@@ -432,9 +429,7 @@ class OrderService {
       throw new AppError(FORBIDDEN, 'Unsupported role for order listing.', 403);
     }
 
-    if (typeof query.order === 'function') {
-      query = query.order('created_at', { ascending: false });
-    }
+    query = query.order('created_at', { ascending: false });
 
     const { data: orders, error } = await query;
 
@@ -468,7 +463,7 @@ class OrderService {
       .from('orders')
       .update({ status: 'accepted', accepted_at: acceptedAt, updated_at: acceptedAt })
       .eq('id', orderId)
-      .select()
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at')
       .single();
 
     if (error || !updatedOrder) {
@@ -517,7 +512,7 @@ class OrderService {
       .from('orders')
       .update({ status: 'cancelled', payment_status: 'failed', updated_at: updatedAt })
       .eq('id', orderId)
-      .select()
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at')
       .single();
 
     if (error || !updatedOrder) {
@@ -545,7 +540,7 @@ class OrderService {
       .from('orders')
       .update({ status: 'ready', updated_at: updatedAt })
       .eq('id', orderId)
-      .select()
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at')
       .single();
 
     if (error || !updatedOrder) {
@@ -579,7 +574,7 @@ class OrderService {
       .from('orders')
       .update({ status: 'cancelled', payment_status: 'failed', updated_at: updatedAt })
       .eq('id', orderId)
-      .select()
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at')
       .single();
 
     if (error || !updatedOrder) {
@@ -611,6 +606,8 @@ class OrderService {
     const now = new Date().toISOString();
     let totalReduction = 0;
 
+    // Validate all items and compute totalReduction before any DB writes
+    const itemUpdates = [];
     for (const requestedItem of payload.items) {
       const orderItem = itemMap.get(requestedItem.item_id);
 
@@ -631,27 +628,39 @@ class OrderService {
       const deltaPaise = requestedItem.cancel_quantity * orderItem.unit_price_paise;
       totalReduction += deltaPaise;
 
-      const { error: updateItemError } = await supabase
-        .from('order_items')
-        .update({
+      itemUpdates.push({
+        id: orderItem.id,
+        patch: {
           cancelled_quantity: nextCancelledQuantity,
           cancelled_total_paise: (orderItem.cancelled_total_paise || 0) + deltaPaise,
           cancellation_reason: payload.reason,
           cancelled_at: now,
-        })
-        .eq('id', orderItem.id);
-
-      if (updateItemError) {
-        throw new AppError(INTERNAL_ERROR, 'Failed to update order items.', 500);
-      }
-
-      itemMap.set(orderItem.id, {
-        ...orderItem,
-        cancelled_quantity: nextCancelledQuantity,
-        cancelled_total_paise: (orderItem.cancelled_total_paise || 0) + deltaPaise,
-        cancellation_reason: payload.reason,
-        cancelled_at: now,
+        },
+        updatedItem: {
+          ...orderItem,
+          cancelled_quantity: nextCancelledQuantity,
+          cancelled_total_paise: (orderItem.cancelled_total_paise || 0) + deltaPaise,
+          cancellation_reason: payload.reason,
+          cancelled_at: now,
+        },
       });
+    }
+
+    // Run all item updates in parallel
+    const updateResults = await Promise.all(
+      itemUpdates.map(({ id, patch }) =>
+        supabase.from('order_items').update(patch).eq('id', id)
+      )
+    );
+
+    const firstError = updateResults.find((r) => r.error);
+    if (firstError?.error) {
+      throw new AppError(INTERNAL_ERROR, 'Failed to update order items.', 500);
+    }
+
+    // Update local itemMap with patched values
+    for (const { updatedItem } of itemUpdates) {
+      itemMap.set(updatedItem.id, updatedItem);
     }
 
     const remainingTotalPaise = Math.max(order.total_paise - totalReduction, 0);
@@ -667,7 +676,7 @@ class OrderService {
         updated_at: now,
       })
       .eq('id', orderId)
-      .select()
+      .select('id, customer_id, shop_id, status, total_paise, payment_method, payment_status, created_at, updated_at')
       .single();
 
     if (orderUpdateError || !updatedOrder) {

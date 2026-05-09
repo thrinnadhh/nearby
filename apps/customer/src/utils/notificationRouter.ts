@@ -3,7 +3,7 @@
  * Maps notification data to deep-link routes
  */
 
-import type { Href, useRouter } from 'expo-router';
+import type { useRouter } from 'expo-router';
 import type { NotificationPayload } from '@/types/notifications';
 import {
   NOTIFICATION_ROUTES,
@@ -15,7 +15,7 @@ import logger from '@/utils/logger';
  * Convert notification payload to a navigable route
  * Returns null if payload is invalid
  */
-export function getRouteFromNotification(payload: unknown): Href<string> | null {
+export function getRouteFromNotification(payload: unknown): Parameters<ReturnType<typeof useRouter>['push']>[0] | null {
   if (!isValidNotificationPayload(payload)) {
     logger.warn('Invalid notification payload received', { payload });
     return null;
@@ -72,7 +72,7 @@ export function handleNotificationTap(
   }
 
   try {
-    router.push(route);
+    router.push(route as any);
     logger.info('Navigated from notification', { payload });
   } catch (err) {
     logger.error('Failed to navigate from notification', {

@@ -24,6 +24,8 @@ import { getShop } from '@/services/shops';
 import { getShopReviews } from '@/services/reviews';
 import { searchProducts } from '@/services/search';
 import { onShopStatusChange } from '@/services/socket';
+import { DEMO_MODE } from '@/config/demo';
+import { DEMO_SHOP_DETAILS, DEMO_PRODUCTS, DEMO_REVIEWS } from '@/mocks/data';
 import { ProductCard } from '@/components/ProductCard';
 import type { ShopDetail, Review, Product } from '@/types';
 
@@ -77,9 +79,15 @@ export default function ShopScreen() {
   // ── Data fetching ────────────────────────────────────────────────────────
 
   const fetchShop = useCallback(async () => {
+    if (DEMO_MODE) {
+      setLoadingShop(true);
+      await new Promise((r) => setTimeout(r, 300));
+      const demoShop = DEMO_SHOP_DETAILS[id ?? ''];
+      setShop(demoShop ?? Object.values(DEMO_SHOP_DETAILS)[0]);
+      setLoadingShop(false);
+      return;
+    }
     // SECURITY: guard against invalid UUID and unauthenticated calls.
-    // _layout.tsx auth guard ensures token is present, but we guard explicitly
-    // here as a defense-in-depth measure for any future direct deep-links.
     if (!isValidUUID(id) || !token) return;
     setLoadingShop(true);
     setShopError(null);
@@ -87,8 +95,6 @@ export default function ShopScreen() {
       const data = await getShop(id, token);
       setShop(data);
     } catch {
-      // Never expose raw API error messages to the UI — they may leak
-      // server internals, hostnames, or stack traces.
       setShopError('Unable to load shop. Please try again.');
     } finally {
       setLoadingShop(false);
@@ -96,13 +102,13 @@ export default function ShopScreen() {
   }, [id, token]);
 
   const fetchReviews = useCallback(async () => {
+    if (DEMO_MODE) {
+      setReviews(DEMO_REVIEWS[id ?? ''] ?? []);
+      return;
+    }
     if (!isValidUUID(id) || !token) return;
     try {
-      const res = await getShopReviews(
-        id,
-        { limit: 5, sort: 'recent' },
-        token
-      );
+      const res = await getShopReviews(id, { limit: 5, sort: 'recent' }, token);
       setReviews(res.data);
     } catch {
       // Reviews are non-critical — fail silently.
@@ -110,17 +116,20 @@ export default function ShopScreen() {
   }, [id, token]);
 
   const fetchProducts = useCallback(async () => {
+    if (DEMO_MODE) {
+      setLoadingProducts(true);
+      await new Promise((r) => setTimeout(r, 200));
+      setProducts(DEMO_PRODUCTS[id ?? ''] ?? []);
+      setLoadingProducts(false);
+      return;
+    }
     if (!isValidUUID(id) || !token) return;
     setLoadingProducts(true);
     setProductsError(null);
     try {
-      const res = await searchProducts(
-        { shopId: id, q: '', limit: 50 },
-        token
-      );
+      const res = await searchProducts({ shopId: id, q: '', limit: 50 }, token);
       setProducts(res.data);
     } catch {
-      // Never expose raw API error messages to the UI.
       setProductsError('Unable to load products. Please try again.');
     } finally {
       setLoadingProducts(false);
@@ -426,25 +435,27 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   banner: {
-    height: 200,
+    height: 220,
     width: '100%',
   },
   bannerPlaceholder: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primary,
   },
   backBtn: {
     position: 'absolute',
     top: spacing.xxl,
     left: spacing.md,
     padding: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     borderRadius: borderRadius.full,
   },
 
   // ── Info card ────────────────────────────────────────────────────────────
   infoCard: {
     padding: spacing.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
   nameRow: {
     flexDirection: 'row',
@@ -455,13 +466,13 @@ const styles = StyleSheet.create({
   shopName: {
     flex: 1,
     fontSize: fontSize.xl,
-    fontFamily: fontFamily.bold,
+    fontFamily: fontFamily.display,
     color: colors.textPrimary,
   },
   badge: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 3,
+    borderRadius: borderRadius.full,
   },
   badgeText: {
     fontSize: fontSize.xs,
@@ -471,6 +482,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     fontFamily: fontFamily.regular,
+    textTransform: 'capitalize',
     marginTop: 2,
   },
   metaRow: {
@@ -527,7 +539,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
   },
   chatButtonText: {
     color: colors.white,
@@ -554,11 +566,11 @@ const styles = StyleSheet.create({
   },
   reviewCard: {
     width: 280,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
     gap: spacing.xs,
   },
   starsRow: {
@@ -588,16 +600,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   catChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: borderRadius.full,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    marginRight: spacing.sm,
   },
   catChipActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primarySoft,
   },
   catChipText: {
     fontSize: fontSize.sm,
@@ -605,7 +618,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   catChipTextActive: {
-    color: colors.primary,
+    color: colors.primaryDeep,
+    fontFamily: fontFamily.semiBold,
   },
 
   // ── Product grid ─────────────────────────────────────────────────────────

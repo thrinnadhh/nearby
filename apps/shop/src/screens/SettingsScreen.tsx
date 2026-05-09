@@ -16,6 +16,8 @@ import {
   TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — types provided by @react-native-community/slider (installed via npx expo install)
 import Slider from '@react-native-community/slider';
 import { useShopSettings } from '@/hooks/useShopSettings';
 import { HoursEditor } from '@/components/HoursEditor';

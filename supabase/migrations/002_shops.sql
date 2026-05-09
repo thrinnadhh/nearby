@@ -37,3 +37,16 @@ CREATE INDEX idx_shops_owner_id ON public.shops(owner_id);
 CREATE INDEX idx_shops_verified ON public.shops(is_verified);
 CREATE INDEX idx_shops_city ON public.shops(city);
 CREATE INDEX idx_shops_kyc_status ON public.shops(kyc_status);
+
+-- Add foreign key constraint from profiles.shop_id to shops.id
+-- (was removed from 001_profiles.sql to avoid circular dependency)
+ALTER TABLE public.profiles
+ADD CONSTRAINT fk_profiles_shop_id
+FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE SET NULL;
+
+-- Add constraint to ensure shop_id is only set for shop_owners
+ALTER TABLE public.profiles
+ADD CONSTRAINT shop_id_only_for_owner CHECK (
+  (role = 'shop_owner' AND shop_id IS NOT NULL) OR
+  (role != 'shop_owner' AND shop_id IS NULL)
+);

@@ -14,6 +14,10 @@ const queryClient = new QueryClient({
   },
 });
 
+beforeEach(() => {
+  queryClient.clear();
+});
+
 const mockKycQueue = {
   kyc_queue: [
     {
@@ -44,13 +48,11 @@ const mockKycQueue = {
 describe('KycQueuePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient.clear();
   });
 
   it('renders KYC queue page', async () => {
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: mockKycQueue,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(mockKycQueue as any);
 
     render(
       <BrowserRouter>
@@ -68,10 +70,7 @@ describe('KycQueuePage', () => {
   });
 
   it('displays filter buttons for status', async () => {
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: mockKycQueue,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(mockKycQueue as any);
 
     render(
       <BrowserRouter>
@@ -88,10 +87,7 @@ describe('KycQueuePage', () => {
 
   it('filters by status when button clicked', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: mockKycQueue,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(mockKycQueue as any);
 
     render(
       <BrowserRouter>
@@ -114,10 +110,7 @@ describe('KycQueuePage', () => {
   });
 
   it('displays shop and owner information', async () => {
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: mockKycQueue,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(mockKycQueue as any);
 
     render(
       <BrowserRouter>
@@ -170,10 +163,7 @@ describe('KycQueuePage', () => {
   });
 
   it('displays empty state when no results', async () => {
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: { kyc_queue: [], meta: { page: 1, total: 0, pages: 0, limit: 20 } },
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({ kyc_queue: [], meta: { page: 1, total: 0, pages: 0, limit: 20 } } as any);
 
     render(
       <BrowserRouter>
@@ -189,10 +179,7 @@ describe('KycQueuePage', () => {
   });
 
   it('displays pagination controls', async () => {
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: mockKycQueue,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(mockKycQueue as any);
 
     render(
       <BrowserRouter>
@@ -208,10 +195,7 @@ describe('KycQueuePage', () => {
   });
 
   it('displays action buttons for pending KYC', async () => {
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: mockKycQueue,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(mockKycQueue as any);
 
     render(
       <BrowserRouter>
@@ -222,9 +206,9 @@ describe('KycQueuePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/View/i)).toBeInTheDocument();
-      expect(screen.getByText(/Approve/i)).toBeInTheDocument();
-      expect(screen.getByText(/Reject/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/View/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Approve/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Reject/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -239,10 +223,7 @@ describe('KycQueuePage', () => {
       ],
     };
 
-    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue({
-      success: true,
-      data: approvedKyc,
-    });
+    vi.spyOn(api.adminApi, 'getKycQueue').mockResolvedValue(approvedKyc as any);
 
     render(
       <BrowserRouter>
@@ -253,7 +234,7 @@ describe('KycQueuePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/View/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/View/i).length).toBeGreaterThan(0);
       expect(screen.queryByText(/^Approve$/)).not.toBeInTheDocument();
       expect(screen.queryByText(/^Reject$/)).not.toBeInTheDocument();
     });

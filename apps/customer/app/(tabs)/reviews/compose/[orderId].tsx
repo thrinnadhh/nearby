@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
+import type { Order } from '@/types';
 import { submitReview } from '@/services/reviews';
 import { checkReviewStatus } from '@/services/reviews-submit';
-import { getOrder } from '@/services/orders';
+import { getOrderDetail } from '@/services/orders';
 import logger from '@/utils/logger';
 
 /**
@@ -40,7 +41,7 @@ export default function ReviewSubmissionScreen() {
   const { token } = useAuthStore();
 
   // State
-  const [order, setOrder] = useState<Record<string, unknown> | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +58,13 @@ export default function ReviewSubmissionScreen() {
       if (!orderId || !token) return;
 
       try {
-        const orderData = await getOrder(orderId, token);
+        const orderData = await getOrderDetail(orderId, token ?? undefined);
         setOrder(orderData);
 
         // Best-effort: check if already reviewed — endpoint may not exist yet
         try {
           const checkData = await checkReviewStatus(orderId, token);
-          if (checkData.hasReviewed) {
+          if (checkData.has_reviewed) {
             setHasReviewed(true);
           }
         } catch (checkErr: unknown) {

@@ -121,28 +121,28 @@ async function getPaymentStatus(orderId) {
 }
 
 /**
- * Refund a payment.
- * @param {string} paymentId - Cashfree payment ID
- * @param {number} amount - Refund amount in paise
+ * Initiate a refund for a Cashfree order.
+ * @param {string} orderId - Cashfree order ID (cashfree_order_id)
+ * @param {number} amountPaise - Refund amount in paise (converted to rupees internally)
  * @param {string} reason - Refund reason
  * @returns {Promise<Object>} Refund response
  */
-async function refundPayment(paymentId, amount, reason = 'customer_request') {
+async function initiateRefund(orderId, amountPaise, reason = 'order_cancelled') {
   try {
-    const response = await request('POST', `/pg/payments/${paymentId}/refunds`, {
-      refund_amount: amount / 100, // Convert to rupees
+    const response = await request('POST', `/pg/orders/${orderId}/refunds`, {
+      refund_amount: amountPaise / 100, // Convert paise → rupees
       refund_note: reason,
     });
     logger.info('Cashfree refund initiated', {
-      paymentId,
-      amount: amount / 100,
+      orderId,
+      amountRupees: amountPaise / 100,
       reason,
     });
     return response;
   } catch (err) {
-    logger.error('Failed to refund Cashfree payment', {
+    logger.error('Failed to initiate Cashfree refund', {
       error: err.message,
-      paymentId,
+      orderId,
     });
     throw err;
   }
@@ -173,6 +173,6 @@ async function createPaymentSplit(paymentId, splits) {
 export {
   createPaymentSession,
   getPaymentStatus,
-  refundPayment,
+  initiateRefund,
   createPaymentSplit,
 };

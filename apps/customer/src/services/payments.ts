@@ -1,4 +1,4 @@
-import { api } from './api';
+import { client } from './api';
 import logger from '@/utils/logger';
 
 /**
@@ -42,7 +42,7 @@ export function initializeCashfree(config: CashfreeConfig) {
  */
 export async function verifyPayment(orderId: string): Promise<PaymentResult> {
   try {
-    const response = await api.get<{
+    const response = await client.get<{
       success: boolean;
       data?: {
         orderId: string;
@@ -108,6 +108,7 @@ export async function pollPaymentStatus(
         if (result.status !== 'PENDING') {
           clearInterval(pollInterval);
           resolve(result);
+          return;
         }
 
         pollCount++;
@@ -159,7 +160,7 @@ export async function createPaymentSession(orderId: string): Promise<{
   sessionId: string;
   paymentLink: string;
 }> {
-  const response = await api.post<{
+  const response = await client.post<{
     success: boolean;
     data?: {
       paymentSessionId: string;
@@ -191,7 +192,7 @@ export async function getRefundStatus(
   refundAmount?: number;
   refundDate?: string;
 }> {
-  const response = await api.get<{
+  const response = await client.get<{
     success: boolean;
     data?: {
       paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
@@ -227,7 +228,7 @@ export async function initiateRefund(
   amount: number;
   status: string;
 }> {
-  const response = await api.patch<{
+  const response = await client.patch<{
     success: boolean;
     data?: {
       id: string;

@@ -18,6 +18,7 @@ import { bulkProductRowSchema } from '../utils/validators.js';
 
 const PRODUCTS_BUCKET = process.env.R2_PRODUCTS_BUCKET || 'nearby-products';
 const R2_PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN || 'pub.nearby.app';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Required CSV column headers (order-independent)
 const REQUIRED_CSV_COLUMNS = ['name', 'description', 'category', 'price_paise', 'stock_quantity', 'unit'];
@@ -311,13 +312,13 @@ class ProductService {
   static async updateProduct(userId, productId, updateData) {
     logger.info('ProductService.updateProduct called', { userId, productId });
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)) {
+    if (!UUID_REGEX.test(productId)) {
       throw new AppError(PRODUCT_NOT_FOUND, 'Product does not exist.', 404);
     }
 
     const { data: product, error: productError } = await supabase
       .from('products')
-      .select('*')
+      .select('id, shop_id, deleted_at, is_available')
       .eq('id', productId)
       .single();
 
@@ -393,13 +394,13 @@ class ProductService {
   static async deleteProduct(userId, productId) {
     logger.info('ProductService.deleteProduct called', { userId, productId });
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)) {
+    if (!UUID_REGEX.test(productId)) {
       throw new AppError(PRODUCT_NOT_FOUND, 'Product does not exist.', 404);
     }
 
     const { data: product, error: productError } = await supabase
       .from('products')
-      .select('*')
+      .select('id, shop_id, deleted_at')
       .eq('id', productId)
       .single();
 
@@ -420,9 +421,7 @@ class ProductService {
         deleted_at: new Date().toISOString(),
         is_available: false,
       })
-      .eq('id', productId)
-      .select('id')
-      .single();
+      .eq('id', productId);
 
     if (deleteError) {
       logger.error('ProductService: failed to soft delete product', {
@@ -613,15 +612,15 @@ class ProductService {
     // 1. Verify ownership
     await this._verifyOwnership(userId, shopId);
 
-    // 2. Validate pagination params
-    const validPage = Math.max(1, parseInt(page, 10) || 1);
-    const validLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 50));
+    // 2. Pagination params — callers should already pass integers, but guard anyway
+    const validPage = Math.max(1, page || 1);
+    const validLimit = Math.max(1, Math.min(100, limit || 50));
     const offset = (validPage - 1) * validLimit;
 
-    // 3. Fetch paginated products
-    const { data: products, error: fetchError } = await supabase
+    // 3. Single query: fetch paginated products + exact count in one round-trip
+    const { data: products, count: total, error: fetchError } = await supabase
       .from('products')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('shop_id', shopId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -634,22 +633,6 @@ class ProductService {
         error: fetchError.message,
       });
       throw new AppError(INTERNAL_ERROR, 'Failed to fetch products. Please try again.', 500);
-    }
-
-    // 4. Get total count for pagination
-    const { count: total, error: countError } = await supabase
-      .from('products')
-      .select('id', { count: 'exact' })
-      .eq('shop_id', shopId)
-      .is('deleted_at', null);
-
-    if (countError) {
-      logger.error('ProductService: count products failed', {
-        shopId,
-        userId,
-        error: countError.message,
-      });
-      throw new AppError(INTERNAL_ERROR, 'Failed to get product count. Please try again.', 500);
     }
 
     const totalCount = total || 0;

@@ -3,7 +3,7 @@
  * API calls for fetching and updating shop settings
  */
 
-import { apiClient } from '@/services/axios';
+import { client } from '@/services/api';
 import {
   ShopSettings,
   UpdateSettingsRequest,
@@ -20,7 +20,7 @@ export async function fetchShopSettings(shopId: string): Promise<ShopSettings> {
   try {
     logger.info('Fetching shop settings', { shopId });
 
-    const response = await apiClient.get<ShopSettings>(
+    const response = await client.get<ShopSettings>(
       `/shops/${shopId}/settings`
     );
 
@@ -69,7 +69,7 @@ export async function updateShopSettings(
   try {
     logger.info('Updating shop settings', { shopId, fields: Object.keys(data) });
 
-    const response = await apiClient.patch<UpdateSettingsResponse>(
+    const response = await client.patch<UpdateSettingsResponse>(
       `/shops/${shopId}/settings`,
       data
     );

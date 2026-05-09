@@ -29,6 +29,7 @@ const MOCK_PRODUCT: Product = {
   createdAt: '2026-04-01T00:00:00Z',
   updatedAt: '2026-04-01T00:00:00Z',
   isActive: true,
+  isAvailable: true,
 };
 
 const MOCK_PRODUCTS_RESPONSE = {

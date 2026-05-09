@@ -53,14 +53,13 @@ router.get(
       });
 
       // Fetch order to verify authorization
-      const orderQuery = await supabase
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .select('id, customer_id, shop_id')
-        .eq('id', orderId);
-      
-      const order = Array.isArray(orderQuery.data) ? orderQuery.data[0] : orderQuery.data;
+        .eq('id', orderId)
+        .single();
 
-      if (!order) {
+      if (orderError || !order) {
         return res.status(404).json(
           errorResponse('ORDER_NOT_FOUND', 'Order not found')
         );
@@ -166,15 +165,13 @@ router.post(
       });
 
       // Get order to find shop and customer
-      const queryResult = await supabase
+      const { data: order, error: orderFetchError } = await supabase
         .from('orders')
         .select('id, shop_id, customer_id')
-        .eq('id', orderId);
-      
-      const order = Array.isArray(queryResult.data) ? queryResult.data[0] : queryResult.data;
-      const orderError = !order ? queryResult.error : null;
+        .eq('id', orderId)
+        .single();
 
-      if (orderError || !order) {
+      if (orderFetchError || !order) {
         logger.warn('Send message: Order not found', { orderId });
         return res.status(404).json(
           errorResponse('ORDER_NOT_FOUND', 'Order not found')
@@ -194,7 +191,7 @@ router.post(
 
       // Create message
       const messageId = uuidv4();
-      const insertResult = await supabase
+      const { data: createdMessage, error: messageError } = await supabase
         .from('messages')
         .insert({
           id: messageId,
@@ -206,10 +203,9 @@ router.post(
           body: message,
           is_read: false,
           created_at: new Date().toISOString(),
-        });
-      
-      const createdMessage = Array.isArray(insertResult.data) ? insertResult.data[0] : insertResult.data;
-      const messageError = !createdMessage ? insertResult.error : null;
+        })
+        .select()
+        .single();
 
       if (messageError) {
         logger.error('Send message: Failed to create message', {

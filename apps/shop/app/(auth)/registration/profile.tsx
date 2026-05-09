@@ -31,17 +31,17 @@ import logger from '@/utils/logger';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { isConnected } = useNetworkStatus();
+  const { isOnline: isConnected } = useNetworkStatus();
   const { formData, setField, submitProfile, loading, error, setError } =
     useRegistration();
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
+    Record<string, string | undefined>
   >({});
 
   const validateForm = useCallback(() => {
-    const errors: Record<string, string> = {};
+    const errors: Record<string, string | undefined> = {};
 
     if (!formData.name.trim()) {
       errors.name = 'Shop name is required';
